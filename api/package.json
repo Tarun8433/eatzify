@@ -42,7 +42,7 @@
     "app:config": "ts-node -r tsconfig-paths/register ./.install-scripts/index.ts && npm install && npm run lint -- --fix",
     "seed:run:relational": "ts-node -r tsconfig-paths/register ./src/database/seeds/relational/run-seed.ts",
     "seed:run:document": "ts-node -r tsconfig-paths/register ./src/database/seeds/document/run-seed.ts",
-    "prebuild": "rimraf dist",
+    "prebuild": "rimraf dist && npm run build --workspace @eatzify/diet-engine",
     "start": "nest start",
     "start:swc": "nest start -b swc -w",
     "start:debug": "nest start --debug --watch",

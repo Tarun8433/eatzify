@@ -22,8 +22,8 @@ import appConfig from '../../../config/app.config';
     }),
     TypeOrmModule.forRootAsync({
       useClass: TypeOrmConfigService,
-      dataSourceFactory: async (options: DataSourceOptions) => {
-        return new DataSource(options).initialize();
+      dataSourceFactory: async (options?: DataSourceOptions) => {
+        return new DataSource(options!).initialize();
       },
     }),
   ],

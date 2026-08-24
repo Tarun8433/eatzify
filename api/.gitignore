@@ -8,3 +8,4 @@ coverage/
 *.log
 .boilerplate-tmp/
 .env.example.boilerplate
+*.tsbuildinfo

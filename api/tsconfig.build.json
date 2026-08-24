@@ -1,0 +1,13 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    // a stale .tsbuildinfo after rimraf makes tsc emit nothing; the build is fast enough without it
+    "incremental": false,
+    "outDir": "dist",
+    // For a build, @eatzify/diet-engine resolves through the workspace symlink to its BUILT dist.
+    // tsconfig.json keeps the source path alias, which is what jest and the IDE want.
+    "paths": {}
+  },
+  "exclude": ["node_modules", "dist", "test", "scripts", "packages", "**/*.spec.ts"]
+}

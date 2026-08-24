@@ -6,8 +6,18 @@
 	<true/>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
+	<!-- HealthKit. CLAUDE.md rule 10: read-only. We request SHARE (read) and deliberately not
+	     UPDATE (write) — Eatzify never writes to a user's health store. -->
+	<key>NSHealthShareUsageDescription</key>
+	<string>Eatzify reads your step count so your daily activity is reflected in your plan. You can turn this off at any time and enter steps yourself instead.</string>
+	<!-- mobile_scanner: barcode lookup against Open Food Facts (docs/20 §6) -->
+	<key>NSCameraUsageDescription</key>
+	<string>Eatzify uses the camera to scan a food barcode so you do not have to type the item in.</string>
+	<!-- image_picker: progress photos and coach documents -->
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Eatzify needs access to your photos so you can attach a progress photo. Photos are private to you and are never shown to other users.</string>
 	<key>CFBundleDisplayName</key>
-	<string>Health Pro</string>
+	<string>Eatzify</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -15,7 +25,7 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>health_pro</string>
+	<string>Eatzify</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>

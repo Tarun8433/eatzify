@@ -12,18 +12,11 @@ import multerS3 from 'multer-s3';
 
 import { FilesS3PresignedService } from './files.service';
 
-import { DocumentFilePersistenceModule } from '../../persistence/document/document-persistence.module';
 import { RelationalFilePersistenceModule } from '../../persistence/relational/relational-persistence.module';
 import { AllConfigType } from '../../../../config/config.type';
-import { DatabaseConfig } from '../../../../database/config/database-config.type';
-import databaseConfig from '../../../../database/config/database.config';
 
-// <database-block>
-const infrastructurePersistenceModule = (databaseConfig() as DatabaseConfig)
-  .isDocumentDatabase
-  ? DocumentFilePersistenceModule
-  : RelationalFilePersistenceModule;
-// </database-block>
+// docs/20 §2 + ADR-003: Postgres only. The boilerplate's document/Mongoose branch was removed.
+const infrastructurePersistenceModule = RelationalFilePersistenceModule;
 
 @Module({
   imports: [
