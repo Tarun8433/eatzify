@@ -59,3 +59,7 @@ build/
 ios/Pods/
 ios/.symlinks/
 ios/Flutter/ephemeral/
+
+# GPL-3.0 reference material — READ ONLY, never copied, never committed.
+# docs/20 §5: lifting code from OpenNutriTracker would make Eatzify GPL-3.0.
+ref_pro/
