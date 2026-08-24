@@ -77,6 +77,51 @@ void main() {
     expect(button().onPressed, isNotNull, reason: 'all four answered');
   });
 
+  testWidgets('Continue enables without blurring the last field', (tester) async {
+    // The exact sequence a real user performs: type all three, then tap a choice tile. Tapping a
+    // tile does not necessarily blur the weight field, so if values were only recorded on blur the
+    // form would look complete while Continue stayed disabled.
+    await tester.pumpWidget(app());
+    await tester.pumpAndSettle();
+
+    final fields = find.byType(TextField);
+    await tester.enterText(fields.at(0), '29');
+    await tester.enterText(fields.at(1), '173');
+    await tester.enterText(fields.at(2), '95.0');
+    await tester.pump();
+    await tapChoice(tester, 'Male');
+
+    expect(
+      tester.widget<FilledButton>(find.byType(FilledButton)).onPressed,
+      isNotNull,
+      reason: 'no blur happened, but every field holds a valid value',
+    );
+  });
+
+  testWidgets('an out-of-range value blocks Continue and explains why on blur', (tester) async {
+    await tester.pumpWidget(app());
+    await tester.pumpAndSettle();
+
+    final fields = find.byType(TextField);
+    await tester.enterText(fields.at(0), '29');
+    await tester.enterText(fields.at(1), '173');
+    await tester.enterText(fields.at(2), '9'); // below the 30 kg floor
+    await tester.pump();
+    await tapChoice(tester, 'Male');
+
+    expect(
+      tester.widget<FilledButton>(find.byType(FilledButton)).onPressed,
+      isNull,
+      reason: '9 kg is out of range, so the value must not be recorded',
+    );
+
+    await tester.tap(fields.at(2));
+    await tester.pumpAndSettle();
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pumpAndSettle();
+    expect(find.textContaining('between 30 and 250'), findsOneWidget);
+  });
+
   testWidgets('typing a partial age does not reject mid-keystroke', (tester) async {
     await tester.pumpWidget(app());
     await tester.pumpAndSettle();

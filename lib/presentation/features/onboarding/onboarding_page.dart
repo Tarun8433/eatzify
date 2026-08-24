@@ -162,6 +162,7 @@ class _BasicsStep extends StatelessWidget {
         _NumberField(
           label: l.fieldAge,
           helperText: '18 – 99',
+          onLiveChange: (v) => controller.setAge(int.tryParse(v), silent: true),
           onCommit: (v) => controller.setAge(int.tryParse(v)),
         ),
         const SizedBox(height: AppSpacing.lg),
@@ -170,6 +171,7 @@ class _BasicsStep extends StatelessWidget {
           // centimetre moves BMR by ~3 kcal — below the noise floor of self-reported activity.
           label: l.fieldHeightCm,
           helperText: '120 – 220',
+          onLiveChange: (v) => controller.setHeight(int.tryParse(v), silent: true),
           onCommit: (v) => controller.setHeight(int.tryParse(v)),
         ),
         const SizedBox(height: AppSpacing.lg),
@@ -177,6 +179,7 @@ class _BasicsStep extends StatelessWidget {
           label: l.fieldWeightKg,
           decimal: true,
           helperText: '30.0 – 250.0',
+          onLiveChange: (v) => controller.setWeight(double.tryParse(v), silent: true),
           onCommit: (v) => controller.setWeight(double.tryParse(v)),
         ),
         const SizedBox(height: AppSpacing.xl),
@@ -211,6 +214,7 @@ class _BasicsStep extends StatelessWidget {
 class _NumberField extends StatefulWidget {
   const _NumberField({
     required this.label,
+    required this.onLiveChange,
     required this.onCommit,
     this.decimal = false,
     this.helperText,
@@ -219,6 +223,11 @@ class _NumberField extends StatefulWidget {
   final String label;
   final bool decimal;
   final String? helperText;
+
+  /// Fires on every keystroke. Records a valid value without complaining about an incomplete one.
+  final ValueChanged<String> onLiveChange;
+
+  /// Fires on blur or submit. This is where a rejection is allowed to appear.
   final ValueChanged<String> onCommit;
 
   @override
@@ -260,6 +269,7 @@ class _NumberFieldState extends State<_NumberField> {
         // docs/03 §2 ranges, shown up front rather than only as a rejection after the fact.
         helperText: widget.helperText,
       ),
+      onChanged: widget.onLiveChange,
       onSubmitted: widget.onCommit,
       onEditingComplete: () => widget.onCommit(_controller.text),
     );

@@ -69,30 +69,49 @@ class OnboardingController extends GetxController {
     OnboardingStep.gate => false,
   };
 
-  void setAge(int? years) {
+  /// [silent] is used while the user is still typing: the value is recorded if it is valid, but no
+  /// rejection is shown yet. The field commits non-silently on blur or submit.
+  ///
+  /// Recording live matters — if the value were only stored on blur, the last field the user
+  /// touches would never commit and Continue would stay disabled with the form visibly complete.
+  void setAge(int? years, {bool silent = false}) {
     reject.value = null;
-    if (years == null) return;
+    if (years == null) {
+      ageYears.value = null;
+      return;
+    }
     final check = ValidateOnboarding.age(years);
     if (check.reject != null) {
-      reject.value = check.reject;
+      if (!silent) reject.value = check.reject;
       ageYears.value = null;
       return;
     }
     ageYears.value = years;
   }
 
-  void setHeight(int? cm) =>
-      _setMeasure(cm, 'height', ValidateOnboarding.heightCm, (v) => heightCm.value = v);
+  void setHeight(int? cm, {bool silent = false}) => _setMeasure(
+    cm,
+    'height',
+    ValidateOnboarding.heightCm,
+    (v) => heightCm.value = v,
+    silent: silent,
+  );
 
-  void setWeight(double? kg) =>
-      _setMeasure(kg, 'weight', ValidateOnboarding.weightKg, (v) => weightKg.value = v);
+  void setWeight(double? kg, {bool silent = false}) => _setMeasure(
+    kg,
+    'weight',
+    ValidateOnboarding.weightKg,
+    (v) => weightKg.value = v,
+    silent: silent,
+  );
 
   void _setMeasure<T extends num>(
     T? value,
     String field,
     FieldCheck Function(T) check,
-    void Function(T?) assign,
-  ) {
+    void Function(T?) assign, {
+    bool silent = false,
+  }) {
     reject.value = null;
     needsConfirm.remove(field);
     if (value == null) {
@@ -101,11 +120,12 @@ class OnboardingController extends GetxController {
     }
     final result = check(value);
     if (result.reject != null) {
-      reject.value = result.reject;
+      if (!silent) reject.value = result.reject;
       assign(null);
       return;
     }
-    if (result.confirmNeeded) needsConfirm.add(field);
+    // FR-1.4's confirm-on-outlier is only raised once the user has finished with the field.
+    if (result.confirmNeeded && !silent) needsConfirm.add(field);
     assign(value);
   }
 
