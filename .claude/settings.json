@@ -1,0 +1,72 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(dart analyze *)",
+      "Bash(dart format *)",
+      "Bash(dart run build_runner *)",
+      "Bash(docker compose logs *)",
+      "Bash(docker compose ps)",
+      "Bash(docker compose up *)",
+      "Bash(flutter analyze *)",
+      "Bash(flutter pub *)",
+      "Bash(flutter test *)",
+      "Bash(git add *)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "Bash(git status *)",
+      "Bash(npm run *)",
+      "Bash(npm test *)",
+      "Bash(npx eslint *)",
+      "Bash(npx prettier *)",
+      "Bash(npx tsc *)"
+    ],
+    "deny": [
+      "Bash(fastlane *)",
+      "Bash(flutter build appbundle --flavor prod*)",
+      "Bash(git push --force *)",
+      "Bash(npm publish *)",
+      "Bash(pg_dump *production*)",
+      "Bash(psql *production*)",
+      "Bash(rm -rf *)",
+      "Edit(./api/config/rule-packs/**)",
+      "Edit(./docs/05-clinical-safety-guardrails.md)",
+      "Read(**/*.jks)",
+      "Read(**/*.keystore)",
+      "Read(**/*service-account*.json)",
+      "Read(**/GoogleService-Info.plist)",
+      "Read(**/google-services.json)",
+      "Read(**/key.properties)",
+      "Read(**/secrets/**)",
+      "Read(./.env)",
+      "Read(./.env*)",
+      "Read(./.env.production)",
+      "Read(./.env.staging)"
+    ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jq -r '.tool_input.file_path' | grep -E '\\.dart$' | xargs -r dart format"
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jq -r '.tool_input.file_path' | grep -E '\\.(ts|js|json)$' | xargs -r npx prettier --write"
+          }
+        ]
+      }
+    ]
+  },
+  "env": {
+    "NODE_ENV": "development",
+    "TZ": "Asia/Kolkata"
+  }
+}

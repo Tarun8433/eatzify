@@ -1,0 +1,175 @@
+# Rule pack v1.0.0 — every nutrition constant the engine uses.
+# Source of truth: docs/04-diet-engine-spec.md · safety mirror: docs/05-clinical-safety-guardrails.md
+#
+# REVIEW STATUS: transcribed from doc 04/05 by tooling. docs/05 requires a named reviewer with a
+# clinical qualification, recorded in the ADR log, before this pack is used to serve a real user.
+version: "1.0.0"
+
+energy:
+  bmr:
+    formula: mifflin_st_jeor
+    male:   { weight: 10.0, height: 6.25, age: -5.0, constant: 5.0 }
+    female: { weight: 10.0, height: 6.25, age: -5.0, constant: -161.0 }
+    # intersex_prefer_not_say = mean of both + warnings.estimate_precision = "reduced"
+  activity_multipliers:
+    sedentary: 1.200
+    light:     1.375
+    moderate:  1.550
+    heavy:     1.725
+  goal_adjustment:
+    fat_loss:    { pct: -0.20, abs_cap_kcal: 750 }
+    muscle_gain: { pct:  0.12, abs_cap_kcal: 400 }
+    maintenance: { pct:  0.00, abs_cap_kcal: 0 }
+
+safety:
+  floor_kcal: { male: 1500, female: 1200 }
+  never_below_bmr_multiple: 1.00
+  max_deficit_pct_default: 0.20
+  max_deficit_pct_reduced: 0.15          # age >= 65, or t2d / htn / hypothyroid
+  reduced_deficit_age: 65
+  reduced_deficit_conditions: [type2_diabetes, hypertension, hypothyroid]
+  no_deficit_below_bmi: 22.0
+  force_maintenance_below_bmi: 18.5
+  weekly_loss_pct_min: 0.0025
+  weekly_loss_pct_max: 0.0100
+  kcal_per_kg_body_fat: 7700
+  blocking_gates:
+    conditions: [ckd, pregnancy, lactation, hyperthyroid, type_1_diabetes,
+                 eating_disorder, post_surgery]
+    min_age: 18
+    min_bmi: 16.0
+  clinician_gated:
+    conditions: [post_surgery]
+    min_age: 70
+    min_bmi: 40.0
+
+macros:
+  ibw_bmi_reference: 23.0                # Indian/Asian reference, NOT 25
+  abw_excess_fraction: 0.25
+  protein:
+    rate_g_per_kg_abw:
+      fat_loss:    { default: 1.8, min: 1.5, max: 2.0 }
+      muscle_gain: { default: 1.8, min: 1.6, max: 2.2 }
+      maintenance: { default: 1.1, min: 1.0, max: 1.2 }
+    max_g_per_kg_abw: 2.2
+    max_pct_energy: 0.40
+    min_g_per_kg_actual: 0.83            # ICMR RDA
+    renal_caution_rate: 1.0              # ckd, or >60 + diabetes + hypertension with unknown eGFR
+  fat:
+    pct_default: 0.25
+    pct_by_condition: { pcos: 0.30, type2_diabetes: 0.30 }
+    pct_by_goal:      { muscle_gain: 0.22 }
+    min_pct_energy: 0.20
+    min_g_per_kg_abw: 0.6
+    saturated_max_pct_default: 0.10
+    saturated_max_pct_tightened: 0.07    # hypertension or dyslipidemia
+  carbs:
+    min_g: 100
+  fibre:
+    g_per_1000_kcal: 14
+    min_g: 25
+    max_g: 45
+  sodium:
+    max_mg_default: 2000
+    max_mg_hypertension: 1500
+  added_sugar:
+    max_pct_energy: 0.05
+    max_g_absolute: 25                   # type2_diabetes / prediabetes / pcos
+  water:
+    ml_per_kg: 33
+    min_ml: 2000
+    max_ml: 4000
+
+meals:
+  patterns:
+    "3":   [{ slot: breakfast, pct: 0.30 }, { slot: lunch, pct: 0.40 }, { slot: dinner, pct: 0.30 }]
+    "4":   [{ slot: breakfast, pct: 0.25 }, { slot: lunch, pct: 0.35 },
+            { slot: snack, pct: 0.15 },     { slot: dinner, pct: 0.25 }]
+    "5_6": [{ slot: breakfast, pct: 0.22 }, { slot: mid_morning, pct: 0.08 },
+            { slot: lunch, pct: 0.30 },     { slot: evening, pct: 0.10 },
+            { slot: dinner, pct: 0.25 },    { slot: bedtime, pct: 0.05, optional: true }]
+  tolerance_pp: 5
+  min_protein_g_per_meal: 20
+  min_protein_g_per_kg_abw_per_meal: 0.25
+  snack_pct_threshold: 0.10
+  snack_min_protein_g: 10
+  max_pct_daily_protein_per_meal_gain: 0.40
+  max_carb_g_per_occasion_diabetes: 55
+  min_eating_occasions_diabetes: 4
+  fill_max_iterations: 50
+
+rounding:
+  kcal: integer
+  macros_g: integer
+  household_increments: [0.5, 1.0]
+  quantity_ml_increment: 50
+
+validation:
+  kcal_tolerance_pct: 0.03
+  protein_tolerance_g: 5
+
+# docs/04 §6 — medical overrides, evaluated in priority order. Each entry contributes constraints
+# that are INTERSECTED with what came before: a later rule may tighten, never loosen.
+# Priorities 1–4 (ckd, pregnancy, lactation, post_surgery, hyperthyroid) are blocking gates handled
+# by the safety layer, not here.
+overrides:
+  - priority: 5
+    when: { conditions_any: [type2_diabetes, prediabetes] }
+    constraints:
+      max_deficit_pct: 0.15
+      added_sugar_max_g: 25
+      min_low_gi_carb_fraction: 0.70
+      max_carb_g_per_occasion: 55
+      min_eating_occasions: 4
+      exclude_tags: ["gi:high", "attr:fruit_juice", "attr:sweets", "attr:refined_flour"]
+
+  - priority: 6
+    when: { conditions_any: [hypertension] }
+    constraints:
+      sodium_max_mg: 1500
+      saturated_max_pct_energy: 0.07
+      exclude_tags: ["attr:pickle", "attr:papad", "attr:processed_meat", "attr:instant_noodles",
+                     "attr:high_sodium_prepared"]
+      prefer_tags: ["attr:low_sodium", "attr:potassium_rich"]
+
+  - priority: 7
+    when: { conditions_any: [pcos] }
+    constraints:
+      added_sugar_max_g: 25
+      max_carb_pct_energy: 0.45
+      min_low_gi_carb_fraction: 0.70
+      prefer_tags: ["attr:high_fibre"]
+
+  - priority: 8
+    when: { conditions_any: [hypothyroid] }
+    constraints:
+      max_deficit_pct: 0.15
+      separate_from_medication_hours: 4
+      separate_tags: ["attr:soy", "attr:calcium_rich"]
+
+  - priority: 10
+    when: { food_preference: jain }
+    constraints:
+      exclude_tags: ["attr:root_veg"]
+
+  - priority: 11
+    when: { budget_tier: low }
+    constraints:
+      cost_low_fraction: 0.80
+
+  - priority: 12
+    when: { lifestyle: office }
+    constraints:
+      min_portable_meals: 2
+  - priority: 12
+    when: { lifestyle: student }
+    constraints:
+      max_prep_minutes: 15
+  - priority: 12
+    when: { lifestyle: night_shift }
+    constraints:
+      shift_meal_windows: true
+
+# Pool-relaxation order when intersecting constraints empty a meal slot (docs/04 §6).
+# Allergy, preference and condition constraints are NEVER relaxed.
+relaxation_order: [budget, lifestyle, region, prep]

@@ -1,0 +1,5 @@
+{
+  "@@locale": "en",
+  "appTitle": "Eatzify",
+  "@appTitle": { "description": "Application name, shown in the OS task switcher" }
+}

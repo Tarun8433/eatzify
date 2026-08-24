@@ -1,0 +1,62 @@
+{
+  "name": "eatzify-api",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Eatzify REST API \u2014 NestJS + Postgres + Redis. See ../docs/06-architecture.md",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "nest build",
+    "start:dev": "nest start --watch",
+    "start:prod": "node dist/main",
+    "lint": "eslint \"{src,test,packages}/**/*.ts\" --fix",
+    "format": "prettier --write \"{src,test,packages}/**/*.ts\"",
+    "test": "jest",
+    "test:e2e": "jest --config ./test/jest-e2e.json",
+    "migration:run": "typeorm-ts-node-commonjs migration:run -d src/database/data-source.ts",
+    "migration:generate": "typeorm-ts-node-commonjs migration:generate -d src/database/data-source.ts",
+    "test:engine": "npm test --workspace @eatzify/diet-engine",
+    "pack:validate": "ts-node scripts/validate-rule-packs.ts"
+  },
+  "dependencies": {
+    "@nestjs/common": "^11",
+    "@nestjs/core": "^11",
+    "@nestjs/platform-express": "^11",
+    "@nestjs/config": "^4",
+    "@nestjs/throttler": "^6",
+    "@nestjs/bullmq": "^11",
+    "typeorm": "^0.3",
+    "pg": "^8",
+    "ioredis": "^5",
+    "class-validator": "^0.14",
+    "class-transformer": "^0.5",
+    "nestjs-i18n": "^10",
+    "nestjs-pino": "^4",
+    "helmet": "^8",
+    "razorpay": "^2",
+    "googleapis": "^144",
+    "js-yaml": "^4",
+    "zod": "^3",
+    "@adminjs/nestjs": "^6",
+    "@adminjs/typeorm": "^5",
+    "firebase-admin": "^13",
+    "@sentry/nestjs": "^9",
+    "reflect-metadata": "^0.2",
+    "rxjs": "^7",
+    "@eatzify/diet-engine": "*"
+  },
+  "devDependencies": {
+    "@nestjs/cli": "^11",
+    "@nestjs/testing": "^11",
+    "@types/js-yaml": "^4",
+    "@types/node": "^22",
+    "@types/jest": "^29",
+    "jest": "^29",
+    "ts-jest": "^29",
+    "ts-node": "^10",
+    "typescript": "^5",
+    "eslint": "^9",
+    "prettier": "^3"
+  }
+}
