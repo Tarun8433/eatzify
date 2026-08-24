@@ -56,3 +56,6 @@ graphify-out/
 
 # flutter build output
 build/
+ios/Pods/
+ios/.symlinks/
+ios/Flutter/ephemeral/

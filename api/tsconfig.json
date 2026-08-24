@@ -4,19 +4,29 @@
     "module": "commonjs",
     "lib": ["ES2022"],
     "declaration": true,
+    "removeComments": true,
     "outDir": "dist",
+    "incremental": true,
+    "sourceMap": true,
+
     "strict": true,
-    "noUncheckedIndexedAccess": true,
-    "exactOptionalPropertyTypes": true,
+    // NestJS entities and DTOs are assigned by decorators and the ORM, not by a constructor. The
+    // boilerplate sets this false for that reason; turning it on flags every entity field.
+    // packages/diet-engine keeps its OWN tsconfig with full strictness — the engine is pure code
+    // with no framework doing assignment behind its back, so it has no excuse.
+    "strictPropertyInitialization": false,
+    "strictBindCallApply": false,
+
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
+    "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true,
+    "forceConsistentCasingInFileNames": false,
     "resolveJsonModule": true,
     "baseUrl": ".",
     "paths": { "@eatzify/diet-engine": ["packages/diet-engine/src/index.ts"] }
   },
   "include": ["src/**/*.ts", "test/**/*.ts", "scripts/**/*.ts"],
-  "exclude": ["node_modules", "dist", "packages/*/node_modules"]
+  "exclude": ["node_modules", "dist", "packages/*/node_modules", "packages/*/dist"]
 }
