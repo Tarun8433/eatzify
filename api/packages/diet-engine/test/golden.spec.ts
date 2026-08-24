@@ -232,6 +232,45 @@ describe('GV-06 — hard floor engaged', () => {
   });
 });
 
+describe('GV-06b — hard floor engaged, with corrected inputs', () => {
+  /**
+   * GV-06 as written cannot demonstrate its own point (see above). Its stated outputs — bmr 1071,
+   * tdee 1285, raw target 1028 — are however internally consistent and reproducible: they are what
+   * Mifflin gives for a female of 45 y / 155 cm / 48.8 kg, sedentary. The age matches doc 16; the
+   * height and weight appear to have been mistranscribed as 148 cm / 44.0 kg.
+   *
+   * With those inputs the vector works as intended: BMI 20.3 suppresses the deficit, target becomes
+   * TDEE 1285, and because 1285 > the 1200 female floor the floor never binds — which is only true
+   * if the BMI check ran first. Had the floor been applied to the raw 1028 target, the answer would
+   * be 1200. Proposed replacement for GV-06 (D-14).
+   */
+  const out = generatePlan(
+    input({
+      sexAtBirth: 'female', ageYears: 45, heightCm: 155, weightKg: 48.8,
+      activityLevel: 'sedentary', goal: 'fat_loss',
+    }),
+    pack,
+  );
+
+  it("reproduces doc 16 GV-06's stated bmr 1071 and tdee 1285", () => {
+    expect(out.derived?.bmr).toBe(1071);
+    expect(out.derived?.tdee).toBe(1285);
+  });
+
+  it('suppresses the deficit at bmi 20.3', () => {
+    expect(out.derived?.bmi).toBe(20.3);
+    expect(out.derived?.effectiveGoal).toBe('maintenance');
+    expect(out.warnings).toContain('deficit_suppressed_low_bmi');
+  });
+
+  it('lands on 1285, not the 1200 floor — proving the BMI check precedes it', () => {
+    expect(out.targets?.kcal).toBe(1285);
+    expect(out.warnings).not.toContain('target_raised_to_floor');
+    // the raw 20 % deficit would have been 1028, which the floor would have lifted to 1200
+    expect(Math.round((out.derived?.tdee ?? 0) * 0.8)).toBe(1028);
+  });
+});
+
 describe('GV-07 — blocking gates emit no plan', () => {
   const blocked: ReadonlyArray<[string, Parameters<typeof input>[0], string]> = [
     ['pregnancy', { conditions: ['pregnancy'] }, 'pregnancy'],

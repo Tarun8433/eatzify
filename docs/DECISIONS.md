@@ -151,3 +151,19 @@ household-measures table is manual data entry — it cannot start without a CRUD
 gives one in about a day (doc 20 §3) versus a week hand-built.
 **Reverses if** the boilerplate turns out to fight us more than it helps — the prune list is the
 early warning.
+
+## D-21 — supersedes D-14: GV-06's outputs were right, its inputs were mistranscribed
+**When** 2026-08-24 · **Decision** Keep GV-06's stated outputs. Replace its inputs with
+**female, 45 y, 155 cm, 48.8 kg, sedentary**. Landed as `GV-06b` in `golden.spec.ts`; the original
+GV-06 test stays as the record of the defect.
+**Why** D-14 concluded the vector was arithmetically unsound. That was half right. Searching for the
+profile that yields doc 16's stated `bmr 1071 · tdee 1285 · raw target 1028` finds an exact match at
+45 y / 155 cm / 48.8 kg — the **age matches the doc**, so only height and weight were mistyped
+(148 cm / 44.0 kg). BMI comes out 20.3 against the doc's stated 20.1, consistent with rounding.
+
+With the corrected inputs the vector demonstrates exactly what it claims: BMI 20.3 suppresses the
+deficit, target becomes TDEE 1285, and since 1285 > the 1200 female floor the floor never binds —
+which is only true if the BMI check ran first. Applying the floor to the raw 1028 target would have
+given 1200.
+**Status** Resolved, pending your confirmation that 155 cm / 48.8 kg is the intended profile. D-12 and
+D-13 remain open; D-13 still needs the clinical reviewer.
