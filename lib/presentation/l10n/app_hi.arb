@@ -1,4 +1,34 @@
 {
   "@@locale": "hi",
-  "appTitle": "ईट्ज़िफ़ाई"
+
+  "appTitle": "ईट्ज़िफ़ाई",
+
+  "tabHome": "होम",
+  "tabPlan": "प्लान",
+  "tabProgress": "प्रगति",
+  "tabYou": "आप",
+
+  "logEntry": "एंट्री दर्ज करें",
+  "logFood": "भोजन",
+  "logWater": "पानी",
+  "logWeight": "वज़न",
+  "logSteps": "कदम",
+
+  "notAvailableYet": "{feature} लॉगिंग अभी जुड़ी नहीं है।",
+
+  "homeSubtitle": "आज एक नज़र में",
+  "homeEmptyTitle": "अभी दिखाने के लिए कुछ नहीं",
+  "homeEmptyBody": "प्लान सक्रिय होने पर आपके रिंग, अगला भोजन और क्विक लॉग यहाँ दिखेंगे।",
+
+  "planSubtitle": "आज के भोजन",
+  "planEmptyTitle": "कोई सक्रिय प्लान नहीं",
+  "planEmptyBody": "ऑनबोर्डिंग पूरी करें, आपके लिए प्लान बन जाएगा।",
+
+  "progressSubtitle": "वज़न, अनुपालन और मैक्रो",
+  "progressEmptyTitle": "अभी पर्याप्त डेटा नहीं",
+  "progressEmptyBody": "कुछ दिन अपना वज़न दर्ज करें, आपका ट्रेंड यहाँ दिखेगा।",
+
+  "accountSubtitle": "प्रोफ़ाइल, प्लान और निजता",
+  "accountEmptyTitle": "साइन इन नहीं किया",
+  "accountEmptyBody": "प्रोफ़ाइल, सब्सक्रिप्शन और निजता नियंत्रण देखने के लिए साइन इन करें।"
 }

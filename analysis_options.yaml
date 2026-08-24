@@ -9,6 +9,10 @@
 # packages, and plugins designed to encourage good coding practices.
 include: package:very_good_analysis/analysis_options.yaml
 
+formatter:
+  # 100 fits a widget tree without wrapping every constructor call onto its own line.
+  page_width: 100
+
 analyzer:
   exclude:
     - lib/presentation/l10n/app_localizations*.dart
@@ -28,6 +32,11 @@ linter:
     # pubspec dependencies are grouped by concern per docs/20-foundations-boilerplates.md §7.
     # That grouping carries the "why" for each pin; alphabetical order would destroy it.
     sort_pub_dependencies: false
+    # very_good_analysis targets published packages. This is an application: every public member
+    # does not need a dartdoc, and requiring one buries the comments that do carry information.
+    public_member_api_docs: false
+    # Superseded by formatter.page_width above — the lint itself has no length option.
+    lines_longer_than_80_chars: false
 
 # Additional information about this file can be found at
 # https://dart.dev/guides/language/analysis-options

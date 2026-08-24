@@ -53,3 +53,6 @@ lib/presentation/l10n/app_localizations*.dart
 
 # graphify build output (regenerable)
 graphify-out/
+
+# flutter build output
+build/

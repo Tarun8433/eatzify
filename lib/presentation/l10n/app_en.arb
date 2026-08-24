@@ -1,5 +1,40 @@
 {
   "@@locale": "en",
+
   "appTitle": "Eatzify",
-  "@appTitle": { "description": "Application name, shown in the OS task switcher" }
+  "@appTitle": { "description": "Application name, shown in the OS task switcher" },
+
+  "tabHome": "Home",
+  "tabPlan": "Plan",
+  "tabProgress": "Progress",
+  "tabYou": "You",
+
+  "logEntry": "Log an entry",
+  "@logEntry": { "description": "Accessible label for the centre [+] button" },
+  "logFood": "Food",
+  "logWater": "Water",
+  "logWeight": "Weight",
+  "logSteps": "Steps",
+
+  "notAvailableYet": "{feature} logging isn't connected yet.",
+  "@notAvailableYet": {
+    "description": "Placeholder inside the log sheet while the logs API is unbuilt",
+    "placeholders": { "feature": { "type": "String" } }
+  },
+
+  "homeSubtitle": "Today at a glance",
+  "homeEmptyTitle": "Nothing to show yet",
+  "homeEmptyBody": "Your rings, next meal and quick log appear here once a plan is active.",
+
+  "planSubtitle": "Today's meals",
+  "planEmptyTitle": "No active plan",
+  "planEmptyBody": "Finish onboarding and a plan is generated for you.",
+
+  "progressSubtitle": "Weight, adherence and macros",
+  "progressEmptyTitle": "Not enough data yet",
+  "progressEmptyBody": "Log your weight for a few days and your trend appears here.",
+
+  "accountSubtitle": "Profile, plan and privacy",
+  "accountEmptyTitle": "Not signed in",
+  "accountEmptyBody": "Sign in to see your profile, subscription and privacy controls."
 }
