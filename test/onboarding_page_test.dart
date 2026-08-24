@@ -53,8 +53,25 @@ Future<void> fillBasics(WidgetTester tester) async {
   await tapChoice(tester, 'Male');
 }
 
-/// Walks every step to the end. Mirrors what a user does, so a broken step fails here first.
-Future<void> completeFlow(WidgetTester tester) async {
+/// docs/05 §4 has three yes/no questions; taps are positional because 'Yes'/'No' repeat.
+Future<void> answerScreening(
+  WidgetTester tester, {
+  required bool specialDiet,
+  required bool insulinOrKidney,
+  required bool eatingDisorder,
+}) async {
+  final answers = [specialDiet, insulinOrKidney, eatingDisorder];
+  for (var q = 0; q < answers.length; q++) {
+    final finder = find.text(answers[q] ? 'Yes' : 'No').at(q);
+    await tester.ensureVisible(finder);
+    await tester.pumpAndSettle();
+    await tester.tap(finder);
+    await tester.pumpAndSettle();
+  }
+}
+
+/// Walks as far as the screening step, leaving it unanswered.
+Future<void> reachScreening(WidgetTester tester) async {
   await fillBasics(tester);
   for (final tap in [
     'Continue',
@@ -63,6 +80,17 @@ Future<void> completeFlow(WidgetTester tester) async {
     'Moderately active',
     'Continue',
     'None of these',
+    'Continue',
+  ]) {
+    await tapChoice(tester, tap);
+  }
+}
+
+/// Walks every step to the end. Mirrors what a user does, so a broken step fails here first.
+Future<void> completeFlow(WidgetTester tester) async {
+  await reachScreening(tester);
+  await answerScreening(tester, specialDiet: false, insulinOrKidney: false, eatingDisorder: false);
+  for (final tap in [
     'Continue',
     'Vegetarian',
     'Continue',
@@ -249,6 +277,81 @@ void main() {
     // docs/05 §3: no plan, and no way to push past it.
     expect(find.textContaining("Let's not plan this on our own"), findsOneWidget);
     expect(find.text('Continue'), findsNothing);
+  });
+
+  group('docs/05 §4 screening routes to three DIFFERENT screens', () {
+    testWidgets('an eating-disorder disclosure gets the support message, not a referral', (
+      tester,
+    ) async {
+      await tester.pumpWidget(app());
+      await tester.pumpAndSettle();
+      await reachScreening(tester);
+      await answerScreening(
+        tester,
+        specialDiet: false,
+        insulinOrKidney: false,
+        eatingDisorder: true,
+      );
+      await tapChoice(tester, 'Continue');
+
+      // docs/05 §7 verbatim, and it must NOT be the generic referral or the coach-unlock text.
+      expect(find.textContaining('not going to set calorie or weight targets'), findsOneWidget);
+      expect(find.textContaining("isn't the right tool here"), findsNothing);
+      expect(find.textContaining('Your coach can unlock it'), findsNothing);
+    });
+
+    testWidgets('insulin or kidney medication is a hard block', (tester) async {
+      await tester.pumpWidget(app());
+      await tester.pumpAndSettle();
+      await reachScreening(tester);
+      await answerScreening(
+        tester,
+        specialDiet: false,
+        insulinOrKidney: true,
+        eatingDisorder: false,
+      );
+      await tapChoice(tester, 'Continue');
+
+      expect(find.textContaining("isn't the right tool here"), findsOneWidget);
+    });
+
+    testWidgets('a clinician-prescribed diet routes to the coach unlock', (tester) async {
+      await tester.pumpWidget(app());
+      await tester.pumpAndSettle();
+      await reachScreening(tester);
+      await answerScreening(
+        tester,
+        specialDiet: true,
+        insulinOrKidney: false,
+        eatingDisorder: false,
+      );
+      await tapChoice(tester, 'Continue');
+
+      expect(find.textContaining('Your coach can unlock it'), findsOneWidget);
+    });
+
+    testWidgets('an eating-disorder screen cannot be backed out of into the form', (tester) async {
+      await tester.pumpWidget(app());
+      await tester.pumpAndSettle();
+      await reachScreening(tester);
+      await answerScreening(
+        tester,
+        specialDiet: false,
+        insulinOrKidney: false,
+        eatingDisorder: true,
+      );
+      await tapChoice(tester, 'Continue');
+
+      // No enabled action back into a calorie form, and no paywall (docs/05 §6).
+      final buttons = tester.widgetList<FilledButton>(find.byType(FilledButton));
+      expect(buttons.every((b) => b.onPressed == null), isTrue);
+    });
+  });
+
+  testWidgets('the disclaimer appears in the onboarding footer (docs/05 §7)', (tester) async {
+    await tester.pumpWidget(app());
+    await tester.pumpAndSettle();
+    expect(find.textContaining('is not medical advice'), findsOneWidget);
   });
 
   testWidgets('men are never asked about pregnancy (FR-1.3)', (tester) async {

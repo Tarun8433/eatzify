@@ -185,3 +185,27 @@ documents. `AWS_S3_REGION` became optional in the validator, since R2 has no reg
 empty and a real region, and the same code speaks to S3.
 **Watch** R2 presigned URLs must stay the only way health imagery is served — `docs/13` §6. Do not
 attach a public custom domain to the bucket holding progress photos.
+
+## D-23 — Safety copy is quoted verbatim from docs/05 §7, and Hindi needs sign-off
+**When** 2026-08-24 · **Decision** Every safety string in the app is the exact text from
+`docs/05-clinical-safety-guardrails.md` §7 — under-18 block, blocking gate, clinician gate, safety
+clamp, disclaimer, eating-disorder routing. The disclaimer now also appears in the onboarding footer.
+**Why** §7 says "use verbatim; do not paraphrase". The first onboarding build shipped my own wording
+on the gate screen, which is exactly the drift that section exists to prevent — the phrasing *is* the
+safety feature. `CLAUDE.md` rule 7 says the same thing for server-supplied text.
+**Open** The Hindi strings are a translation, and a translation is by definition not verbatim. They
+are provisional and need the qualified reviewer `docs/05` §8 requires before any Hindi launch. The
+eating-disorder helpline link is deliberately inert: §7 flags that the India-appropriate resource
+must be verified with a clinician before shipping.
+
+## D-24 — docs/05 §4 screening is its own step with three distinct outcomes
+**When** 2026-08-24 · **Decision** Added a screening step after conditions, asking §4's three
+questions. It routes to one of three end states: `eatingDisorderSupport`, `blocked`,
+`clinicianRequired` — evaluated in that severity order.
+**Why** The condition multi-select cannot catch these. `docs/03` §2 has no `eating_disorder` or
+`type_1_diabetes` value, because §4 collects them by question instead. Conflating the three outcomes
+would put eating-disorder support behind a coach-unlock, or tell a pregnant user that a coach can
+unlock a plan for her. They are not interchangeable, so they are separate enum values with separate
+copy and separate tests.
+**Note** The support screen cannot be backed out of into the calorie form, and carries no enabled
+action — `docs/05` §6: a safety message is never behind a paywall or a "continue anyway".

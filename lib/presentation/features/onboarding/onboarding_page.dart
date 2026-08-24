@@ -41,6 +41,7 @@ class OnboardingPage extends StatelessWidget {
                     OnboardingStep.goal => _GoalStep(controller: c),
                     OnboardingStep.activity => _ActivityStep(controller: c),
                     OnboardingStep.conditions => _ConditionsStep(controller: c),
+                    OnboardingStep.screening => _ScreeningStep(controller: c),
                     OnboardingStep.diet => _DietStep(controller: c),
                     OnboardingStep.routine => _RoutineStep(controller: c),
                     OnboardingStep.consent => _ConsentStep(controller: c),
@@ -121,6 +122,9 @@ class _Footer extends StatelessWidget {
               onPressed: controller.canAdvance ? controller.next : null,
               child: Text(isLast ? l.onboardingFinish : l.onboardingNext),
             ),
+            // docs/05 §7: the disclaimer belongs in the onboarding footer, not only on plan screens.
+            const SizedBox(height: AppSpacing.md),
+            const _Disclaimer(),
           ],
         );
       }),
@@ -418,6 +422,88 @@ class _ChoiceGroup<T> extends StatelessWidget {
   }
 }
 
+/// A single yes/no screening question. docs/05 §4: asked plainly, with no score shown.
+class _YesNo extends StatelessWidget {
+  const _YesNo({required this.question, required this.value, required this.onChanged});
+
+  final String question;
+  final bool? value;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSpacing.xl),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(question, style: theme.textTheme.bodyMedium),
+          const SizedBox(height: AppSpacing.md),
+          Row(
+            children: [
+              for (final answer in [true, false])
+                Expanded(
+                  child: Padding(
+                    padding: EdgeInsets.only(right: answer ? AppSpacing.sm : 0),
+                    child: ChoiceTile(
+                      label: answer ? l.answerYes : l.answerNo,
+                      selected: value == answer,
+                      onTap: () => onChanged(answer),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// docs/05 §4 — the three screening questions. These catch what the condition list cannot: a
+/// clinician-prescribed diet, insulin or kidney medication, and an eating-disorder history.
+class _ScreeningStep extends StatelessWidget {
+  const _ScreeningStep({required this.controller});
+  final OnboardingController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _StepTitle(l.screeningTitle, subtitle: l.screeningSubtitle),
+        Obx(() {
+          final q1 = controller.screenedSpecialDiet.value;
+          final q2 = controller.screenedInsulinOrKidney.value;
+          final q3 = controller.screenedEatingDisorder.value;
+          return Column(
+            children: [
+              _YesNo(
+                question: l.screeningQ1,
+                value: q1,
+                onChanged: (v) => controller.screenedSpecialDiet.value = v,
+              ),
+              _YesNo(
+                question: l.screeningQ2,
+                value: q2,
+                onChanged: (v) => controller.screenedInsulinOrKidney.value = v,
+              ),
+              _YesNo(
+                question: l.screeningQ3,
+                value: q3,
+                onChanged: (v) => controller.screenedEatingDisorder.value = v,
+              ),
+            ],
+          );
+        }),
+      ],
+    );
+  }
+}
+
 class _DietStep extends StatelessWidget {
   const _DietStep({required this.controller});
   final OnboardingController controller;
@@ -570,8 +656,12 @@ class _DoneView extends StatelessWidget {
   }
 }
 
-/// docs/05 §3 referral screen. A dead end on purpose: no plan, no "continue anyway", no paywall.
-/// docs/05 §6 — a safety message is never behind a subscription.
+/// The end-of-flow screens. docs/05 §3 and §4 route to three different messages, each quoted
+/// VERBATIM from docs/05 §7 — that section says "use verbatim; do not paraphrase", because the
+/// wording is the safety feature, not decoration around it.
+///
+/// All three are dead ends with no "continue anyway" and no paywall (docs/05 §6: a safety message
+/// is never behind a subscription).
 class _GateView extends StatelessWidget {
   const _GateView({required this.controller});
   final OnboardingController controller;
@@ -580,19 +670,47 @@ class _GateView extends StatelessWidget {
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     final theme = Theme.of(context);
-    return Padding(
-      padding: const EdgeInsets.all(AppSpacing.xl),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(l.gateTitle, style: theme.textTheme.headlineMedium),
-          const SizedBox(height: AppSpacing.lg),
-          Text(l.gateBody, style: theme.textTheme.bodyMedium),
-          const SizedBox(height: AppSpacing.xxl),
-          FilledButton(onPressed: controller.back, child: Text(l.gateAction)),
-        ],
-      ),
-    );
+
+    return Obx(() {
+      final outcome = controller.outcome.value ?? GateOutcome.blocked;
+      final body = switch (outcome) {
+        GateOutcome.blocked => l.copyBlockingGate,
+        GateOutcome.clinicianRequired => l.copyClinicianGate,
+        GateOutcome.eatingDisorderSupport => l.copyEdSupport,
+      };
+
+      return Padding(
+        padding: const EdgeInsets.all(AppSpacing.xl),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(l.gateTitle, style: theme.textTheme.headlineMedium),
+            const SizedBox(height: AppSpacing.lg),
+            Text(body, style: theme.textTheme.bodyMedium),
+            const SizedBox(height: AppSpacing.xxl),
+            if (outcome == GateOutcome.eatingDisorderSupport)
+              // docs/05 §7 flags that the India-appropriate helpline must be verified with a
+              // clinician before shipping, so this deliberately does not link anywhere yet.
+              FilledButton(onPressed: null, child: Text(l.copyEdSupportFindHelp))
+            else
+              FilledButton(onPressed: controller.back, child: Text(l.gateTalkToCoach)),
+            const SizedBox(height: AppSpacing.xl),
+            const _Disclaimer(),
+          ],
+        ),
+      );
+    });
+  }
+}
+
+/// docs/05 §7: the disclaimer appears on every plan screen, every export, and the onboarding footer.
+class _Disclaimer extends StatelessWidget {
+  const _Disclaimer();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Text(AppLocalizations.of(context).copyDisclaimer, style: theme.textTheme.bodySmall);
   }
 }

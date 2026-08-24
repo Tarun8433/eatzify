@@ -6,7 +6,32 @@ import 'package:health_pro/domain/usecases/validate_onboarding.dart';
 /// Steps of the onboarding flow. docs/14 §6.
 ///
 /// `gate` is not reached by advancing — it is jumped to when docs/05 §3 says no plan may be made.
-enum OnboardingStep { basics, goal, activity, conditions, diet, routine, consent, gate, done }
+enum OnboardingStep {
+  basics,
+  goal,
+  activity,
+  conditions,
+  screening,
+  diet,
+  routine,
+  consent,
+  gate,
+  done,
+}
+
+/// Why the flow stopped. docs/05 §3 and §4 route to three DIFFERENT screens, and conflating them
+/// would put eating-disorder support behind a coach-unlock, or tell a pregnant user a coach can
+/// unlock a plan for her. They are not interchangeable.
+enum GateOutcome {
+  /// No plan, ever, from the app. Referral to a clinician.
+  blocked,
+
+  /// A coach with a recorded clinician attestation can unlock it.
+  clinicianRequired,
+
+  /// Eating-disorder disclosure. Support screen, no targets, and no re-ask for 90 days.
+  eatingDisorderSupport,
+}
 
 /// Holds the draft and walks the steps. docs/14 §3: one controller per screen, reactive `.obs`
 /// fields, no god-object state class.
@@ -36,6 +61,14 @@ class OnboardingController extends GetxController {
 
   final consentGranted = false.obs;
 
+  // docs/05 §4 screening. Asked once, plainly, with no score shown to the user.
+  final screenedSpecialDiet = Rxn<bool>(); // Q1 -> clinician gate
+  final screenedInsulinOrKidney = Rxn<bool>(); // Q2 -> hard block
+  final screenedEatingDisorder = Rxn<bool>(); // Q3 -> support routing
+
+  /// Which end state fired, if any.
+  final outcome = Rxn<GateOutcome>();
+
   /// Set when a field is rejected. The UI maps it to l10n — no copy in the controller.
   final reject = Rxn<OnboardingReject>();
 
@@ -50,6 +83,7 @@ class OnboardingController extends GetxController {
     OnboardingStep.goal,
     OnboardingStep.activity,
     OnboardingStep.conditions,
+    OnboardingStep.screening,
     OnboardingStep.diet,
     OnboardingStep.routine,
     OnboardingStep.consent,
@@ -75,6 +109,10 @@ class OnboardingController extends GetxController {
     OnboardingStep.goal => goal.value != null,
     OnboardingStep.activity => activity.value != null,
     OnboardingStep.conditions => conditions.isNotEmpty,
+    OnboardingStep.screening =>
+      screenedSpecialDiet.value != null &&
+          screenedInsulinOrKidney.value != null &&
+          screenedEatingDisorder.value != null,
     // Allergies are legitimately empty for most people, so they do not gate the step.
     OnboardingStep.diet => foodPreference.value != null,
     OnboardingStep.routine =>
@@ -164,6 +202,27 @@ class OnboardingController extends GetxController {
       final fired = ValidateOnboarding.blockingGates(conditions.toSet());
       if (fired.isNotEmpty) {
         gates.assignAll(fired);
+        outcome.value = GateOutcome.blocked;
+        step.value = OnboardingStep.gate;
+        return;
+      }
+    }
+
+    // docs/05 §4 — evaluated in severity order. An eating-disorder disclosure outranks everything
+    // else: it must never be answered with a coach-unlock or a referral for a different reason.
+    if (step.value == OnboardingStep.screening) {
+      final routed = switch ((
+        screenedEatingDisorder.value,
+        screenedInsulinOrKidney.value,
+        screenedSpecialDiet.value,
+      )) {
+        (true, _, _) => GateOutcome.eatingDisorderSupport,
+        (_, true, _) => GateOutcome.blocked,
+        (_, _, true) => GateOutcome.clinicianRequired,
+        _ => null,
+      };
+      if (routed != null) {
+        outcome.value = routed;
         step.value = OnboardingStep.gate;
         return;
       }
@@ -182,8 +241,13 @@ class OnboardingController extends GetxController {
   void back() {
     reject.value = null;
     if (step.value == OnboardingStep.gate) {
-      step.value = OnboardingStep.conditions;
+      // An eating-disorder support screen is not a step you back out of into a calorie form.
+      if (outcome.value == GateOutcome.eatingDisorderSupport) return;
+      step.value = outcome.value == GateOutcome.blocked && gates.isNotEmpty
+          ? OnboardingStep.conditions
+          : OnboardingStep.screening;
       gates.clear();
+      outcome.value = null;
       return;
     }
     if (step.value == OnboardingStep.done) {
