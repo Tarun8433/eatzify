@@ -16,6 +16,9 @@ formatter:
 analyzer:
   exclude:
     - lib/presentation/l10n/app_localizations*.dart
+    # GPL-3.0 reference material (docs/20 §5). Read-only, never compiled into Eatzify, and its
+    # analyzer errors are not ours to fix.
+    - ref_pro/**
 
 linter:
   # The lint rules applied to this project can be customized in the
