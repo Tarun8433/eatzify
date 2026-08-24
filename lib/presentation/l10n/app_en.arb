@@ -132,5 +132,17 @@
         "type": "int"
       }
     }
-  }
+  },
+  "onboardingDietTitle": "How do you eat?",
+  "onboardingDietSubtitle": "We only plan food you actually eat.",
+  "onboardingAllergiesLabel": "Any food allergies?",
+  "onboardingAllergiesHint": "Food allergies only. Skip if none apply.",
+  "onboardingRoutineTitle": "Your routine",
+  "onboardingRoutineSubtitle": "This shapes how your day is split and what we suggest.",
+  "onboardingMealCountLabel": "How many meals suit you?",
+  "onboardingLifestyleLabel": "Your typical day",
+  "onboardingBudgetLabel": "Food budget",
+  "onboardingDone": "You're all set",
+  "onboardingDoneBody": "We have what we need. Your plan is generated on the server — that part is not connected yet, so you'll land on an empty home for now.",
+  "onboardingGoHome": "Go to Eatzify"
 }

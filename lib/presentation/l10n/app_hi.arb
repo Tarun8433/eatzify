@@ -108,5 +108,17 @@
   "consentHealthData": "मेरा डाइट प्लान बनाने के लिए मेरी स्वास्थ्य जानकारी सहेजें",
   "gateTitle": "इसे हम अपने आप तय नहीं करेंगे",
   "gateBody": "आपने जो बताया, उसके अनुसार आपका प्लान किसी डॉक्टर या डाइटीशियन से आना चाहिए जो आपका इतिहास जानते हों — किसी एल्गोरिदम से नहीं। आपकी दी गई जानकारी से कोई प्लान नहीं बनाया गया है।",
-  "gateAction": "समझ गया"
+  "gateAction": "समझ गया",
+  "onboardingDietTitle": "आप कैसा खाते हैं?",
+  "onboardingDietSubtitle": "हम वही भोजन प्लान करते हैं जो आप वाकई खाते हैं।",
+  "onboardingAllergiesLabel": "कोई फ़ूड एलर्जी?",
+  "onboardingAllergiesHint": "केवल भोजन से जुड़ी एलर्जी। कोई न हो तो छोड़ दें।",
+  "onboardingRoutineTitle": "आपकी दिनचर्या",
+  "onboardingRoutineSubtitle": "इससे तय होता है कि आपका दिन कैसे बँटेगा और हम क्या सुझाएँगे।",
+  "onboardingMealCountLabel": "कितने भोजन आपके लिए ठीक हैं?",
+  "onboardingLifestyleLabel": "आपका सामान्य दिन",
+  "onboardingBudgetLabel": "भोजन का बजट",
+  "onboardingDone": "सब तैयार है",
+  "onboardingDoneBody": "हमारे पास ज़रूरी जानकारी है। आपका प्लान सर्वर पर बनता है — वह हिस्सा अभी जुड़ा नहीं है, इसलिए फ़िलहाल होम खाली दिखेगा।",
+  "onboardingGoHome": "ईट्ज़िफ़ाई पर जाएँ"
 }

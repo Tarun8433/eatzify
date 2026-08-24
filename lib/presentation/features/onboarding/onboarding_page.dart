@@ -7,6 +7,7 @@ import 'package:health_pro/presentation/features/onboarding/enum_labels.dart';
 import 'package:health_pro/presentation/features/onboarding/onboarding_controller.dart';
 import 'package:health_pro/presentation/features/onboarding/widgets/choice_tile.dart';
 import 'package:health_pro/presentation/l10n/app_localizations.dart';
+import 'package:health_pro/presentation/shell/client_shell.dart';
 
 /// The onboarding flow. docs/14 §6, requirements docs/02 FR-1.
 ///
@@ -26,6 +27,7 @@ class OnboardingPage extends StatelessWidget {
         child: Obx(() {
           final step = c.step.value;
           if (step == OnboardingStep.gate) return _GateView(controller: c);
+          if (step == OnboardingStep.done) return const _DoneView();
 
           return Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -39,8 +41,10 @@ class OnboardingPage extends StatelessWidget {
                     OnboardingStep.goal => _GoalStep(controller: c),
                     OnboardingStep.activity => _ActivityStep(controller: c),
                     OnboardingStep.conditions => _ConditionsStep(controller: c),
+                    OnboardingStep.diet => _DietStep(controller: c),
+                    OnboardingStep.routine => _RoutineStep(controller: c),
                     OnboardingStep.consent => _ConsentStep(controller: c),
-                    OnboardingStep.gate => const SizedBox.shrink(),
+                    OnboardingStep.gate || OnboardingStep.done => const SizedBox.shrink(),
                   },
                 ),
               ),
@@ -369,6 +373,143 @@ class _ConditionsStep extends StatelessWidget {
   }
 }
 
+/// A labelled group of choices, used by the steps that ask more than one thing.
+class _ChoiceGroup<T> extends StatelessWidget {
+  const _ChoiceGroup({
+    required this.label,
+    required this.values,
+    required this.labelOf,
+    required this.isSelected,
+    required this.onTap,
+    this.hint,
+    this.multiSelect = false,
+  });
+
+  final String label;
+  final String? hint;
+  final List<T> values;
+  final String Function(T) labelOf;
+  final bool Function(T) isSelected;
+  final void Function(T) onTap;
+  final bool multiSelect;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: theme.textTheme.titleMedium),
+        if (hint != null) ...[
+          const SizedBox(height: AppSpacing.xs),
+          Text(hint!, style: theme.textTheme.bodySmall),
+        ],
+        const SizedBox(height: AppSpacing.md),
+        for (final v in values)
+          ChoiceTile(
+            label: labelOf(v),
+            multiSelect: multiSelect,
+            selected: isSelected(v),
+            onTap: () => onTap(v),
+          ),
+        const SizedBox(height: AppSpacing.xl),
+      ],
+    );
+  }
+}
+
+class _DietStep extends StatelessWidget {
+  const _DietStep({required this.controller});
+  final OnboardingController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _StepTitle(l.onboardingDietTitle, subtitle: l.onboardingDietSubtitle),
+        Obx(() {
+          // Read here, inside the builder. A closure passed to a child widget is evaluated in that
+          // child's build, which GetX is not observing — the same mistake as the first Obx bug.
+          final preference = controller.foodPreference.value;
+          final chosenAllergies = controller.allergies.toSet();
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _ChoiceGroup<FoodPreference>(
+                label: l.onboardingDietSubtitle,
+                values: FoodPreference.values,
+                labelOf: (v) => v.label(l),
+                isSelected: (v) => preference == v,
+                onTap: (v) => controller.foodPreference.value = v,
+              ),
+              // FR-1.6: FOOD allergies only. The old build collected "Dust, pollution" here, which
+              // is clinically useless in a diet app and a health-data liability for no benefit.
+              _ChoiceGroup<FoodAllergy>(
+                label: l.onboardingAllergiesLabel,
+                hint: l.onboardingAllergiesHint,
+                values: FoodAllergy.values,
+                labelOf: (v) => v.label(l),
+                multiSelect: true,
+                isSelected: chosenAllergies.contains,
+                onTap: controller.toggleAllergy,
+              ),
+            ],
+          );
+        }),
+      ],
+    );
+  }
+}
+
+class _RoutineStep extends StatelessWidget {
+  const _RoutineStep({required this.controller});
+  final OnboardingController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _StepTitle(l.onboardingRoutineTitle, subtitle: l.onboardingRoutineSubtitle),
+        Obx(() {
+          final meals = controller.mealCount.value;
+          final life = controller.lifestyle.value;
+          final budget = controller.budgetTier.value;
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _ChoiceGroup<MealCount>(
+                label: l.onboardingMealCountLabel,
+                values: MealCount.values,
+                labelOf: (v) => v.label(l),
+                isSelected: (v) => meals == v,
+                onTap: (v) => controller.mealCount.value = v,
+              ),
+              _ChoiceGroup<Lifestyle>(
+                label: l.onboardingLifestyleLabel,
+                values: Lifestyle.values,
+                labelOf: (v) => v.label(l),
+                isSelected: (v) => life == v,
+                onTap: (v) => controller.lifestyle.value = v,
+              ),
+              _ChoiceGroup<BudgetTier>(
+                label: l.onboardingBudgetLabel,
+                values: BudgetTier.values,
+                labelOf: (v) => v.label(l),
+                isSelected: (v) => budget == v,
+                onTap: (v) => controller.budgetTier.value = v,
+              ),
+            ],
+          );
+        }),
+      ],
+    );
+  }
+}
+
 class _ConsentStep extends StatelessWidget {
   const _ConsentStep({required this.controller});
   final OnboardingController controller;
@@ -394,6 +535,37 @@ class _ConsentStep extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// End of onboarding.
+///
+/// docs/09 POST /plans/generate does not exist yet, so this says so instead of spinning. When E3
+/// lands, this screen calls it and shows the plan-ready state (docs/14 §6).
+class _DoneView extends StatelessWidget {
+  const _DoneView();
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.all(AppSpacing.xl),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(l.onboardingDone, style: theme.textTheme.headlineMedium),
+          const SizedBox(height: AppSpacing.lg),
+          Text(l.onboardingDoneBody, style: theme.textTheme.bodyMedium),
+          const SizedBox(height: AppSpacing.xxl),
+          FilledButton(
+            onPressed: () => Get.offAll<void>(ClientShell.new),
+            child: Text(l.onboardingGoHome),
+          ),
+        ],
+      ),
     );
   }
 }

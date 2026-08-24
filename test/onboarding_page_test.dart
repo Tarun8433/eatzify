@@ -3,6 +3,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
 import 'package:health_pro/core/theme/app_theme.dart';
+import 'package:health_pro/presentation/features/onboarding/onboarding_controller.dart';
 import 'package:health_pro/presentation/features/onboarding/onboarding_page.dart';
 import 'package:health_pro/presentation/l10n/app_localizations.dart';
 
@@ -52,7 +53,70 @@ Future<void> fillBasics(WidgetTester tester) async {
   await tapChoice(tester, 'Male');
 }
 
+/// Walks every step to the end. Mirrors what a user does, so a broken step fails here first.
+Future<void> completeFlow(WidgetTester tester) async {
+  await fillBasics(tester);
+  for (final tap in [
+    'Continue',
+    'Lose weight',
+    'Continue',
+    'Moderately active',
+    'Continue',
+    'None of these',
+    'Continue',
+    'Vegetarian',
+    'Continue',
+    '4 meals',
+    'Office job',
+    'Moderate',
+    'Continue',
+  ]) {
+    await tapChoice(tester, tap);
+  }
+}
+
 void main() {
+  testWidgets('"Create my plan" completes the flow instead of doing nothing', (tester) async {
+    await tester.pumpWidget(app());
+    await tester.pumpAndSettle();
+    await completeFlow(tester);
+
+    // On the consent step the button reads "Create my plan" and is disabled until consent is given.
+    expect(find.text('Create my plan'), findsOneWidget);
+    expect(tester.widget<FilledButton>(find.byType(FilledButton)).onPressed, isNull);
+
+    await tester.tap(find.byType(CheckboxListTile));
+    await tester.pumpAndSettle();
+    expect(tester.widget<FilledButton>(find.byType(FilledButton)).onPressed, isNotNull);
+
+    await tester.tap(find.text('Create my plan'));
+    await tester.pumpAndSettle();
+
+    // docs/09 POST /plans/generate does not exist yet, so it must SAY so, not spin.
+    expect(find.text("You're all set"), findsOneWidget);
+    expect(find.byType(CircularProgressIndicator), findsNothing);
+  });
+
+  testWidgets('the whole docs/03 §2 contract is collected', (tester) async {
+    await tester.pumpWidget(app());
+    await tester.pumpAndSettle();
+
+    final c = Get.find<OnboardingController>();
+    await completeFlow(tester);
+
+    expect(c.ageYears.value, 29);
+    expect(c.heightCm.value, 173);
+    expect(c.weightKg.value, 95.0);
+    expect(c.sexAtBirth.value, isNotNull);
+    expect(c.goal.value, isNotNull);
+    expect(c.activity.value, isNotNull);
+    expect(c.conditions, isNotEmpty);
+    expect(c.foodPreference.value, isNotNull);
+    expect(c.mealCount.value, isNotNull);
+    expect(c.lifestyle.value, isNotNull);
+    expect(c.budgetTier.value, isNotNull);
+  });
+
   testWidgets('selecting sex at birth updates the UI', (tester) async {
     await tester.pumpWidget(app());
     await tester.pumpAndSettle();

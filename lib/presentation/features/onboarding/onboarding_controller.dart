@@ -6,7 +6,7 @@ import 'package:health_pro/domain/usecases/validate_onboarding.dart';
 /// Steps of the onboarding flow. docs/14 §6.
 ///
 /// `gate` is not reached by advancing — it is jumped to when docs/05 §3 says no plan may be made.
-enum OnboardingStep { basics, goal, activity, conditions, consent, gate }
+enum OnboardingStep { basics, goal, activity, conditions, diet, routine, consent, gate, done }
 
 /// Holds the draft and walks the steps. docs/14 §3: one controller per screen, reactive `.obs`
 /// fields, no god-object state class.
@@ -26,6 +26,14 @@ class OnboardingController extends GetxController {
   final goal = Rxn<Goal>();
   final activity = Rxn<ActivityLevel>();
   final conditions = <Condition>{}.obs;
+
+  // docs/03 §2 — the rest of the contract.
+  final foodPreference = Rxn<FoodPreference>();
+  final allergies = <FoodAllergy>{}.obs;
+  final mealCount = Rxn<MealCount>();
+  final lifestyle = Rxn<Lifestyle>();
+  final budgetTier = Rxn<BudgetTier>();
+
   final consentGranted = false.obs;
 
   /// Set when a field is rejected. The UI maps it to l10n — no copy in the controller.
@@ -42,6 +50,8 @@ class OnboardingController extends GetxController {
     OnboardingStep.goal,
     OnboardingStep.activity,
     OnboardingStep.conditions,
+    OnboardingStep.diet,
+    OnboardingStep.routine,
     OnboardingStep.consent,
   ];
 
@@ -65,8 +75,12 @@ class OnboardingController extends GetxController {
     OnboardingStep.goal => goal.value != null,
     OnboardingStep.activity => activity.value != null,
     OnboardingStep.conditions => conditions.isNotEmpty,
+    // Allergies are legitimately empty for most people, so they do not gate the step.
+    OnboardingStep.diet => foodPreference.value != null,
+    OnboardingStep.routine =>
+      mealCount.value != null && lifestyle.value != null && budgetTier.value != null,
     OnboardingStep.consent => consentGranted.value,
-    OnboardingStep.gate => false,
+    OnboardingStep.gate || OnboardingStep.done => false,
   };
 
   /// [silent] is used while the user is still typing: the value is recorded if it is valid, but no
@@ -135,6 +149,11 @@ class OnboardingController extends GetxController {
     conditions.assignAll(ValidateOnboarding.toggleCondition(conditions.toSet(), c));
   }
 
+  void toggleAllergy(FoodAllergy a) {
+    final next = allergies.toSet();
+    allergies.assignAll(next.contains(a) ? (next..remove(a)) : (next..add(a)));
+  }
+
   void next() {
     reject.value = null;
     if (!canAdvance) return;
@@ -151,7 +170,13 @@ class OnboardingController extends GetxController {
     }
 
     final i = _orderedSteps.indexOf(step.value);
-    if (i >= 0 && i < _orderedSteps.length - 1) step.value = _orderedSteps[i + 1];
+    if (i >= 0 && i < _orderedSteps.length - 1) {
+      step.value = _orderedSteps[i + 1];
+      return;
+    }
+    // Last step. Plan generation is a server call (docs/09 POST /plans/generate) that does not
+    // exist yet, so we finish honestly rather than leaving the button inert.
+    if (step.value == OnboardingStep.consent) step.value = OnboardingStep.done;
   }
 
   void back() {
@@ -159,6 +184,10 @@ class OnboardingController extends GetxController {
     if (step.value == OnboardingStep.gate) {
       step.value = OnboardingStep.conditions;
       gates.clear();
+      return;
+    }
+    if (step.value == OnboardingStep.done) {
+      step.value = OnboardingStep.consent;
       return;
     }
     final i = _orderedSteps.indexOf(step.value);
