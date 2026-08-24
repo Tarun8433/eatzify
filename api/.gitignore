@@ -6,3 +6,5 @@ coverage/
 .env.production
 .env.staging
 *.log
+.boilerplate-tmp/
+.env.example.boilerplate
