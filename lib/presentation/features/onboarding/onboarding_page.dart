@@ -94,30 +94,32 @@ class _Footer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final reject = controller.reject.value;
-    final isLast = controller.step.value == OnboardingStep.consent;
 
     return Padding(
       padding: const EdgeInsets.all(AppSpacing.lg),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          if (reject != null) ...[
-            // FR-1.2 requires this to read plainly and without blame. The copy lives in l10n.
-            Padding(
-              padding: const EdgeInsets.only(bottom: AppSpacing.md),
-              child: Text(
-                reject.label(l),
-                style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.error),
+      child: Obx(() {
+        final reject = controller.reject.value;
+        final isLast = controller.step.value == OnboardingStep.consent;
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (reject != null) ...[
+              // FR-1.2 requires this to read plainly and without blame. The copy lives in l10n.
+              Padding(
+                padding: const EdgeInsets.only(bottom: AppSpacing.md),
+                child: Text(
+                  reject.label(l),
+                  style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.error),
+                ),
               ),
+            ],
+            FilledButton(
+              onPressed: controller.canAdvance ? controller.next : null,
+              child: Text(isLast ? l.onboardingFinish : l.onboardingNext),
             ),
           ],
-          FilledButton(
-            onPressed: controller.canAdvance ? controller.next : null,
-            child: Text(isLast ? l.onboardingFinish : l.onboardingNext),
-          ),
-        ],
-      ),
+        );
+      }),
     );
   }
 }
@@ -157,17 +159,25 @@ class _BasicsStep extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _StepTitle(l.onboardingBasicsTitle, subtitle: l.onboardingBasicsSubtitle),
-        _NumberField(label: l.fieldAge, onChanged: (v) => controller.setAge(int.tryParse(v))),
+        _NumberField(
+          label: l.fieldAge,
+          helperText: '18 – 99',
+          onCommit: (v) => controller.setAge(int.tryParse(v)),
+        ),
         const SizedBox(height: AppSpacing.lg),
         _NumberField(
+          // docs/03 §2 types height_cm as an int. At 6.25 kcal per cm in Mifflin, half a
+          // centimetre moves BMR by ~3 kcal — below the noise floor of self-reported activity.
           label: l.fieldHeightCm,
-          onChanged: (v) => controller.setHeight(int.tryParse(v)),
+          helperText: '120 – 220',
+          onCommit: (v) => controller.setHeight(int.tryParse(v)),
         ),
         const SizedBox(height: AppSpacing.lg),
         _NumberField(
           label: l.fieldWeightKg,
           decimal: true,
-          onChanged: (v) => controller.setWeight(double.tryParse(v)),
+          helperText: '30.0 – 250.0',
+          onCommit: (v) => controller.setWeight(double.tryParse(v)),
         ),
         const SizedBox(height: AppSpacing.xl),
         Text(l.fieldSexAtBirth, style: theme.textTheme.titleMedium),
@@ -176,30 +186,82 @@ class _BasicsStep extends StatelessWidget {
         // this is a question about gender identity, which it is not.
         Text(l.sexAtBirthWhy, style: theme.textTheme.bodySmall),
         const SizedBox(height: AppSpacing.md),
-        for (final s in SexAtBirth.values)
-          ChoiceTile(
-            label: s.label(l),
-            selected: controller.sexAtBirth.value == s,
-            onTap: () => controller.sexAtBirth.value = s,
+        Obx(
+          () => Column(
+            children: [
+              for (final s in SexAtBirth.values)
+                ChoiceTile(
+                  label: s.label(l),
+                  selected: controller.sexAtBirth.value == s,
+                  onTap: () => controller.sexAtBirth.value = s,
+                ),
+            ],
           ),
+        ),
       ],
     );
   }
 }
 
-class _NumberField extends StatelessWidget {
-  const _NumberField({required this.label, required this.onChanged, this.decimal = false});
+/// A numeric field that validates when the user is FINISHED, not on every keystroke.
+///
+/// Validating per character means typing "72" is judged at "7" and the user is told their weight is
+/// out of range while they are still typing it. Ranges are checked on blur or submit; the value is
+/// cleared as they type so a stale reject never lingers.
+class _NumberField extends StatefulWidget {
+  const _NumberField({
+    required this.label,
+    required this.onCommit,
+    this.decimal = false,
+    this.helperText,
+  });
+
   final String label;
   final bool decimal;
-  final ValueChanged<String> onChanged;
+  final String? helperText;
+  final ValueChanged<String> onCommit;
+
+  @override
+  State<_NumberField> createState() => _NumberFieldState();
+}
+
+class _NumberFieldState extends State<_NumberField> {
+  final _controller = TextEditingController();
+  final _focus = FocusNode();
+
+  @override
+  void initState() {
+    super.initState();
+    _focus.addListener(() {
+      if (!_focus.hasFocus) widget.onCommit(_controller.text);
+    });
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    _focus.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return TextField(
-      keyboardType: TextInputType.numberWithOptions(decimal: decimal),
-      inputFormatters: [FilteringTextInputFormatter.allow(RegExp(decimal ? '[0-9.]' : '[0-9]'))],
-      decoration: InputDecoration(labelText: label, border: const OutlineInputBorder()),
-      onChanged: onChanged,
+      controller: _controller,
+      focusNode: _focus,
+      keyboardType: TextInputType.numberWithOptions(decimal: widget.decimal),
+      textInputAction: TextInputAction.done,
+      inputFormatters: [
+        FilteringTextInputFormatter.allow(RegExp(widget.decimal ? '[0-9.]' : '[0-9]')),
+      ],
+      decoration: InputDecoration(
+        labelText: widget.label,
+        border: const OutlineInputBorder(),
+        // docs/03 §2 ranges, shown up front rather than only as a rejection after the fact.
+        helperText: widget.helperText,
+      ),
+      onSubmitted: widget.onCommit,
+      onEditingComplete: () => widget.onCommit(_controller.text),
     );
   }
 }
@@ -215,12 +277,18 @@ class _GoalStep extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _StepTitle(l.onboardingGoalTitle),
-        for (final g in Goal.values)
-          ChoiceTile(
-            label: g.label(l),
-            selected: controller.goal.value == g,
-            onTap: () => controller.goal.value = g,
+        Obx(
+          () => Column(
+            children: [
+              for (final g in Goal.values)
+                ChoiceTile(
+                  label: g.label(l),
+                  selected: controller.goal.value == g,
+                  onTap: () => controller.goal.value = g,
+                ),
+            ],
           ),
+        ),
       ],
     );
   }
@@ -237,13 +305,19 @@ class _ActivityStep extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _StepTitle(l.onboardingActivityTitle, subtitle: l.onboardingActivitySubtitle),
-        for (final a in ActivityLevel.values)
-          ChoiceTile(
-            label: a.label(l),
-            description: a.description(l),
-            selected: controller.activity.value == a,
-            onTap: () => controller.activity.value = a,
+        Obx(
+          () => Column(
+            children: [
+              for (final a in ActivityLevel.values)
+                ChoiceTile(
+                  label: a.label(l),
+                  description: a.description(l),
+                  selected: controller.activity.value == a,
+                  onTap: () => controller.activity.value = a,
+                ),
+            ],
           ),
+        ),
       ],
     );
   }
@@ -256,24 +330,30 @@ class _ConditionsStep extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
-    // FR-1.3: pregnancy and lactation are offered only to women aged 18-50. Outside that band they
-    // are health fields with no clinical purpose here, which docs/13 forbids collecting.
-    final hidden = controller.asksPregnancyStatus
-        ? const <Condition>{}
-        : const {Condition.pregnancy, Condition.lactation};
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _StepTitle(l.onboardingConditionsTitle, subtitle: l.onboardingConditionsSubtitle),
-        for (final c in Condition.values)
-          if (!hidden.contains(c))
-            ChoiceTile(
-              label: c.label(l),
-              multiSelect: true,
-              selected: controller.conditions.contains(c),
-              onTap: () => controller.toggleCondition(c),
-            ),
+        Obx(() {
+          // FR-1.3: pregnancy and lactation are offered only to women aged 18-50. Outside that
+          // band they are health fields with no clinical purpose, which docs/13 forbids collecting.
+          final hidden = controller.asksPregnancyStatus
+              ? const <Condition>{}
+              : const {Condition.pregnancy, Condition.lactation};
+          return Column(
+            children: [
+              for (final c in Condition.values)
+                if (!hidden.contains(c))
+                  ChoiceTile(
+                    label: c.label(l),
+                    multiSelect: true,
+                    selected: controller.conditions.contains(c),
+                    onTap: () => controller.toggleCondition(c),
+                  ),
+            ],
+          );
+        }),
       ],
     );
   }
@@ -294,12 +374,14 @@ class _ConsentStep extends StatelessWidget {
         Text(l.onboardingConsentBody, style: theme.textTheme.bodyMedium),
         const SizedBox(height: AppSpacing.xl),
         // FR-1.7 / docs/13 §3: itemised, opt-in, and never pre-ticked.
-        CheckboxListTile(
-          value: controller.consentGranted.value,
-          onChanged: (v) => controller.consentGranted.value = v ?? false,
-          title: Text(l.consentHealthData, style: theme.textTheme.bodyMedium),
-          contentPadding: EdgeInsets.zero,
-          controlAffinity: ListTileControlAffinity.leading,
+        Obx(
+          () => CheckboxListTile(
+            value: controller.consentGranted.value,
+            onChanged: (v) => controller.consentGranted.value = v ?? false,
+            title: Text(l.consentHealthData, style: theme.textTheme.bodyMedium),
+            contentPadding: EdgeInsets.zero,
+            controlAffinity: ListTileControlAffinity.leading,
+          ),
         ),
       ],
     );
