@@ -167,3 +167,21 @@ which is only true if the BMI check ran first. Applying the floor to the raw 102
 given 1200.
 **Status** Resolved, pending your confirmation that 155 cm / 48.8 kg is the intended profile. D-12 and
 D-13 remain open; D-13 still needs the clinical reviewer.
+
+## D-22 — Cloudflare R2 for object storage, not AWS S3
+**When** 2026-08-24 · **Decision** Object storage is Cloudflare R2. The boilerplate's `s3` and
+`s3-presigned` uploaders are kept unchanged — R2 is S3-compatible, so the AWS SDK talks to it once
+given an endpoint.
+**Why** R2 charges **no egress fee**. Eatzify serves progress photos, coach documents and food images
+to phones in India; on S3 that egress is the line item that grows with users rather than with
+revenue. `docs/06-architecture.md` §1 already specifies "S3-compatible", so no ADR is contradicted.
+`docs/18-ops-runbook.md` §9 budgets ₹300–800/month for "object storage + egress" — R2 puts that at
+the storage-only end of the range.
+**What changed** `S3_ENDPOINT` and `S3_FORCE_PATH_STYLE` added to `FileConfig` and threaded through
+all four `S3Client` construction sites (`s3/files.module.ts`, `s3-presigned/files.module.ts`,
+`s3-presigned/files.service.ts`, `domain/file.ts`). Region defaults to `auto`, which is what R2
+documents. `AWS_S3_REGION` became optional in the validator, since R2 has no regions.
+**Reverses if** you need an AWS-only feature (S3 Object Lock, Glacier tiering). Set `S3_ENDPOINT`
+empty and a real region, and the same code speaks to S3.
+**Watch** R2 presigned URLs must stay the only way health imagery is served — `docs/13` §6. Do not
+attach a public custom domain to the bucket holding progress photos.
