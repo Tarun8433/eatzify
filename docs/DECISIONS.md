@@ -209,3 +209,36 @@ unlock a plan for her. They are not interchangeable, so they are separate enum v
 copy and separate tests.
 **Note** The support screen cannot be backed out of into the calorie form, and carries no enabled
 action — `docs/05` §6: a safety message is never behind a paywall or a "continue anyway".
+
+## D-25 — Session state is one enum at the root, not guards on every route
+**When** 2026-08-24 · **Decision** `SessionController` owns the session and exposes an `AuthStatus`
+of `restoring | signedOut | onboardingRequired | signedIn`. `RootGate` switches on it exhaustively.
+**Why** `docs/14` §3 asks for `AuthGuard` / `OnboardingGuard` declared on `GetPage`. With four states
+and three destinations, one exhaustive switch at the root gives the same guarantee with less
+machinery — and unlike a per-route guard it cannot be forgotten when someone adds a page. Revisit
+when `EntitlementGuard` and `RoleGuard` arrive with E5 and E6; those are genuinely per-route.
+**Notes** `restoring` is a real state, not an inferred null — the splash shows while the keychain is
+read. `onboardingRequired` comes from the server (`docs/09` §3); the app never infers it from
+whether a profile happens to be cached.
+
+## D-26 — Refresh rotates both tokens, and a rejected refresh signs the user out
+**When** 2026-08-24 · **Decision** The dio interceptor retries a 401 exactly once. On success both
+access AND refresh tokens are replaced and persisted; on failure the session is cleared locally
+*without* calling `/auth/logout`.
+**Why** `docs/09` §3: refresh rotates, and reuse of a rotated token revokes the whole family. So a
+rejected refresh means the token is already dead — calling logout with it is pointless and tells an
+attacker the endpoint responds. Retrying more than once is how an app hammers the API and burns a
+user's data allowance in the background.
+**Notes** `signOut` clears local state even when the server call fails — a user who taps sign out on
+a plane must not stay signed in. `Session.toString()` omits both tokens (`docs/13`: no credential in
+a log line).
+
+## D-27 — Sign-in cannot complete yet, and the app says so
+**When** 2026-08-24 · **Decision** The full phone-OTP client is built against `docs/09` §3 and calls
+real endpoints. Those endpoints do not exist: `api/src/auth` is the boilerplate's *email* flow, and
+`docs/20` §2 pruned social sign-in because phone OTP is primary auth in India.
+**Why** Building the client now means only the datasource changes when E1 lands. The failure surfaces
+as the server's own message rather than a spinner.
+**Open** `BACKEND_DOMAIN` is `http://localhost:3001` — a phone cannot reach the host's localhost, so
+a LAN address or tunnel is needed before sign-in works on a device. `deviceId` is a placeholder
+string; a stable per-install id belongs there so the server can name sessions in a security screen.

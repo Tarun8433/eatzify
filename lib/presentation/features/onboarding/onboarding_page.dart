@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart' hide Condition;
+import 'package:health_pro/core/session/session_controller.dart';
 import 'package:health_pro/core/theme/app_spacing.dart';
 import 'package:health_pro/domain/entities/onboarding_enums.dart';
 import 'package:health_pro/presentation/features/onboarding/enum_labels.dart';
 import 'package:health_pro/presentation/features/onboarding/onboarding_controller.dart';
 import 'package:health_pro/presentation/features/onboarding/widgets/choice_tile.dart';
 import 'package:health_pro/presentation/l10n/app_localizations.dart';
-import 'package:health_pro/presentation/shell/client_shell.dart';
 
 /// The onboarding flow. docs/14 §6, requirements docs/02 FR-1.
 ///
@@ -647,7 +647,9 @@ class _DoneView extends StatelessWidget {
           Text(l.onboardingDoneBody, style: theme.textTheme.bodyMedium),
           const SizedBox(height: AppSpacing.xxl),
           FilledButton(
-            onPressed: () => Get.offAll<void>(ClientShell.new),
+            // Tells the session onboarding is done, which flips RootGate to the shell. The server
+            // is the authority on `onboarding_required`; this is the optimistic local half.
+            onPressed: () => Get.find<SessionController>().markOnboardingComplete(),
             child: Text(l.onboardingGoHome),
           ),
         ],

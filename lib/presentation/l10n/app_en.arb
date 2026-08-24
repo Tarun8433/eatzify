@@ -183,5 +183,33 @@
   "accountCoach": "Your coach",
   "accountHelp": "Help",
   "accountAbout": "About Eatzify",
-  "notConnectedYet": "Not connected yet"
+  "notConnectedYet": "Not connected yet",
+  "loginTitle": "Your phone number",
+  "loginSubtitle": "We'll text you a 6-digit code. No password to forget.",
+  "loginPhoneLabel": "Phone number",
+  "loginSendCode": "Send code",
+  "otpTitle": "Enter the code",
+  "otpSubtitle": "Sent to {phone}. It expires in 5 minutes.",
+  "otpLabel": "6-digit code",
+  "otpVerify": "Verify",
+  "otpResend": "Send a new code",
+  "otpResendIn": "You can ask for a new code in {seconds}s",
+  "loginInvalidPhone": "Enter a 10-digit Indian mobile number.",
+  "loginInvalidOtp": "Enter the 6-digit code.",
+  "signOut": "Sign out",
+  "notConnectedBackend": "The server isn't connected yet, so signing in can't complete. Everything else in the app works.",
+  "@otpSubtitle": {
+    "placeholders": {
+      "phone": {
+        "type": "String"
+      }
+    }
+  },
+  "@otpResendIn": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  }
 }

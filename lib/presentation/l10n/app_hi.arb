@@ -159,5 +159,33 @@
   "accountCoach": "आपके कोच",
   "accountHelp": "सहायता",
   "accountAbout": "ईट्ज़िफ़ाई के बारे में",
-  "notConnectedYet": "अभी जुड़ा नहीं है"
+  "notConnectedYet": "अभी जुड़ा नहीं है",
+  "loginTitle": "आपका फ़ोन नंबर",
+  "loginSubtitle": "हम आपको 6 अंकों का कोड भेजेंगे। कोई पासवर्ड याद रखने की ज़रूरत नहीं।",
+  "loginPhoneLabel": "फ़ोन नंबर",
+  "loginSendCode": "कोड भेजें",
+  "otpTitle": "कोड दर्ज करें",
+  "otpSubtitle": "{phone} पर भेजा गया। यह 5 मिनट में समाप्त हो जाएगा।",
+  "otpLabel": "6 अंकों का कोड",
+  "otpVerify": "सत्यापित करें",
+  "otpResend": "नया कोड भेजें",
+  "otpResendIn": "आप {seconds} सेकंड में नया कोड माँग सकते हैं",
+  "loginInvalidPhone": "10 अंकों का भारतीय मोबाइल नंबर दर्ज करें।",
+  "loginInvalidOtp": "6 अंकों का कोड दर्ज करें।",
+  "signOut": "साइन आउट",
+  "notConnectedBackend": "सर्वर अभी जुड़ा नहीं है, इसलिए साइन-इन पूरा नहीं हो सकता। ऐप में बाकी सब काम करता है।",
+  "@otpSubtitle": {
+    "placeholders": {
+      "phone": {
+        "type": "String"
+      }
+    }
+  },
+  "@otpResendIn": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  }
 }
