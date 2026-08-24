@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:get/get.dart';
 import 'package:health_pro/core/theme/app_theme.dart';
+import 'package:health_pro/presentation/features/onboarding/onboarding_page.dart';
 import 'package:health_pro/presentation/l10n/app_localizations.dart';
 import 'package:health_pro/presentation/shell/client_shell.dart';
 import 'package:health_pro/presentation/shell/nav_controller.dart';
@@ -36,7 +37,13 @@ class EatzifyApp extends StatelessWidget {
       initialBinding: BindingsBuilder<NavController>(() {
         Get.put(NavController(), permanent: true);
       }),
-      home: const ClientShell(),
+      // docs/14 §6: onboarding precedes the shell. Routing is a straight swap until E1 lands auth
+      // and the real OnboardingGuard — a guard that checks nothing is worse than no guard.
+      home: const OnboardingPage(),
+      getPages: [
+        GetPage(name: '/onboarding', page: OnboardingPage.new),
+        GetPage(name: '/home', page: ClientShell.new),
+      ],
     );
   }
 }

@@ -1,40 +1,136 @@
 {
   "@@locale": "en",
-
   "appTitle": "Eatzify",
-  "@appTitle": { "description": "Application name, shown in the OS task switcher" },
-
+  "@appTitle": {
+    "description": "Application name, shown in the OS task switcher"
+  },
   "tabHome": "Home",
   "tabPlan": "Plan",
   "tabProgress": "Progress",
   "tabYou": "You",
-
   "logEntry": "Log an entry",
-  "@logEntry": { "description": "Accessible label for the centre [+] button" },
+  "@logEntry": {
+    "description": "Accessible label for the centre [+] button"
+  },
   "logFood": "Food",
   "logWater": "Water",
   "logWeight": "Weight",
   "logSteps": "Steps",
-
   "notAvailableYet": "{feature} logging isn't connected yet.",
   "@notAvailableYet": {
     "description": "Placeholder inside the log sheet while the logs API is unbuilt",
-    "placeholders": { "feature": { "type": "String" } }
+    "placeholders": {
+      "feature": {
+        "type": "String"
+      }
+    }
   },
-
   "homeSubtitle": "Today at a glance",
   "homeEmptyTitle": "Nothing to show yet",
   "homeEmptyBody": "Your rings, next meal and quick log appear here once a plan is active.",
-
   "planSubtitle": "Today's meals",
   "planEmptyTitle": "No active plan",
   "planEmptyBody": "Finish onboarding and a plan is generated for you.",
-
   "progressSubtitle": "Weight, adherence and macros",
   "progressEmptyTitle": "Not enough data yet",
   "progressEmptyBody": "Log your weight for a few days and your trend appears here.",
-
   "accountSubtitle": "Profile, plan and privacy",
   "accountEmptyTitle": "Not signed in",
-  "accountEmptyBody": "Sign in to see your profile, subscription and privacy controls."
+  "accountEmptyBody": "Sign in to see your profile, subscription and privacy controls.",
+  "sexMale": "Male",
+  "sexFemale": "Female",
+  "sexIntersexPreferNotSay": "Prefer not to say",
+  "goalFatLoss": "Lose weight",
+  "goalMuscleGain": "Build muscle",
+  "goalMaintenance": "Maintain weight",
+  "activitySedentary": "Sedentary",
+  "activitySedentaryDesc": "Desk job, little deliberate movement",
+  "activityLight": "Lightly active",
+  "activityLightDesc": "Light activity or exercise 1–3 days/week",
+  "activityModerate": "Moderately active",
+  "activityModerateDesc": "Exercise 3–5 days/week",
+  "activityHeavy": "Very active",
+  "activityHeavyDesc": "Hard exercise 6–7 days/week or a physical job",
+  "conditionNone": "None of these",
+  "conditionType2Diabetes": "Type 2 diabetes",
+  "conditionPrediabetes": "Prediabetes",
+  "conditionHypertension": "High blood pressure",
+  "conditionHypothyroid": "Hypothyroidism",
+  "conditionHyperthyroid": "Hyperthyroidism",
+  "conditionPcos": "PCOS",
+  "conditionPostSurgery": "Recent surgery",
+  "conditionCkd": "Kidney disease",
+  "conditionPregnancy": "Pregnant",
+  "conditionLactation": "Breastfeeding",
+  "conditionOtherDeclared": "Something else",
+  "preferenceVeg": "Vegetarian",
+  "preferenceNonVeg": "Non-vegetarian",
+  "preferenceEggetarian": "Eggetarian",
+  "preferenceJain": "Jain",
+  "preferenceVegan": "Vegan",
+  "allergyMilk": "Milk",
+  "allergyWheatGluten": "Wheat / gluten",
+  "allergySoy": "Soy",
+  "allergyPeanut": "Peanut",
+  "allergyTreeNut": "Tree nuts",
+  "allergyEgg": "Egg",
+  "allergyFish": "Fish",
+  "allergyShellfish": "Shellfish",
+  "allergySesame": "Sesame",
+  "allergyMustard": "Mustard",
+  "allergyOther": "Something else",
+  "budgetLow": "Budget-friendly",
+  "budgetMedium": "Moderate",
+  "budgetPremium": "No constraint",
+  "lifestyleOffice": "Office job",
+  "lifestyleStudent": "Student",
+  "lifestyleNightShift": "Night shift",
+  "lifestyleFlexible": "Flexible",
+  "lifestyleHome": "Mostly at home",
+  "mealCountThree": "3 meals",
+  "mealCountFour": "4 meals",
+  "mealCountFiveOrSix": "5–6 meals",
+  "rejectAgeBelowMinimum": "Eatzify is built for adults, so we can only create plans for people aged 18 and over.",
+  "rejectAgeOutOfRange": "Please enter an age between 18 and 99.",
+  "rejectHeightOutOfRange": "Please enter a height between 120 and 220 cm.",
+  "rejectWeightOutOfRange": "Please enter a weight between 30 and 250 kg.",
+  "rejectGoalWeightBelowHealthyBmi": "That goal weight is below a healthy range for your height. Pick a higher one and we'll plan towards it.",
+  "rejectConditionNoneNotExclusive": "Either pick “None of these” on its own, or pick the conditions that apply.",
+  "rejectConsentNotGiven": "We need your agreement before we can store any health information.",
+  "confirmUnusualValue": "That's outside the usual range. Is it correct?",
+  "confirmYes": "Yes, that's right",
+  "confirmEdit": "Let me change it",
+  "onboardingBack": "Back",
+  "onboardingNext": "Continue",
+  "onboardingFinish": "Create my plan",
+  "stepOfSteps": "Step {current} of {total}",
+  "onboardingBasicsTitle": "About you",
+  "onboardingBasicsSubtitle": "This sets your calorie and protein targets.",
+  "fieldAge": "Age",
+  "fieldHeightCm": "Height (cm)",
+  "fieldWeightKg": "Current weight (kg)",
+  "fieldSexAtBirth": "Sex at birth",
+  "sexAtBirthWhy": "We ask because the calorie equation needs it. It is not a question about gender identity.",
+  "onboardingGoalTitle": "What are you here for?",
+  "onboardingActivityTitle": "How active are you?",
+  "onboardingActivitySubtitle": "Be honest rather than optimistic — this is the biggest source of error in the calculation.",
+  "onboardingConditionsTitle": "Any of these apply to you?",
+  "onboardingConditionsSubtitle": "This changes what we plan for you, and sometimes whether we plan at all.",
+  "onboardingPregnancyTitle": "Are you currently pregnant or breastfeeding?",
+  "onboardingConsentTitle": "Before we store anything",
+  "onboardingConsentBody": "We need your explicit agreement to store the health details you just entered. You can withdraw it at any time, and we will delete the data.",
+  "consentHealthData": "Store my health details to create and adjust my diet plan",
+  "gateTitle": "Let's not plan this on our own",
+  "gateBody": "Based on what you told us, a plan should come from a doctor or dietitian who knows your history — not from an algorithm. Nothing you entered has been used to generate one.",
+  "gateAction": "I understand",
+  "@stepOfSteps": {
+    "placeholders": {
+      "current": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  }
 }
