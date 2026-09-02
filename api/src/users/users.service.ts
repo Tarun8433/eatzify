@@ -118,6 +118,7 @@ export class UsersService {
       // <creating-property-payload />
       firstName: createUserDto.firstName,
       lastName: createUserDto.lastName,
+      phone: createUserDto.phone ?? null,
       email: email,
       password: password,
       photo: photo,
@@ -154,6 +155,10 @@ export class UsersService {
 
   findByEmail(email: User['email']): Promise<NullableType<User>> {
     return this.usersRepository.findByEmail(email);
+  }
+
+  findByPhone(phone: User['phone']): Promise<NullableType<User>> {
+    return this.usersRepository.findByPhone(phone);
   }
 
   findBySocialIdAndProvider({

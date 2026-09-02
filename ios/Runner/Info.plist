@@ -6,16 +6,6 @@
 	<true/>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
-	<!-- HealthKit. CLAUDE.md rule 10: read-only. We request SHARE (read) and deliberately not
-	     UPDATE (write) — Eatzify never writes to a user's health store. -->
-	<key>NSHealthShareUsageDescription</key>
-	<string>Eatzify reads your step count so your daily activity is reflected in your plan. You can turn this off at any time and enter steps yourself instead.</string>
-	<!-- mobile_scanner: barcode lookup against Open Food Facts (docs/20 §6) -->
-	<key>NSCameraUsageDescription</key>
-	<string>Eatzify uses the camera to scan a food barcode so you do not have to type the item in.</string>
-	<!-- image_picker: progress photos and coach documents -->
-	<key>NSPhotoLibraryUsageDescription</key>
-	<string>Eatzify needs access to your photos so you can attach a progress photo. Photos are private to you and are never shown to other users.</string>
 	<key>CFBundleDisplayName</key>
 	<string>Eatzify</string>
 	<key>CFBundleExecutable</key>
@@ -36,6 +26,31 @@
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsLocalNetworking</key>
+		<true/>
+	</dict>
+	<!-- Needed so a debug build can reach the dev server at <machine>.local (D-93).
+	     Do NOT add NSBonjourServices alongside it: that key is an ALLOWLIST, and declaring one
+	     restricted the app to the listed types only. Flutter's own VM service is advertised over
+	     _dartobservatory._tcp, so listing just _http._tcp stopped `flutter run` from ever finding
+	     the app on a physical device — "The Dart VM Service was not discovered after 60 seconds"
+	     (D-94). Connecting OUT to a .local host needs this description, not a browse allowlist. -->
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>Eatzify connects to a development server on your local network. This is only used when running a debug build.</string>
+	<!-- CMPedometer (D-99). Chosen over HealthKit: it answers "steps between two instants"
+	     directly, needs no HealthKit entitlement, and draws less App Review scrutiny. No
+	     UIBackgroundModes entry accompanies it — the counting happens in hardware and the app only
+	     ever reads on the foreground, so a background mode would be unjustified. -->
+	<key>NSMotionUsageDescription</key>
+	<string>Eatzify reads your step count so your daily activity shows up alongside your plan. You can turn this off at any time and enter steps yourself instead.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Eatzify uses the camera to scan a food barcode, and to take a profile photo if you choose to add one.</string>
+	<key>NSHealthShareUsageDescription</key>
+	<string>Eatzify reads your step count so your daily activity is reflected in your plan. You can turn this off at any time and enter steps yourself instead.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Eatzify needs access to your photos so you can add a profile photo. Photos are private to you and are never shown to other users.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

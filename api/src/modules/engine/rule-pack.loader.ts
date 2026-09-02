@@ -33,7 +33,9 @@ export function loadRulePack(dir: string, version: string): RulePack {
   try {
     parsed = load(readFileSync(file, 'utf8'));
   } catch (cause) {
-    throw new RulePackError(`cannot read rule pack ${file}: ${(cause as Error).message}`);
+    throw new RulePackError(
+      `cannot read rule pack ${file}: ${(cause as Error).message}`,
+    );
   }
 
   const result = rulePackSchema.safeParse(parsed);
@@ -60,6 +62,7 @@ export function loadRulePack(dir: string, version: string): RulePack {
  */
 export function loadAllRulePacks(dir: string): ReadonlyMap<string, RulePack> {
   const versions = listPackVersions(dir);
-  if (versions.length === 0) throw new RulePackError(`no rule packs found in ${dir}`);
+  if (versions.length === 0)
+    throw new RulePackError(`no rule packs found in ${dir}`);
   return new Map(versions.map((v) => [v, loadRulePack(dir, v)]));
 }

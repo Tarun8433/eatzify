@@ -14,6 +14,9 @@ import {
 import { AuthService } from './auth.service';
 import { ApiBearerAuth, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import { AuthEmailLoginDto } from './dto/auth-email-login.dto';
+import { AuthOtpRequestDto } from './dto/auth-otp-request.dto';
+import { AuthOtpVerifyDto } from './dto/auth-otp-verify.dto';
+import { OtpService } from './otp.service';
 import { AuthForgotPasswordDto } from './dto/auth-forgot-password.dto';
 import { AuthConfirmEmailDto } from './dto/auth-confirm-email.dto';
 import { AuthResetPasswordDto } from './dto/auth-reset-password.dto';
@@ -34,7 +37,10 @@ import type { JwtRefreshPayloadType } from './strategies/types/jwt-refresh-paylo
   version: '1',
 })
 export class AuthController {
-  constructor(private readonly service: AuthService) {}
+  constructor(
+    private readonly service: AuthService,
+    private readonly otpService: OtpService,
+  ) {}
 
   @SerializeOptions({
     groups: ['me'],
@@ -46,6 +52,21 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   public login(@Body() loginDto: AuthEmailLoginDto): Promise<LoginResponseDto> {
     return this.service.validateLogin(loginDto);
+  }
+
+  @Post('otp/request')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  public requestOtp(@Body() dto: AuthOtpRequestDto): void {
+    // docs/09 §3: always 204, never reveal whether the number exists.
+    this.otpService.issue(dto.phone_e164, Date.now());
+  }
+
+  @SerializeOptions({ groups: ['me'] })
+  @Post('otp/verify')
+  @HttpCode(HttpStatus.OK)
+  public verifyOtp(@Body() dto: AuthOtpVerifyDto) {
+    this.otpService.consume(dto.phone_e164, dto.otp, Date.now());
+    return this.service.validatePhoneLogin(dto.phone_e164);
   }
 
   @Post('email/register')

@@ -19,7 +19,9 @@ export function validateInput(input: EngineInput): void {
   for (const [field, [min, max]] of Object.entries(RANGES)) {
     const value = input[field as keyof typeof RANGES];
     if (!Number.isFinite(value) || value < min || value > max) {
-      throw new EngineInputError(`${field} out of range: ${value} (expected ${min}..${max})`);
+      throw new EngineInputError(
+        `${field} out of range: ${value} (expected ${min}..${max})`,
+      );
     }
   }
   if (input.conditions.length === 0) {
@@ -27,9 +29,13 @@ export function validateInput(input: EngineInput): void {
   }
   // docs/03 §2: `none` is exclusive. Selecting it clears the rest.
   if (input.conditions.includes('none') && input.conditions.length > 1) {
-    throw new EngineInputError('condition "none" is exclusive and cannot appear with others');
+    throw new EngineInputError(
+      'condition "none" is exclusive and cannot appear with others',
+    );
   }
   if (input.planDate.match(/^\d{4}-\d{2}-\d{2}$/) === null) {
-    throw new EngineInputError(`planDate must be YYYY-MM-DD, got "${input.planDate}"`);
+    throw new EngineInputError(
+      `planDate must be YYYY-MM-DD, got "${input.planDate}"`,
+    );
   }
 }

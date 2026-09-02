@@ -12,13 +12,19 @@ export interface GateResult {
 }
 
 /** docs/04 §2 step 6. A blocking gate means no plan is emitted at all. */
-export function evaluateGates(input: EngineInput, bmi: number, pack: RulePack): GateResult {
+export function evaluateGates(
+  input: EngineInput,
+  bmi: number,
+  pack: RulePack,
+): GateResult {
   const gates: Gate[] = [];
   const warnings: WarningCode[] = [];
   const { blocking_gates: blocking, clinician_gated: clinician } = pack.safety;
 
-  if (input.ageYears < blocking.min_age) gates.push({ code: 'age_ineligible', blocking: true });
-  if (bmi < blocking.min_bmi) gates.push({ code: 'bmi_critical', blocking: true });
+  if (input.ageYears < blocking.min_age)
+    gates.push({ code: 'age_ineligible', blocking: true });
+  if (bmi < blocking.min_bmi)
+    gates.push({ code: 'bmi_critical', blocking: true });
 
   for (const condition of input.conditions) {
     if (!blocking.conditions.includes(condition)) continue;
@@ -33,7 +39,10 @@ export function evaluateGates(input: EngineInput, bmi: number, pack: RulePack): 
   }
 
   // Non-blocking review gates. A plan is still produced; the app surfaces the referral.
-  if (bmi >= blocking.min_bmi && bmi < pack.safety.force_maintenance_below_bmi) {
+  if (
+    bmi >= blocking.min_bmi &&
+    bmi < pack.safety.force_maintenance_below_bmi
+  ) {
     gates.push({ code: 'underweight_review', blocking: false });
   }
   if (input.ageYears >= clinician.min_age || bmi >= clinician.min_bmi) {
@@ -44,7 +53,10 @@ export function evaluateGates(input: EngineInput, bmi: number, pack: RulePack): 
 }
 
 /** docs/05 §2 — 20 % of TDEE by default, 15 % for age >= 65 or T2D / HTN / hypothyroid. */
-export function maxDeficitPct(input: EngineInput, pack: RulePack): { pct: number; warnings: readonly WarningCode[] } {
+export function maxDeficitPct(
+  input: EngineInput,
+  pack: RulePack,
+): { pct: number; warnings: readonly WarningCode[] } {
   const s = pack.safety;
   const warnings: WarningCode[] = [];
   let pct = s.max_deficit_pct_default;
@@ -71,7 +83,11 @@ export interface EffectiveGoalResult {
  * Ordering note (docs/16 GV-06): the BMI check runs BEFORE the absolute kcal floor, so a low-BMI
  * user gets TDEE rather than a deficit floored up. `clampTarget` applies the floors afterwards.
  */
-export function effectiveGoal(input: EngineInput, bmi: number, pack: RulePack): EffectiveGoalResult {
+export function effectiveGoal(
+  input: EngineInput,
+  bmi: number,
+  pack: RulePack,
+): EffectiveGoalResult {
   const warnings: WarningCode[] = [];
   if (bmi < pack.safety.force_maintenance_below_bmi) {
     warnings.push('goal_forced_maintenance_low_bmi');
@@ -108,14 +124,16 @@ export function clampTarget(
   // Weekly rate band — only meaningful while there is a deficit.
   const deficit = tdee - target;
   if (deficit > 0) {
-    const maxDailyDeficit = (s.weekly_loss_pct_max * input.weightKg * s.kcal_per_kg_body_fat) / 7;
+    const maxDailyDeficit =
+      (s.weekly_loss_pct_max * input.weightKg * s.kcal_per_kg_body_fat) / 7;
     if (deficit > maxDailyDeficit) {
       target = tdee - maxDailyDeficit;
       warnings.push('deficit_capped_weekly_rate');
     }
   }
 
-  const floor = input.sexAtBirth === 'female' ? s.floor_kcal.female : s.floor_kcal.male;
+  const floor =
+    input.sexAtBirth === 'female' ? s.floor_kcal.female : s.floor_kcal.male;
   if (target < floor) {
     target = floor;
     warnings.push('target_raised_to_floor');

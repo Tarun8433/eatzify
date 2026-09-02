@@ -2,7 +2,7 @@
   "name": "eatzify-api",
   "version": "0.1.0",
   "private": true,
-  "description": "Eatzify REST API \u2014 NestJS + Postgres + Redis. See ../docs/06-architecture.md",
+  "description": "Eatzify REST API — NestJS + Postgres + Redis. See ../docs/06-architecture.md",
   "workspaces": [
     "packages/*"
   ],
@@ -14,8 +14,8 @@
     "format": "prettier --write \"{src,test,packages}/**/*.ts\"",
     "test": "jest",
     "test:e2e": "jest --config ./test/jest-e2e.json",
-    "migration:run": "typeorm-ts-node-commonjs migration:run -d src/database/data-source.ts",
-    "migration:generate": "typeorm-ts-node-commonjs migration:generate -d src/database/data-source.ts",
+    "migration:run": "npm run typeorm -- --dataSource=src/database/data-source.ts migration:run",
+    "migration:generate": "npm run typeorm -- --dataSource=src/database/data-source.ts migration:generate",
     "test:engine": "npm test --workspace @eatzify/diet-engine",
     "pack:validate": "ts-node scripts/validate-rule-packs.ts",
     "typeorm": "env-cmd -- ts-node -r tsconfig-paths/register ./node_modules/typeorm/cli.js",
@@ -56,7 +56,8 @@
     "test:e2e:document:docker": "docker compose -f docker-compose.document.test.yaml --env-file env-example-document -p tests up -d --build && docker compose -f docker-compose.document.test.yaml -p tests exec api /opt/wait-for-it.sh -t 0 localhost:3001 -- npm run test:e2e -- --watchAll --runInBand && docker compose -f docker-compose.document.test.yaml -p tests down && docker compose -p tests rm -svf",
     "test:e2e:relational:docker": "docker compose -f docker-compose.relational.test.yaml --env-file env-example-relational -p tests up -d --build && docker compose -f docker-compose.relational.test.yaml -p tests exec api /opt/wait-for-it.sh -t 0 localhost:3001 -- npm run test:e2e -- --watchAll --runInBand && docker compose -f docker-compose.relational.test.yaml -p tests down && docker compose -p tests rm -svf",
     "prepare": "is-ci || husky",
-    "release": "release-it"
+    "release": "release-it",
+    "migration:show": "npm run typeorm -- --dataSource=src/database/data-source.ts migration:show"
   },
   "dependencies": {
     "@adminjs/nestjs": "^6",
@@ -82,6 +83,7 @@
     "bcryptjs": "3.0.3",
     "class-transformer": "^0.5",
     "class-validator": "^0.14",
+    "csv-parse": "^7.0.2",
     "dotenv": "17.3.1",
     "firebase-admin": "^13",
     "google-auth-library": "10.6.2",

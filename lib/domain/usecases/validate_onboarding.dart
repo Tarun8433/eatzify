@@ -18,6 +18,10 @@ abstract final class OnboardingRules {
   /// docs/05 §2 — a goal weight implying this or below is refused outright, no override.
   static const minGoalBmi = 18.5;
 
+  /// The top of the healthy band, used ONLY to describe a weight range back to the user (D-76).
+  /// Nothing rejects on it: a goal weight above this is a perfectly reasonable thing to want.
+  static const maxHealthyBmi = 24.9;
+
   /// FR-1.3: this question is asked of women in this band, and only this band.
   static const pregnancyQuestionMinAge = 18;
   static const pregnancyQuestionMaxAge = 50;
@@ -84,6 +88,27 @@ abstract final class ValidateOnboarding {
       return (reject: OnboardingReject.goalWeightBelowHealthyBmi, confirmNeeded: false);
     }
     return _ok;
+  }
+
+  /// The weight band that sits inside the healthy BMI range for a height (D-76).
+  ///
+  /// Derived from the SAME bound `goalWeightKg` rejects on, so the range shown and the range
+  /// enforced can never disagree. It describes the input rule rather than prescribing a target:
+  /// the user picks their own number and any value at or above the floor is accepted.
+  static ({double low, double high}) healthyWeightRangeKg(int heightCm) {
+    final heightM = heightCm / 100;
+    final square = heightM * heightM;
+    return (low: OnboardingRules.minGoalBmi * square, high: OnboardingRules.maxHealthyBmi * square);
+  }
+
+  /// Body mass index for a weight and height.
+  ///
+  /// Deliberately returns the number and nothing else — no band, no label, no colour. docs/05 §6
+  /// forbids a judgemental status ("Obese" was on the old build's profile screen), and a bare
+  /// figure beside a range is the version of this that informs without scoring anybody.
+  static double bmiFor({required double weightKg, required int heightCm}) {
+    final heightM = heightCm / 100;
+    return weightKg / (heightM * heightM);
   }
 
   /// docs/03 §2: `none` is exclusive. Selecting it clears the rest.

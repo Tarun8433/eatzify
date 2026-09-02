@@ -7,6 +7,8 @@ import 'package:health_pro/domain/entities/session.dart';
 import 'package:health_pro/domain/repositories/auth_repository.dart';
 import 'package:health_pro/presentation/features/auth/login_controller.dart';
 
+import '../fakes.dart';
+
 class _RecordingAuth implements AuthRepository {
   int otpRequests = 0;
   String? lastPhone;
@@ -24,8 +26,20 @@ class _RecordingAuth implements AuthRepository {
     required String phoneE164,
     required String otp,
     required String deviceId,
-  }) async =>
-      const Left(ApiFailure('bad code', code: 'OTP_INVALID'));
+  }) async => const Left(ApiFailure('bad code', code: 'OTP_INVALID'));
+
+  /// Records the exchange so a test can assert the token actually left the app.
+  String? lastGoogleIdToken;
+  Either<Failure, Session> googleResult = const Left(ApiFailure('no google', code: 'X'));
+
+  @override
+  Future<Either<Failure, Session>> signInWithGoogle({
+    required String idToken,
+    required String deviceId,
+  }) async {
+    lastGoogleIdToken = idToken;
+    return googleResult;
+  }
 
   @override
   Future<Either<Failure, Session>> refresh(Session current) async =>
@@ -38,18 +52,17 @@ class _RecordingAuth implements AuthRepository {
 void main() {
   late _RecordingAuth auth;
   late LoginController c;
+  late SessionController session;
 
   setUp(() {
     auth = _RecordingAuth();
-    c = LoginController(
-      auth: auth,
-      session: SessionController(store: SecureStore(), auth: auth),
-    );
+    session = SessionController(store: SecureStore(), auth: auth, profile: FakeProfileRepository());
+    c = LoginController(auth: auth, session: session)..onInit();
   });
 
   tearDown(() => c.onClose());
 
-  group('phone validation — India only for v1 (docs/01)', () {
+  group('phone validation — India by default (docs/01), any country on request', () {
     test('accepts a 10-digit number starting 6-9', () {
       for (final n in ['9876543210', '6000000000', '7012345678', '8123456789']) {
         c.phone.value = n;
@@ -68,6 +81,37 @@ void main() {
       c.phone.value = '9876543210';
       await c.sendCode();
       expect(auth.lastPhone, '+919876543210');
+    });
+
+    test('another country brings its own length, and its own dialling code', () async {
+      // Spain: nine digits, and none of India's 6-9 first-digit rule.
+      c.setCountry(dial: '+34', minLength: 9, maxLength: 9);
+
+      c.phone.value = '123456789';
+      expect(c.isPhoneValid, isTrue, reason: 'nine digits is a whole Spanish number');
+
+      c.phone.value = '1234567890';
+      expect(c.isPhoneValid, isFalse, reason: 'and ten is not');
+
+      c.phone.value = '123456789';
+      await c.sendCode();
+      expect(auth.lastPhone, '+34123456789');
+    });
+
+    test('changing country clears the number', () {
+      // Nine digits typed for Spain is not a valid Indian number, and leaving it in the field
+      // would disable the button with nothing on screen explaining why.
+      c.phone.value = '123456789';
+      c.setCountry(dial: '+91', minLength: 10, maxLength: 10);
+      expect(c.phone.value, isEmpty);
+    });
+
+    test('a sign-out returns the country to the default too', () {
+      c
+        ..setCountry(dial: '+34', minLength: 9, maxLength: 9)
+        ..reset();
+      expect(c.dialCode.value, '+91');
+      expect(c.phoneMaxLength.value, 10);
     });
   });
 
@@ -112,6 +156,66 @@ void main() {
       c.otp.value = '123456';
       await c.verify();
       expect(c.failure.value!.userMessage, 'bad code');
+    });
+  });
+
+  group('a mistyped number is recoverable', () {
+    test('editPhone returns to phone entry with the number kept for editing', () async {
+      c.phone.value = '8433145573';
+      await c.sendCode();
+      c.otp.value = '123';
+
+      c.editPhone();
+
+      expect(c.codeSent.value, isFalse, reason: 'the OTP step must not be a dead end');
+      expect(c.phone.value, '8433145573', reason: 'a one-digit typo is not a reason to retype ten');
+      expect(c.otp.value, isEmpty, reason: 'the old code belongs to the old number');
+      expect(c.failure.value, isNull);
+    });
+
+    test('the resend cooldown does not block the FIRST send to a corrected number', () async {
+      c.phone.value = '8433145573';
+      await c.sendCode();
+      expect(c.resendIn.value, LoginController.resendCooldownSeconds);
+      expect(c.canSend, isFalse, reason: 'resending to the same number is still on cooldown');
+
+      c.editPhone();
+      c.phone.value = '8433145574';
+
+      expect(c.canSend, isTrue, reason: 'a different number has never been sent to');
+      await c.sendCode();
+      expect(auth.otpRequests, 2);
+      expect(auth.lastPhone, '+918433145574');
+    });
+  });
+
+  group('signing out clears the form', () {
+    test('a sign-out returns the page to phone entry with no stale number', () {
+      c
+        ..phone.value = '9876543210'
+        ..otp.value = '123456'
+        ..codeSent.value = true
+        ..resendIn.value = 25;
+
+      // What the user sees after tapping Sign out on the You tab.
+      session.status.value = AuthStatus.signedOut;
+
+      expect(c.phone.value, isEmpty);
+      expect(c.otp.value, isEmpty);
+      expect(c.codeSent.value, isFalse, reason: 'must open on phone entry, not the OTP step');
+      expect(c.resendIn.value, 0, reason: 'the cooldown belonged to the previous number');
+      expect(c.failure.value, isNull);
+    });
+
+    test('signing in does not clear the form mid-flow', () {
+      c
+        ..phone.value = '9876543210'
+        ..codeSent.value = true;
+
+      session.status.value = AuthStatus.signedIn;
+
+      expect(c.phone.value, '9876543210');
+      expect(c.codeSent.value, isTrue);
     });
   });
 }

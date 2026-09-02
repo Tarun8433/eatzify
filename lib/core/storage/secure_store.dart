@@ -22,6 +22,11 @@ class SecureStore {
   static const _kRoles = 'auth.roles';
   static const _kOnboarding = 'auth.onboarding_required';
 
+  /// Whether the intro carousel has been shown. Not a token, but it lives here because this is the
+  /// app's declared persistence (rule 11) and it is the one thing that must SURVIVE [clear] —
+  /// signing out should not replay a marketing carousel at someone who already has an account.
+  static const _kIntroSeen = 'intro.seen';
+
   Future<void> save(Session session) async {
     await Future.wait([
       _storage.write(key: _kAccess, value: session.accessToken),
@@ -48,7 +53,27 @@ class SecureStore {
     );
   }
 
+  /// False rather than throwing when the keychain is unreadable. [clear] is the recovery path for
+  /// exactly that failure, so a read in it that can throw would strand the app on the splash — the
+  /// bug the boot-resilience test exists to catch. Showing the intro once more is the harmless
+  /// direction to be wrong in.
+  Future<bool> readIntroSeen() async {
+    try {
+      return await _storage.read(key: _kIntroSeen) == 'true';
+    } on Object {
+      return false;
+    }
+  }
+
+  Future<void> markIntroSeen() => _storage.write(key: _kIntroSeen, value: 'true');
+
   /// Called on logout and on refresh-token rejection. Clears every key, not just the access token —
-  /// a half-cleared session is how a revoked refresh token gets retried forever.
-  Future<void> clear() => _storage.deleteAll();
+  /// a half-cleared session is how a revoked refresh token gets retried forever. `deleteAll` rather
+  /// than five named deletes so a key added by an older build cannot outlive the session it
+  /// belonged to; [_kIntroSeen] is the one deliberate survivor and is written back.
+  Future<void> clear() async {
+    final introSeen = await readIntroSeen();
+    await _storage.deleteAll();
+    if (introSeen) await markIntroSeen();
+  }
 }

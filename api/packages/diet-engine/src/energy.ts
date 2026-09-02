@@ -2,13 +2,21 @@ import type { BmrCoefficients, RulePack } from './pack';
 import type { EngineInput, Goal, WarningCode } from './types';
 
 /** docs/04 §3 — Mifflin-St Jeor. Current weight, never goal weight. */
-export function computeBmr(input: EngineInput, pack: RulePack): { bmr: number; reducedPrecision: boolean } {
+export function computeBmr(
+  input: EngineInput,
+  pack: RulePack,
+): { bmr: number; reducedPrecision: boolean } {
   const { male, female } = pack.energy.bmr;
   const apply = (c: BmrCoefficients): number =>
-    c.weight * input.weightKg + c.height * input.heightCm + c.age * input.ageYears + c.constant;
+    c.weight * input.weightKg +
+    c.height * input.heightCm +
+    c.age * input.ageYears +
+    c.constant;
 
-  if (input.sexAtBirth === 'male') return { bmr: apply(male), reducedPrecision: false };
-  if (input.sexAtBirth === 'female') return { bmr: apply(female), reducedPrecision: false };
+  if (input.sexAtBirth === 'male')
+    return { bmr: apply(male), reducedPrecision: false };
+  if (input.sexAtBirth === 'female')
+    return { bmr: apply(female), reducedPrecision: false };
   // intersex_prefer_not_say: mean of both, and flag the precision loss to the user.
   return { bmr: (apply(male) + apply(female)) / 2, reducedPrecision: true };
 }
@@ -18,9 +26,14 @@ export function computeBmi(weightKg: number, heightCm: number): number {
   return weightKg / (heightM * heightM);
 }
 
-export function computeTdee(bmr: number, input: EngineInput, pack: RulePack): number {
+export function computeTdee(
+  bmr: number,
+  input: EngineInput,
+  pack: RulePack,
+): number {
   const multiplier = pack.energy.activity_multipliers[input.activityLevel];
-  if (multiplier === undefined) throw new Error(`unknown activity level: ${input.activityLevel}`);
+  if (multiplier === undefined)
+    throw new Error(`unknown activity level: ${input.activityLevel}`);
   return bmr * multiplier;
 }
 

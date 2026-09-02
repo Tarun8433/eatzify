@@ -1,4 +1,9 @@
-import { generatePlan, type EngineInput, type EngineOutput, type RulePack } from '@eatzify/diet-engine';
+import {
+  generatePlan,
+  type EngineInput,
+  type EngineOutput,
+  type RulePack,
+} from '@eatzify/diet-engine';
 import { RulePackError, loadAllRulePacks } from './rule-pack.loader';
 
 /**
@@ -45,7 +50,8 @@ export class EngineService {
 
   private pack(version: string): RulePack {
     const pack = this.packs.get(version);
-    if (pack === undefined) throw new RulePackError(`unknown rule pack version: ${version}`);
+    if (pack === undefined)
+      throw new RulePackError(`unknown rule pack version: ${version}`);
     return pack;
   }
 }

@@ -28,15 +28,49 @@
   "homeSubtitle": "Today at a glance",
   "homeEmptyTitle": "Nothing to show yet",
   "homeEmptyBody": "Your rings, next meal and quick log appear here once a plan is active.",
-  "planSubtitle": "Today's meals",
+  "planSubtitle": "Your plan for today",
   "planEmptyTitle": "No active plan",
   "planEmptyBody": "Finish onboarding and a plan is generated for you.",
-  "progressSubtitle": "Weight, adherence and macros",
+  "progressSubtitle": "Track your health journey",
+  "progressPeriodThisWeek": "This week",
+  "progressPeriodLastWeek": "Last week",
+  "progressSectionOverview": "Overview",
+  "progressSectionNutrition": "Nutrition",
+  "progressSectionActivity": "Activity",
+  "progressSectionHabits": "Habits",
+  "progressCalorieTitle": "Calorie progress",
+  "progressAvgConsumed": "avg consumed",
+  "progressGoalKcal": "Goal: {kcal} kcal",
+  "@progressGoalKcal": { "placeholders": { "kcal": { "type": "int" } } },
+  "progressOfGoal": "of goal",
+  "progressVsLastWeek": "{pct}% vs last week",
+  "@progressVsLastWeek": { "placeholders": { "pct": { "type": "int" } } },
+  "progressGoalLabel": "Goal",
+  "progressMacroTitle": "Macronutrient balance",
+  "progressMacroWindow": "7-day average",
+  "progressWeightTrend": "Weight trend",
+  "progressSeeAll": "See all",
+  "progressCurrentWeight": "Current weight",
+  "progressConsistencyTitle": "7 day consistency",
+  "progressConsistencyCount": "{logged} / {days} days",
+  "@progressConsistencyCount": { "placeholders": { "logged": { "type": "int" }, "days": { "type": "int" } } },
   "progressEmptyTitle": "Not enough data yet",
   "progressEmptyBody": "Log your weight for a few days and your trend appears here.",
-  "accountSubtitle": "Profile, plan and privacy",
-  "accountEmptyTitle": "Not signed in",
-  "accountEmptyBody": "Sign in to see your profile, subscription and privacy controls.",
+  "accountSubtitle": "Manage your profile and goals",
+  "accountTitle": "Profile",
+  "accountHi": "Hi, {name}!",
+  "@accountHi": { "placeholders": { "name": { "type": "String" } } },
+  "accountHiThere": "Hi there!",
+  "accountStepsToday": "{steps} steps today",
+  "@accountStepsToday": { "placeholders": { "steps": { "type": "String" } } },
+  "accountStepsCaption": "steps today",
+  "accountBodyStats": "Body stats",
+  "accountQuickActions": "Quick actions",
+  "accountMyPlan": "My plan",
+  "accountReports": "Reports",
+  "accountEditProfile": "Edit profile",
+  "accountEmptyTitle": "Your details aren't set up yet",
+  "accountEmptyBody": "Finish setting up your profile and it will show here.",
   "sexMale": "Male",
   "sexFemale": "Female",
   "sexIntersexPreferNotSay": "Prefer not to say",
@@ -105,20 +139,29 @@
   "onboardingFinish": "Create my plan",
   "stepOfSteps": "Step {current} of {total}",
   "onboardingBasicsTitle": "About you",
-  "onboardingBasicsSubtitle": "This sets your calorie and protein targets.",
+  "onboardingBasicsSubtitle": "This helps us personalize your plan and set the right calorie & protein goals.",
   "fieldAge": "Age",
-  "fieldHeightCm": "Height (cm)",
+  "fieldHeightCm": "Height",
   "fieldWeightKg": "Current weight (kg)",
-  "fieldSexAtBirth": "Sex at birth",
-  "sexAtBirthWhy": "We ask because the calorie equation needs it. It is not a question about gender identity.",
+  "fieldSexAtBirth": "Gender",
+  "sexAtBirthWhy": "We ask because the calorie equation is based on it.",
   "onboardingGoalTitle": "What are you here for?",
   "onboardingActivityTitle": "How active are you?",
   "onboardingActivitySubtitle": "Be honest rather than optimistic — this is the biggest source of error in the calculation.",
   "onboardingConditionsTitle": "Any of these apply to you?",
   "onboardingConditionsSubtitle": "This changes what we plan for you, and sometimes whether we plan at all.",
+  "onboardingMultiSelectHint": "You can select more than one option",
+  "onboardingSelectAllHint": "Select all that apply",
+  "onboardingOptional": "Optional",
+  "copyHealthDataPrivate": "Your information is private and secure. We use it only to personalize your plan.",
   "onboardingPregnancyTitle": "Are you currently pregnant or breastfeeding?",
   "onboardingConsentTitle": "Before we store anything",
   "onboardingConsentBody": "We need your explicit agreement to store the health details you just entered. You can withdraw it at any time, and we will delete the data.",
+  "consentHealthDataLead": "Store my health details",
+  "consentHealthDataDetail": "to create and adjust my diet plan",
+  "consentAssuranceSecure": "Your data is secure",
+  "consentAssuranceControl": "You're in control",
+  "consentAssuranceDelete": "Delete anytime",
   "consentHealthData": "Store my health details to create and adjust my diet plan",
   "gateTitle": "Let's not plan this on our own",
   "gateBody": "Based on what you told us, a plan should come from a doctor or dietitian who knows your history — not from an algorithm. Nothing you entered has been used to generate one.",
@@ -135,12 +178,36 @@
   },
   "onboardingDietTitle": "How do you eat?",
   "onboardingDietSubtitle": "We only plan food you actually eat.",
+  "onboardingDietQuestion": "What best describes your diet?",
+  "onboardingDietQuestionHint": "Choose one that fits you best.",
+  "onboardingAllergiesWhy": "This helps us make your plan safer and more personalized.",
+  "onboardingSelectAllOptional": "Select all that apply (optional)",
+  "dietVegDesc": "No meat, but may include dairy and eggs",
+  "dietNonVegDesc": "Includes meat, fish and poultry",
+  "dietEggetarianDesc": "No meat, but includes eggs",
+  "dietJainDesc": "No onion, garlic or root vegetables",
+  "dietVeganDesc": "No animal products at all",
   "onboardingAllergiesLabel": "Any food allergies?",
   "onboardingAllergiesHint": "Food allergies only. Skip if none apply.",
+  "onboardingSummaryTitle": "Your plan, in your words",
+  "onboardingSummarySubtitle": "Everything here is what you told us. None of it is fixed — you can change any of it later.",
+  "onboardingSummaryShape": "How your day is set up",
+  "onboardingSummaryMeals": "Meals a day",
+  "onboardingSummaryTimes": "Meal times",
   "onboardingRoutineTitle": "Your routine",
   "onboardingRoutineSubtitle": "This shapes how your day is split and what we suggest.",
   "onboardingMealCountLabel": "How many meals suit you?",
   "onboardingLifestyleLabel": "Your typical day",
+  "onboardingMealCountHint": "There is no right answer — pick what your day already looks like.",
+  "onboardingLifestyleHint": "It decides when your meals land, not what is in them.",
+  "mealsThreeDesc": "Breakfast, lunch and dinner",
+  "mealsFourDesc": "Three meals and a snack",
+  "mealsFiveSixDesc": "Smaller plates, more often",
+  "lifestyleOfficeDesc": "Desk hours, meals around them",
+  "lifestyleStudentDesc": "Classes, and eating between them",
+  "lifestyleNightShiftDesc": "Awake at night, meals shift with it",
+  "lifestyleFlexibleDesc": "No fixed hours to plan around",
+  "lifestyleHomeDesc": "At home, cooking when it suits",
   "onboardingBudgetLabel": "Food budget",
   "onboardingDone": "You're all set",
   "onboardingDoneBody": "We have what we need. Your plan is generated on the server — that part is not connected yet, so you'll land on an empty home for now.",
@@ -184,6 +251,90 @@
   "accountHelp": "Help",
   "accountAbout": "About Eatzify",
   "notConnectedYet": "Not connected yet",
+  "sourceManual": "you entered",
+  "sourceAppleHealth": "Apple Health",
+  "sourceHealthConnect": "Health Connect",
+  "homeStepsFrom": "Steps · {source}",
+  "@homeStepsFrom": {
+    "placeholders": { "source": { "type": "String" } }
+  },
+  "onboardingResultLead": "You're aiming to",
+  "onboardingResultLoseShort": "lose {kg} kg",
+  "onboardingResultGainShort": "gain {kg} kg",
+  "onboardingResultHoldShort": "hold your weight",
+  "@onboardingResultLoseShort": {
+    "placeholders": { "kg": { "type": "String" } }
+  },
+  "@onboardingResultGainShort": {
+    "placeholders": { "kg": { "type": "String" } }
+  },
+  "onboardingResultJourney": "Your journey",
+  "onboardingResultHealthyChip": "Healthy range",
+  "onboardingResultHealthyNote": "Your target sits inside the healthy weight range for your height.",
+  "onboardingResultOnWay": "You're on your way!",
+  "onboardingResultCurrentChip": "Current weight",
+  "onboardingResultGoalChip": "Goal weight",
+  "onboardingResultTipTitle": "Stay consistent, see results",
+  "onboardingResultTipBody": "Small steps today, big changes tomorrow.",
+  "onboardingResultTitle": "You're aiming to lose {kg} kg",
+  "onboardingResultGain": "You're aiming to gain {kg} kg",
+  "onboardingResultHold": "You're aiming to hold your weight",
+  "onboardingResultBody": "That's the gap between what you weigh now and where you want to be. We'll work out the daily numbers once you've answered a few more questions.",
+  "onboardingResultFrom": "Now",
+  "onboardingResultTo": "Target",
+  "@onboardingResultTitle": {
+    "placeholders": { "kg": { "type": "String" } }
+  },
+  "@onboardingResultGain": {
+    "placeholders": { "kg": { "type": "String" } }
+  },
+  "fieldWeightShort": "Weight",
+  "fieldGoalWeightShort": "Target",
+  "pickerDone": "Done",
+  "pickerOpen": "Choose {label}",
+  "@pickerOpen": {
+    "placeholders": { "label": { "type": "String" } }
+  },
+  "welcomeSlide1Title": "Food you already eat",
+  "welcomeSlide1Body": "Plans built from roti, dal, idli and rajma — not from a foreign diet with Indian names on it.",
+  "welcomeSlide2Title": "Targets worked out, not guessed",
+  "welcomeSlide2Body": "Your calories and protein come from your body and your goal, checked against clinical safety floors.",
+  "welcomeSlide3Title": "Two taps a day",
+  "welcomeSlide3Body": "Tick off a meal, add a glass of water, note your weight. That is the whole daily habit.",
+  "welcomeSlide1Fact1": "Home food",
+  "welcomeSlide1Fact1Sub": "you love",
+  "welcomeSlide1Fact2": "Balanced",
+  "welcomeSlide1Fact2Sub": "and satisfying",
+  "welcomeSlide1Fact3": "Healthy",
+  "welcomeSlide1Fact3Sub": "for life",
+  "welcomeSlide2Fact1": "Your body",
+  "welcomeSlide2Fact1Sub": "your numbers",
+  "welcomeSlide2Fact2": "Safe floors",
+  "welcomeSlide2Fact2Sub": "clinically set",
+  "welcomeSlide2Fact3": "No guesswork",
+  "welcomeSlide2Fact3Sub": "just maths",
+  "welcomeSlide3Fact1": "Quick log",
+  "welcomeSlide3Fact1Sub": "in seconds",
+  "welcomeSlide3Fact2": "Water",
+  "welcomeSlide3Fact2Sub": "and weight",
+  "welcomeSlide3Fact3": "One habit",
+  "welcomeSlide3Fact3Sub": "that sticks",
+  "welcomeSkip": "Skip",
+  "welcomeNext": "Next",
+  "welcomeStart": "Get started",
+  "loginSecureBadge": "100% secure",
+  "loginPhoneHint": "Enter your phone number",
+  "loginPrivacyNote": "We'll never share your number with anyone.",
+  "loginOr": "or",
+  "loginGoogle": "Continue with Google",
+  "loginGoogleFailed": "Google sign-in didn't finish. You can use your phone number instead.",
+  "loginImportantTitle": "Important",
+  "loginFooter": "Made with care for your health",
+  "loginBack": "Back",
+  "otpDigit": "Digit {position} of {total}",
+  "@otpDigit": {
+    "placeholders": { "position": { "type": "int" }, "total": { "type": "int" } }
+  },
   "loginTitle": "Your phone number",
   "loginSubtitle": "We'll text you a 6-digit code. No password to forget.",
   "loginPhoneLabel": "Phone number",
@@ -194,6 +345,7 @@
   "otpVerify": "Verify",
   "otpResend": "Send a new code",
   "otpResendIn": "You can ask for a new code in {seconds}s",
+  "otpChangeNumber": "Change number",
   "loginInvalidPhone": "Enter a 10-digit Indian mobile number.",
   "loginInvalidOtp": "Enter the 6-digit code.",
   "signOut": "Sign out",
@@ -211,5 +363,487 @@
         "type": "int"
       }
     }
-  }
+  },
+  "accountRetry": "Try again",
+  "accountYourDetails": "Your details",
+  "accountHealth": "Health",
+  "accountConditions": "Conditions",
+  "accountAllergies": "Allergies",
+  "accountNone": "None",
+  "accountGoal": "Goal",
+  "accountActivity": "Activity",
+  "accountDiet": "Diet",
+  "accountSex": "Gender",
+  "accountHeightValue": "{cm} cm",
+  "accountWeightValue": "{kg} kg",
+  "accountAgeValue": "{years} years",
+  "@accountHeightValue": {
+    "placeholders": {
+      "cm": {
+        "type": "int"
+      }
+    }
+  },
+  "@accountWeightValue": {
+    "placeholders": {
+      "kg": {
+        "type": "String"
+      }
+    }
+  },
+  "@accountAgeValue": {
+    "placeholders": {
+      "years": {
+        "type": "int"
+      }
+    }
+  },
+  "accountEdit": "Edit",
+  "accountEditDetails": "Edit your details",
+  "accountEditHealth": "Edit health details",
+  "accountSave": "Save",
+  "accountSaved": "Saved",
+  "accountEditGatedTitle": "We can't plan for you right now",
+  "accountEditGatedBody": "Based on what you've told us, a plan needs a clinician's input first.",
+  "accountPhoto": "Profile photo",
+  "accountPhotoChange": "Change photo",
+  "accountPhotoTakePhoto": "Take a photo",
+  "accountPhotoChooseGallery": "Choose from gallery",
+  "accountPhotoRemove": "Remove photo",
+  "accountPhotoTooLarge": "That image is too large. Please pick one under 5 MB.",
+  "progressWeight": "Weight",
+  "progressLogWeight": "Log weight",
+  "progressNoTrend": "Log a few more days to see a trend.",
+  "progressChangeUp": "{kg} kg up since you started tracking",
+  "progressChangeDown": "{kg} kg down since you started tracking",
+  "progressChangeFlat": "About the same since you started tracking",
+  "progressChange30Up": "{kg} kg up vs last 30 days",
+  "@progressChange30Up": { "placeholders": { "kg": { "type": "String" } } },
+  "progressChange30Down": "{kg} kg down vs last 30 days",
+  "@progressChange30Down": { "placeholders": { "kg": { "type": "String" } } },
+  "progressChange30Flat": "About the same as 30 days ago",
+  "progressHistoryTitle": "History",
+  "progressHistoryExcluded": "Left out of the trend",
+  "progressSuspectTitle": "Does that look right?",
+  "progressSuspectBody": "That's a big change from your last entry. We've saved it, but we'll leave it out of your trend unless you confirm.",
+  "progressSuspectKeep": "Yes, that's right",
+  "progressSuspectRedo": "Let me change it",
+  "progressLatest": "Latest",
+  "commonCancel": "Cancel",
+  "commonSave": "Save",
+  "@progressChangeUp": {
+    "placeholders": {
+      "kg": {
+        "type": "String"
+      }
+    }
+  },
+  "@progressChangeDown": {
+    "placeholders": {
+      "kg": {
+        "type": "String"
+      }
+    }
+  },
+  "homeToday": "Today",
+  "homeEaten": "{kcal} of {target} kcal",
+  "homeEatenNoPlan": "{kcal} kcal logged",
+  "homeNoPlanYet": "No plan yet",
+  "homeRingsLegend": "Rings, outer to inner: protein, carbs, fat",
+  "homeProtein": "Protein",
+  "homeCarbs": "Carbs",
+  "homeFat": "Fat",
+  "homeNothingLogged": "Nothing logged yet today.",
+  "logQuickAdds": "Quick adds",
+  "logQuickAddsSubtitle": "Add common foods in one tap",
+  "logFoodsSubtitle": "Add and track your meals easily",
+  "logFoodsViewAll": "View all",
+  "logFoodsCategory": "Food category",
+  "logFoodsCategoryAll": "All categories",
+  "logFoodsAll": "All foods",
+  "logFoodsMatching": "Matching \u201c{query}\u201d",
+  "@logFoodsMatching": {
+    "placeholders": { "query": { "type": "String" } }
+  },
+  "logSearchHint": "Search for food, dish or ingredient\u2026",
+  "logSearchEmpty": "No foods found.",
+  "logSlot": "Meal",
+  "logHowMuch": "How much?",
+  "logAdd": "Add",
+  "logAdded": "Added",
+  "slotBreakfast": "Breakfast",
+  "slotMidMorning": "Mid-morning",
+  "slotLunch": "Lunch",
+  "slotSnack": "Snack",
+  "slotEvening": "Evening",
+  "slotDinner": "Dinner",
+  "slotBedtime": "Bedtime",
+  "@homeEaten": {
+    "placeholders": {
+      "kcal": {
+        "type": "int"
+      },
+      "target": {
+        "type": "int"
+      }
+    }
+  },
+  "@homeEatenNoPlan": {
+    "placeholders": {
+      "kcal": {
+        "type": "int"
+      }
+    }
+  },
+  "homeCreatePlan": "Create my plan",
+  "homeDailyGoal": "DAILY GOAL",
+  "homeKcalLeft": "kcal left",
+  "homeKcalOver": "kcal over",
+  "homeKcalLogged": "kcal logged",
+  "homeSlotEmpty": "Nothing yet",
+  "logDecrease": "Less",
+  "logIncrease": "More",
+  "homeSupplied": "supplied",
+  "homeBurned": "burned",
+  "homeBurnedUnavailable": "Calories burned aren't counted unless you enter them. Tap + to add today's activity.",
+  "planDailyTarget": "Daily target",
+  "planKcalConsumed": "{kcal} kcal consumed",
+  "@planKcalConsumed": { "placeholders": { "kcal": { "type": "int", "format": "decimalPattern" } } },
+  "planKcalLeft": "{kcal} kcal left",
+  "@planKcalLeft": { "placeholders": { "kcal": { "type": "int", "format": "decimalPattern" } } },
+  "planKcalOver": "{kcal} kcal over",
+  "@planKcalOver": { "placeholders": { "kcal": { "type": "int", "format": "decimalPattern" } } },
+  "premiumGo": "Go Premium",
+  "premiumTitle": "Unlock your best results",
+  "premiumBody": "Go Premium and get more from your plan.",
+  "premiumTrial": "7-day free trial",
+  "premiumSheetTitle": "Premium plans",
+  "premiumComingSoon": "Payments are opening soon. These are the live plans and prices.",
+  "premiumMonths": "{months, plural, =1{1 month} other{{months} months}}",
+  "@premiumMonths": { "placeholders": { "months": { "type": "int" } } },
+  "premiumFeatRegen": "More plan regenerations",
+  "premiumFeatAlternates": "Meal alternates",
+  "premiumFeatExport": "PDF export",
+  "premiumFeatSupport": "Priority support",
+  "tierBasic": "Basic",
+  "tierPro": "Pro",
+  "planRecommended": "Recommended for you",
+  "planOfGoal": "of today's target",
+  "planEatenOf": "{eaten} / {target} g",
+  "@planEatenOf": {
+    "placeholders": { "eaten": { "type": "int" }, "target": { "type": "int" } }
+  },
+  "planTargetOnly": "{target} g a day",
+  "@planTargetOnly": {
+    "placeholders": { "target": { "type": "int" } }
+  },
+  "planFibre": "Fibre",
+  "planWater": "Water",
+  "planWaterOf": "{logged} / {target} ml",
+  "@planWaterOf": {
+    "placeholders": { "logged": { "type": "int" }, "target": { "type": "int" } }
+  },
+  "planAdviceBody": "Miss a meal? The next one is the one that counts.",
+  "planTodaysMeals": "Today's meals",
+  "planViewFullDay": "View full day",
+  "planShareOfDay": "{pct}% of your day",
+  "@planShareOfDay": {
+    "placeholders": { "pct": { "type": "int" } }
+  },
+  "planSuggestedCount": "{count, plural, =0{No suggestions yet} =1{1 suggested food} other{{count} suggested foods}}",
+  "@planSuggestedCount": {
+    "placeholders": { "count": { "type": "int" } }
+  },
+  "planDayTotal": "For the day",
+  "planShare": "{pct}% of the day",
+  "planRegenerate": "Make a new plan",
+  "planFrom": "Rule pack {version}",
+  "@planShare": {
+    "placeholders": {
+      "pct": {
+        "type": "int"
+      }
+    }
+  },
+  "@planFrom": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "accountProfileHeading": "PROFILE",
+  "@accountProfileHeading": {
+    "description": "Small caps heading over the profile frame on the You tab."
+  },
+  "accountYearsOld": "years old",
+  "@accountYearsOld": {
+    "description": "Caption under the age figure in the profile frame."
+  },
+  "accountDailyGoals": "Daily goals",
+  "@accountDailyGoals": {
+    "description": "Heading over the goal tiles on the You tab."
+  },
+  "accountNoGoalsYet": "Your daily goals appear here once you have a plan.",
+  "@accountNoGoalsYet": {
+    "description": "Shown in place of the goal tiles when no plan exists."
+  },
+  "accountGoalCalories": "Calories",
+  "@accountGoalCalories": {
+    "description": "Label of the calories goal tile."
+  },
+  "onboardingNameLabel": "Your name",
+  "onboardingNameHint": "What should we call you?",
+  "onboardingGoalWeightLabel": "Target weight (kg)",
+  "onboardingGoalWeightOptional": "Optional — you can set this later.",
+  "goalDeclaredWeightLoss": "Weight loss",
+  "goalDeclaredWeightGain": "Weight gain",
+  "goalDeclaredFatLoss": "Fat loss",
+  "goalDeclaredMuscleGain": "Muscle gain",
+  "goalDeclaredGeneralFitness": "General fitness",
+  "goalDeclaredMedicalSupport": "Medical or nutrition support",
+  "goalDeclaredOther": "Something else",
+  "onboardingDailyRoutineTitle": "Your day",
+  "onboardingDailyRoutineSubtitle": "So your plan fits the hours you actually keep.",
+  "onboardingWakeTime": "Usual wake-up time",
+  "onboardingSleepTime": "Usual bedtime",
+  "onboardingSleepAbout": "That's about",
+  "onboardingSleepInBed": "{hours} hours in bed",
+  "@onboardingSleepInBed": {
+    "placeholders": { "hours": { "type": "String" } }
+  },
+  "onboardingSleepAdvice": "Most adults do best on 7-9 hours of sleep a night.",
+  "copyImportant": "Important",
+  "onboardingSleepHours": "Hours of sleep a night",
+  "onboardingTimeNotSet": "Not set",
+  "onboardingHealthTitle": "A few health details",
+  "onboardingHealthSubtitle": "Only what helps your plan. You can skip anything that does not apply.",
+  "onboardingMedicationsLabel": "Regular medicines or supplements",
+  "onboardingMedicationsHint": "For example: Metformin 500mg, vitamin D",
+  "onboardingDigestiveTitle": "Any of these, regularly?",
+  "onboardingInjuriesTitle": "Any injury or pain that limits movement?",
+  "digestiveNone": "None of these",
+  "digestiveGas": "Gas",
+  "digestiveAcidity": "Acidity",
+  "digestiveBloating": "Bloating",
+  "digestiveConstipation": "Constipation",
+  "digestiveLooseMotion": "Loose motion",
+  "digestiveIbs": "IBS",
+  "injuryNone": "None",
+  "injuryBackPain": "Back pain",
+  "injuryKneePain": "Knee pain",
+  "injuryJointPain": "Joint pain",
+  "injuryOther": "Another injury",
+  "onboardingWomensHealthTitle": "Menstrual health",
+  "onboardingWomensHealthSubtitle": "These change what is safe to recommend. Answer only what you are comfortable sharing.",
+  "onboardingPeriodsQuestion": "Are your periods regular?",
+  "onboardingPregnantQuestion": "Are you currently pregnant or breastfeeding?",
+  "onboardingHeavyBleedingQuestion": "Do you get heavy bleeding or severe period pain?",
+  "onboardingHormonalMedicineQuestion": "Are you taking any hormonal medicine?",
+  "menstrualRegular": "Regular",
+  "menstrualIrregular": "Irregular",
+  "menstrualNotApplicable": "Prefer not to say",
+  "onboardingDislikesLabel": "Foods you would rather avoid",
+  "onboardingDislikesHint": "For example: karela, no onion",
+  "onboardingDislikesNote": "Different from an allergy — we will avoid these where we can.",
+  "onboardingMealTimingsTitle": "When do you eat?",
+  "onboardingMealTimingsSubtitle": "Your plan is built around these times, not a generic schedule.",
+  "onboardingBreakfastTime": "Breakfast",
+  "onboardingLunchTime": "Lunch",
+  "onboardingEveningSnackTime": "Evening snack",
+  "onboardingDinnerTime": "Dinner",
+  "conditionHighCholesterol": "High cholesterol",
+  "conditionFattyLiver": "Fatty liver",
+  "conditionHeartProblem": "Heart problem",
+  "conditionDigestiveIssue": "Digestive issue",
+  "measurementHip": "Hip",
+  "measurementThigh": "Thigh",
+  "measurementChest": "Chest",
+  "accountMealCount": "Meals a day",
+  "accountLifestyle": "Daily routine",
+  "accountBudget": "Budget",
+  "onboardingPreparingTitle": "Building your plan",
+  "onboardingPreparingBody": "We're putting together your first day of meals. This takes a moment.",
+  "onboardingHealthyWeightTitle": "A healthy weight for your height",
+  "onboardingHealthyWeightRange": "{low}–{high} kg",
+  "onboardingHealthyWeightBody": "Your BMI right now is {bmi}. Pick any target you like — this is only here so the number you choose is an informed one.",
+  "onboardingHealthyWeightHint": "Enter your age, gender, height and current weight to see your daily calorie & protein goals.",
+  "@onboardingHealthyWeightRange": {
+    "placeholders": {
+      "low": {
+        "type": "String"
+      },
+      "high": {
+        "type": "String"
+      }
+    }
+  },
+  "@onboardingHealthyWeightBody": {
+    "placeholders": {
+      "bmi": {
+        "type": "String"
+      }
+    }
+  },
+  "onboardingSleepDerived": "That's about {hours} hours in bed.",
+  "@onboardingSleepDerived": {
+    "placeholders": {
+      "hours": {
+        "type": "String"
+      }
+    }
+  },
+  "onboardingBudgetPerMonth": "{amount} a month",
+  "onboardingBudgetHint": "Roughly what you spend on your own food each month. It only changes which foods your plan reaches for — never how much you are fed.",
+  "@onboardingBudgetPerMonth": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "homeStepsLabel": "steps",
+  "logWeightTitle": "Log your weight",
+  "logWeightSubtitle": "Track your progress and stay on your goal.",
+  "logWeightYour": "Your weight",
+  "logWeightHintTitle": "Track consistently",
+  "logWeightHintBody": "Weigh yourself at the same time of day — one reading is a number, a series is a trend.",
+  "logWeightWhen": "Date & time",
+  "logWeightNow": "Now",
+  "logWeightSave": "Save weight",
+  "logWeightUnit": "Unit",
+  "logActivityTitle": "Log your activity",
+  "logActivitySubtitle": "Track your steps and calories burned to get better insights.",
+  "logActivityStepsHint": "Enter number of steps",
+  "logActivityBurnedHint": "Enter calories burned",
+  "logActivityStepsRange": "0 \u2013 {max} steps",
+  "@logActivityStepsRange": {
+    "placeholders": { "max": { "type": "int", "format": "decimalPattern" } }
+  },
+  "logActivityBurnedRange": "0 \u2013 {max} kcal",
+  "@logActivityBurnedRange": {
+    "placeholders": { "max": { "type": "int", "format": "decimalPattern" } }
+  },
+  "logActivitySteps": "Steps today",
+  "logActivityBurned": "Calories burned (if you know it)",
+  "logActivityHint": "From a watch or a treadmill. Leave it blank if you are not sure — a guess here changes what you are told to eat.",
+  "logActivitySave": "Save activity",
+  "logSheetActivity": "Activity",
+  "planOptionsTitle": "Foods you can choose",
+  "planOptionsHint": "Filtered to your diet, allergies and budget. Tap one to log it — you can change the amount after.",
+  "planOptionsEmpty": "No foods match your preferences yet. The food list is still being built.",
+  "planOptionLogged": "Added to {slot}",
+  "@planOptionLogged": {
+    "placeholders": {
+      "slot": {
+        "type": "String"
+      }
+    }
+  },
+  "foodImageCreditTitle": "Photo credit",
+  "foodImageCreditBody": "{credit}",
+  "@foodImageCreditBody": {
+    "placeholders": {
+      "credit": {
+        "type": "String"
+      }
+    }
+  },
+  "homeDayToday": "Today",
+  "homeDayYesterday": "Yesterday",
+  "homeDayEarlier": "Earlier day",
+  "homeDayLater": "Later day",
+  "homeDayPast": "You are looking at a past day. Anything you log now goes to today.",
+  "homeCalorieSummary": "Calorie summary",
+  "homeMacros": "Macronutrients",
+  "homeDetails": "Details",
+  "homeSlotShare": "{pct}% of your day",
+  "@homeSlotShare": { "placeholders": { "pct": { "type": "int" } } },
+  "homeStreakTitle": "{days, plural, =1{1 day streak} other{{days} day streak}}",
+  "@homeStreakTitle": { "placeholders": { "days": { "type": "int" } } },
+  "homeStreakBody": "You're doing great — keep it up.",
+  "homeStreakDayLogged": "{day} logged",
+  "@homeStreakDayLogged": { "placeholders": { "day": { "type": "String" } } },
+  "homeStreakDayNot": "{day} not logged",
+  "@homeStreakDayNot": { "placeholders": { "day": { "type": "String" } } },
+  "homeTargetsHitTitle": "You hit today's targets",
+  "homeTargetsHitBody": "Calories and macros are all at goal.",
+  "homeSeeInsights": "See insights",
+  "homeWater": "Water",
+  "homeWaterOf": "{logged} of {target} ml",
+  "logWaterTitle": "Water today",
+  "logWaterAdd": "+{amount} ml",
+  "logWaterTotal": "{total} ml so far",
+  "logWaterGoal": "Goal {target} ml",
+  "logWaterNoGoal": "Your goal arrives with your first plan.",
+  "logWaterUndo": "Undo",
+  "logWaterUnit": "ml",
+  "logWaterDailyGoal": "Daily goal",
+  "logWaterQuickAdd": "Quick add",
+  "logWaterTodayLog": "Today's log",
+  "logWaterHistory": "View history",
+  "logWaterNone": "No water logged yet",
+  "logWaterNoneHint": "Start by adding a glass.",
+  "logWaterLogged": "{total} ml logged today",
+  "@logWaterLogged": {
+    "placeholders": { "total": { "type": "int", "format": "decimalPattern" } }
+  },
+  "logWaterFactTitle": "Did you know?",
+  "logWaterFactBody": "Thirst is easy to miss when you are busy. Little and often through the day is easier than catching up in the evening.",
+  "@homeWaterOf": {
+    "placeholders": {
+      "logged": {
+        "type": "String"
+      },
+      "target": {
+        "type": "String"
+      }
+    }
+  },
+  "@logWaterAdd": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "@logWaterTotal": {
+    "placeholders": {
+      "total": {
+        "type": "String"
+      }
+    }
+  },
+  "@logWaterGoal": {
+    "placeholders": {
+      "target": {
+        "type": "String"
+      }
+    }
+  },
+  "progressBodyTitle": "Body measurements",
+  "progressHabitsTitle": "Day by day",
+  "progressHabitsSubtitle": "The last week of what you logged",
+  "progressHabitNone": "Nothing logged yet",
+  "habitSteps": "Steps",
+  "habitWater": "Water",
+  "habitBurned": "Calories burned",
+  "habitDaysLogged": "{days, plural, =1{1 day logged} other{{days} days logged}}",
+  "@habitDaysLogged": {
+    "placeholders": { "days": { "type": "int" } }
+  },
+  "progressAddMeasurement": "Add",
+  "progressMeasurementNone": "Not recorded yet",
+  "progressLogKind": "Log {kind}",
+  "progressFirstReading": "That's your first reading. Log again in a few days and a trend appears here — day-to-day weight moves on water alone, so a single number is not progress.",
+  "measurementWeight": "Weight",
+  "measurementWaist": "Waist",
+  "@progressLogKind": {
+    "placeholders": {
+      "kind": {
+        "type": "String"
+      }
+    }
+  },
+  "onboardingIncomplete": "Something above is still blank. Go back and check each step, then try again."
 }

@@ -20,6 +20,12 @@ class AuthRepositoryImpl implements AuthRepository {
   }) => _remote.verifyOtp(phoneE164: phoneE164, otp: otp, deviceId: deviceId);
 
   @override
+  Future<Either<Failure, Session>> signInWithGoogle({
+    required String idToken,
+    required String deviceId,
+  }) => _remote.signInWithGoogle(idToken: idToken, deviceId: deviceId);
+
+  @override
   Future<Either<Failure, Session>> refresh(Session current) => _remote.refresh(current);
 
   @override

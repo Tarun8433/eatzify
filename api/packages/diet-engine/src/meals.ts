@@ -8,6 +8,25 @@ import type { Constraints, MealTarget } from './types';
  * module produces per-slot *targets* only, and `fillMeals` is deliberately absent rather than faked.
  */
 
+/**
+ * The user's chosen meal pattern cannot satisfy a condition's minimum eating occasions — docs/04 §6
+ * priority 5, where diabetes requires four. A REJECTION OF THE INPUT, not a fault: the caller is
+ * expected to turn it into a 422 the user can act on, which is why it carries the numbers rather
+ * than only a sentence. Thrown as a bare `Error` it reached the client as a 500.
+ */
+export class MealPatternError extends Error {
+  public constructor(
+    public readonly mealCount: string,
+    public readonly available: number,
+    public readonly required: number,
+  ) {
+    super(
+      `meal pattern "${mealCount}" gives ${available} eating occasions, condition requires ${required}`,
+    );
+    this.name = 'MealPatternError';
+  }
+}
+
 export interface DistributeArgs {
   readonly mealCount: string;
   readonly targetKcal: number;
@@ -20,7 +39,8 @@ export interface DistributeArgs {
 export function distributeMeals(args: DistributeArgs): readonly MealTarget[] {
   const { mealCount, targetKcal, abw, constraints, pack } = args;
   const pattern = pack.meals.patterns[mealCount];
-  if (pattern === undefined) throw new Error(`unknown meal pattern: ${mealCount}`);
+  if (pattern === undefined)
+    throw new Error(`unknown meal pattern: ${mealCount}`);
 
   const m = pack.meals;
   const perMealFloor = Math.max(
@@ -44,9 +64,7 @@ export function distributeMeals(args: DistributeArgs): readonly MealTarget[] {
   if (required !== undefined) {
     const available = slots.filter((s) => !s.optional).length;
     if (available < required) {
-      throw new Error(
-        `meal pattern "${mealCount}" gives ${available} eating occasions, condition requires ${required}`,
-      );
+      throw new MealPatternError(mealCount, available, required);
     }
   }
 

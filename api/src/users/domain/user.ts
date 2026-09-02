@@ -20,6 +20,13 @@ export class User {
   @Expose({ groups: ['me', 'admin'] })
   email: string | null;
 
+  @ApiProperty({
+    type: String,
+    example: '+919999999999',
+  })
+  @Expose({ groups: ['me', 'admin'] })
+  phone: string | null;
+
   @Exclude({ toPlainOnly: true })
   password?: string;
 

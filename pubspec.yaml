@@ -55,12 +55,17 @@ dependencies:
   # UI
   flutter_screenutil: ^5.9.3
   fl_chart: ^0.69.0            # weight trend, macro rings
+  lottie: ^3.1.3               # the "preparing your plan" animation after onboarding
   cached_network_image: ^3.4.1
   shimmer: ^3.0.0              # skeleton loaders (NFR-8)
   cupertino_icons: ^1.0.8
 
   # Logging & scanning
-  mobile_scanner: ^6.0.0       # barcode → Open Food Facts
+  # mobile_scanner: ^6.0.0     # barcode → Open Food Facts. REMOVED, not abandoned: its GoogleMLKit
+  #   pods ship no arm64 simulator slice, so with it in the Podfile Xcode offers no simulator
+  #   destination at all and `flutter run` cannot launch on any Apple Silicon simulator. Nothing in
+  #   lib/ imports it yet. Add it back with the barcode screen — by then either MLKit ships arm64
+  #   simulator support, or the screen is developed on a physical device.
   image_picker: ^1.1.2
 
   # Notifications
@@ -72,6 +77,9 @@ dependencies:
   intl: ^0.20.2                # doc 20 §7 says ^0.19.0; Flutter SDK flutter_localizations pins 0.20.2
   sentry_flutter: ^8.9.0
   package_info_plus: ^8.1.0    # fixes the hardcoded "Version 1.0.0" (doc 15 D-07)
+  google_sign_in: ^7.2.0
+  intl_phone_field: ^3.2.0
+  google_fonts: ^8.2.1
 
 dev_dependencies:
   flutter_test:
@@ -95,10 +103,18 @@ flutter:
   uses-material-design: true
   generate: true
 
-  # To add assets to your application, add an assets section, like this:
-  # assets:
-  #   - images/a_dot_burr.jpeg
-  #   - images/a_dot_ham.jpeg
+  assets:
+    # D-55: the Home walker. 38 palette PNGs, 492 KB total.
+    - assets/walking/
+    - assets/activity/
+    # D-75: played while the first plan is generated. Quoted for the space in the filename.
+    - "assets/Preparing Food.json"
+    # D-102: the welcome carousel's full-bleed art, and the meal-slot headers. Supplied as ~30 MB
+    # of PNG and re-encoded to 1.7 MB of JPG at display resolution — a photo stored as PNG is
+    # lossless data nobody can see, and in this app's market bundle size is install conversion.
+    - assets/onboarding/
+    - assets/welcome/
+    - assets/meal_slots/
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

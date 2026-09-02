@@ -12,9 +12,11 @@ Failure mapDioError(DioException e) {
     case DioExceptionType.sendTimeout:
     case DioExceptionType.receiveTimeout:
     case DioExceptionType.connectionError:
-      return const OfflineFailure(
-        'No connection. Your logs are saved and will sync automatically.',
-      );
+      // States only what is true. The old copy — "Your logs are saved and will sync
+      // automatically" — promised an offline queue that does not exist anywhere in this app, so on
+      // the onboarding screen it told someone their answers were safe seconds before they were
+      // lost. One mapper serves all five data sources, so the lie was on every screen.
+      return const OfflineFailure('Cannot reach Eatzify. Check your connection and try again.');
     case DioExceptionType.badResponse:
       break;
     // ignore: no_default_cases

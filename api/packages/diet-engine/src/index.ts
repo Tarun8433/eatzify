@@ -1,4 +1,9 @@
-import { applyGoalAdjustment, computeBmi, computeBmr, computeTdee } from './energy';
+import {
+  applyGoalAdjustment,
+  computeBmi,
+  computeBmr,
+  computeTdee,
+} from './energy';
 import {
   computeAddedSugarMaxG,
   computeBodyWeights,
@@ -12,15 +17,31 @@ import {
 } from './macros';
 import { distributeMeals } from './meals';
 import { applyOverrides, type PackWithOverrides } from './overrides';
-import { assertMealsCoherent, assertTargetsCoherent, round1, roundTargets } from './output';
-import { clampTarget, effectiveGoal, evaluateGates, maxDeficitPct } from './safety';
-import type { EngineOutput, EngineInput, TraceStep, WarningCode } from './types';
+import {
+  assertMealsCoherent,
+  assertTargetsCoherent,
+  round1,
+  roundTargets,
+} from './output';
+import {
+  clampTarget,
+  effectiveGoal,
+  evaluateGates,
+  maxDeficitPct,
+} from './safety';
+import type {
+  EngineOutput,
+  EngineInput,
+  TraceStep,
+  WarningCode,
+} from './types';
 import { validateInput } from './validate';
 
 export * from './types';
 export type { RulePack } from './pack';
 export { EngineAssertionError } from './output';
 export { EngineInputError } from './validate';
+export { MealPatternError } from './meals';
 export { createPrng, hashSeed } from './prng';
 
 /**
@@ -31,7 +52,10 @@ export { createPrng, hashSeed } from './prng';
  * not exist yet (docs/20 §1, §6), so this returns per-meal targets and leaves `meals` unfilled
  * rather than inventing food. A partial plan is worse than no plan, and fake food is worse than both.
  */
-export function generatePlan(input: EngineInput, pack: PackWithOverrides): EngineOutput {
+export function generatePlan(
+  input: EngineInput,
+  pack: PackWithOverrides,
+): EngineOutput {
   const trace: TraceStep[] = [];
   const warnings: WarningCode[] = [];
 
@@ -45,7 +69,12 @@ export function generatePlan(input: EngineInput, pack: PackWithOverrides): Engin
   trace.push({
     step: 'bmr',
     formula: pack.energy.bmr.formula,
-    inputs: { w: input.weightKg, h: input.heightCm, a: input.ageYears, sex: input.sexAtBirth },
+    inputs: {
+      w: input.weightKg,
+      h: input.heightCm,
+      a: input.ageYears,
+      sex: input.sexAtBirth,
+    },
     result: Math.round(bmr),
   });
 
@@ -77,7 +106,10 @@ export function generatePlan(input: EngineInput, pack: PackWithOverrides): Engin
   // 5 — safety floors and ceilings. Cannot be skipped.
   const clamped = clampTarget(adjusted.target, bmr, tdee, input, pack);
   warnings.push(...clamped.warnings);
-  const floor = input.sexAtBirth === 'female' ? pack.safety.floor_kcal.female : pack.safety.floor_kcal.male;
+  const floor =
+    input.sexAtBirth === 'female'
+      ? pack.safety.floor_kcal.female
+      : pack.safety.floor_kcal.male;
   trace.push({
     step: 'safety_clamp',
     applied: clamped.applied,
@@ -89,7 +121,11 @@ export function generatePlan(input: EngineInput, pack: PackWithOverrides): Engin
   // 6 — condition gates. A blocking gate means no plan at all.
   const gateResult = evaluateGates(input, bmi, pack);
   const blocking = gateResult.gates.filter((g) => g.blocking);
-  trace.push({ step: 'gates', codes: gateResult.gates.map((g) => g.code), blocking: blocking.length > 0 });
+  trace.push({
+    step: 'gates',
+    codes: gateResult.gates.map((g) => g.code),
+    blocking: blocking.length > 0,
+  });
 
   if (blocking.length > 0) {
     return {
@@ -118,16 +154,40 @@ export function generatePlan(input: EngineInput, pack: PackWithOverrides): Engin
   });
 
   // 8 — fat, then the caps that do not consume the energy budget
-  const fat = computeFat(input.conditions, goal, clamped.target, weights.abw, pack);
-  trace.push({ step: 'fat', pct: Math.round(fat.pct * 1000) / 10, result: Math.round(fat.grams) });
+  const fat = computeFat(
+    input.conditions,
+    goal,
+    clamped.target,
+    weights.abw,
+    pack,
+  );
+  trace.push({
+    step: 'fat',
+    pct: Math.round(fat.pct * 1000) / 10,
+    result: Math.round(fat.grams),
+  });
 
   const baseSodium = computeSodiumMaxMg(input.conditions, pack);
-  const baseSugar = computeAddedSugarMaxG(clamped.target, input.conditions, pack);
+  const baseSugar = computeAddedSugarMaxG(
+    clamped.target,
+    input.conditions,
+    pack,
+  );
 
   // 9 — carbs are the remainder, and the 100 g floor outranks the calorie number
-  const carbs = computeCarbs(clamped.target, protein.grams, fat.grams, input, pack);
+  const carbs = computeCarbs(
+    clamped.target,
+    protein.grams,
+    fat.grams,
+    input,
+    pack,
+  );
   warnings.push(...carbs.warnings);
-  trace.push({ step: 'carbs', result: Math.round(carbs.carbG), target_kcal: Math.round(carbs.targetKcal) });
+  trace.push({
+    step: 'carbs',
+    result: Math.round(carbs.carbG),
+    target_kcal: Math.round(carbs.targetKcal),
+  });
 
   // 10 — ordered medical overrides, intersected
   const overrides = applyOverrides(
@@ -140,7 +200,10 @@ export function generatePlan(input: EngineInput, pack: PackWithOverrides): Engin
   );
   trace.push({
     step: 'override',
-    rule: overrides.appliedPriorities.length === 0 ? 'none' : overrides.appliedPriorities.join(','),
+    rule:
+      overrides.appliedPriorities.length === 0
+        ? 'none'
+        : overrides.appliedPriorities.join(','),
   });
 
   const targets = roundTargets({
@@ -151,7 +214,11 @@ export function generatePlan(input: EngineInput, pack: PackWithOverrides): Engin
     fibreG: computeFibre(carbs.targetKcal, pack),
     sodiumMaxMg: overrides.constraints.sodiumMaxMg,
     addedSugarMaxG: overrides.constraints.addedSugarMaxG,
-    saturatedFatMaxG: computeSaturatedFatMaxG(carbs.targetKcal, input.conditions, pack),
+    saturatedFatMaxG: computeSaturatedFatMaxG(
+      carbs.targetKcal,
+      input.conditions,
+      pack,
+    ),
     waterMl: computeWaterMl(input.weightKg, pack),
   });
 

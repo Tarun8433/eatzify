@@ -2,6 +2,12 @@ import { Module } from '@nestjs/common';
 import { UsersModule } from './users/users.module';
 import { FilesModule } from './files/files.module';
 import { AuthModule } from './auth/auth.module';
+import { ProfileModule } from './profile/profile.module';
+import { PlansModule } from './plans/plans.module';
+import { MeasurementsModule } from './measurements/measurements.module';
+import { FoodsModule } from './foods/foods.module';
+import { LogsModule } from './logs/logs.module';
+import { BillingModule } from './billing/billing.module';
 import databaseConfig from './database/config/database.config';
 import authConfig from './auth/config/auth.config';
 import appConfig from './config/app.config';
@@ -29,13 +35,7 @@ const infrastructureDatabaseModule = TypeOrmModule.forRootAsync({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      load: [
-        databaseConfig,
-        authConfig,
-        appConfig,
-        mailConfig,
-        fileConfig,
-      ],
+      load: [databaseConfig, authConfig, appConfig, mailConfig, fileConfig],
       envFilePath: ['.env'],
     }),
     infrastructureDatabaseModule,
@@ -65,6 +65,12 @@ const infrastructureDatabaseModule = TypeOrmModule.forRootAsync({
     UsersModule,
     FilesModule,
     AuthModule,
+    ProfileModule,
+    PlansModule,
+    MeasurementsModule,
+    FoodsModule,
+    LogsModule,
+    BillingModule,
     SessionModule,
     MailModule,
     MailerModule,

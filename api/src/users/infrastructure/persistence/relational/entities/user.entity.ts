@@ -29,6 +29,10 @@ export class UserEntity extends EntityRelationalHelper {
   @Column({ type: String, unique: true, nullable: true })
   email: string | null;
 
+  @Index()
+  @Column({ type: String, unique: true, nullable: true })
+  phone: string | null;
+
   @Column({ nullable: true })
   password?: string;
 

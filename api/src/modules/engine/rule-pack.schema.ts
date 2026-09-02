@@ -90,10 +90,24 @@ export const rulePackSchema = z
         saturated_max_pct_tightened: fraction,
       }),
       carbs: z.object({ min_g: positive }),
-      fibre: z.object({ g_per_1000_kcal: positive, min_g: positive, max_g: positive }),
-      sodium: z.object({ max_mg_default: positive, max_mg_hypertension: positive }),
-      added_sugar: z.object({ max_pct_energy: fraction, max_g_absolute: positive }),
-      water: z.object({ ml_per_kg: positive, min_ml: positive, max_ml: positive }),
+      fibre: z.object({
+        g_per_1000_kcal: positive,
+        min_g: positive,
+        max_g: positive,
+      }),
+      sodium: z.object({
+        max_mg_default: positive,
+        max_mg_hypertension: positive,
+      }),
+      added_sugar: z.object({
+        max_pct_energy: fraction,
+        max_g_absolute: positive,
+      }),
+      water: z.object({
+        ml_per_kg: positive,
+        min_ml: positive,
+        max_ml: positive,
+      }),
     }),
     meals: z.object({
       patterns: z.record(z.string(), z.array(mealSlot).min(1)),
@@ -130,12 +144,17 @@ export const rulePackSchema = z
   })
   // Cross-field invariants. These are the ones a typo would otherwise sail straight past.
   .superRefine((pack, ctx) => {
-    const fail = (message: string): void => ctx.addIssue({ code: 'custom', message });
+    const fail = (message: string): void =>
+      ctx.addIssue({ code: 'custom', message });
 
-    if (pack.safety.max_deficit_pct_reduced > pack.safety.max_deficit_pct_default) {
+    if (
+      pack.safety.max_deficit_pct_reduced > pack.safety.max_deficit_pct_default
+    ) {
       fail('max_deficit_pct_reduced must not exceed max_deficit_pct_default');
     }
-    if (pack.safety.force_maintenance_below_bmi > pack.safety.no_deficit_below_bmi) {
+    if (
+      pack.safety.force_maintenance_below_bmi > pack.safety.no_deficit_below_bmi
+    ) {
       fail('force_maintenance_below_bmi must not exceed no_deficit_below_bmi');
     }
     if (pack.safety.weekly_loss_pct_min > pack.safety.weekly_loss_pct_max) {
@@ -147,11 +166,18 @@ export const rulePackSchema = z
     if (pack.macros.water.min_ml > pack.macros.water.max_ml) {
       fail('water min_ml must not exceed max_ml');
     }
-    if (pack.macros.sodium.max_mg_hypertension > pack.macros.sodium.max_mg_default) {
+    if (
+      pack.macros.sodium.max_mg_hypertension > pack.macros.sodium.max_mg_default
+    ) {
       fail('sodium max_mg_hypertension must not exceed max_mg_default');
     }
-    if (pack.macros.fat.saturated_max_pct_tightened > pack.macros.fat.saturated_max_pct_default) {
-      fail('saturated_max_pct_tightened must not exceed saturated_max_pct_default');
+    if (
+      pack.macros.fat.saturated_max_pct_tightened >
+      pack.macros.fat.saturated_max_pct_default
+    ) {
+      fail(
+        'saturated_max_pct_tightened must not exceed saturated_max_pct_default',
+      );
     }
 
     // Every meal pattern must sum to 1.0 once optional slots are included, or the plan silently
@@ -159,7 +185,9 @@ export const rulePackSchema = z
     for (const [name, slots] of Object.entries(pack.meals.patterns)) {
       const total = slots.reduce((acc, s) => acc + s.pct, 0);
       if (Math.abs(total - 1) > 1e-9) {
-        fail(`meal pattern "${name}" sums to ${total.toFixed(3)}, expected 1.000`);
+        fail(
+          `meal pattern "${name}" sums to ${total.toFixed(3)}, expected 1.000`,
+        );
       }
     }
   });

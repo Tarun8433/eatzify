@@ -4,7 +4,11 @@
  */
 
 /** FNV-1a, 32-bit. Stable across runs and platforms — that is the whole requirement. */
-export function hashSeed(userId: string, planDate: string, packVersion: string): number {
+export function hashSeed(
+  userId: string,
+  planDate: string,
+  packVersion: string,
+): number {
   const input = `${userId}|${planDate}|${packVersion}`;
   let hash = 0x811c9dc5;
   for (let i = 0; i < input.length; i += 1) {

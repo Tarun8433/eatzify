@@ -56,7 +56,9 @@ export function assertTargetsCoherent(targets: Targets, pack: RulePack): void {
     );
   }
   if (targets.carbG < pack.macros.carbs.min_g) {
-    throw new EngineAssertionError(`carb floor breached: ${targets.carbG} < ${pack.macros.carbs.min_g}`);
+    throw new EngineAssertionError(
+      `carb floor breached: ${targets.carbG} < ${pack.macros.carbs.min_g}`,
+    );
   }
 }
 

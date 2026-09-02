@@ -1,9 +1,6 @@
 export type PrimitiveType = 'string' | 'number' | 'boolean' | 'Date';
 export type ReferenceType =
-  | 'oneToOne'
-  | 'oneToMany'
-  | 'manyToOne'
-  | 'manyToMany';
+  'oneToOne' | 'oneToMany' | 'manyToOne' | 'manyToMany';
 
 export interface PrimitiveProperty {
   property: string;

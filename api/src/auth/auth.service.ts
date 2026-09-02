@@ -26,6 +26,7 @@ import { MailService } from '../mail/mail.service';
 import { RoleEnum } from '../roles/roles.enum';
 import { Session } from '../session/domain/session';
 import { SessionService } from '../session/session.service';
+import { ProfileService } from '../profile/profile.service';
 import { StatusEnum } from '../statuses/statuses.enum';
 import { User } from '../users/domain/user';
 
@@ -35,6 +36,7 @@ export class AuthService {
     private readonly jwtService: JwtService,
     private readonly usersService: UsersService,
     private readonly sessionService: SessionService,
+    private readonly profileService: ProfileService,
     private readonly mailService: MailService,
     private readonly configService: ConfigService<AllConfigType>,
   ) {}
@@ -93,6 +95,52 @@ export class AuthService {
       token,
       tokenExpires,
       user,
+    };
+  }
+
+  /// docs/09 §3. Find-or-create by phone, then issue a session exactly as the email flow does.
+  async validatePhoneLogin(phone: string): Promise<{
+    access: string;
+    refresh: string;
+    user: User;
+    onboarding_required: boolean;
+  }> {
+    let user = await this.usersService.findByPhone(phone);
+
+    if (!user) {
+      user = await this.usersService.create({
+        email: null,
+        phone,
+        firstName: null,
+        lastName: null,
+        provider: AuthProvidersEnum.phone,
+        role: { id: RoleEnum.user },
+        status: { id: StatusEnum.active },
+      });
+    }
+
+    const hash = crypto
+      .createHash('sha256')
+      .update(randomStringGenerator())
+      .digest('hex');
+
+    const session = await this.sessionService.create({ user, hash });
+
+    const { token, refreshToken } = await this.getTokensData({
+      id: user.id,
+      role: user.role,
+      sessionId: session.id,
+      hash,
+    });
+
+    return {
+      access: token,
+      refresh: refreshToken,
+      user,
+      // docs/09 §3: the server is the authority. A stored profile row IS onboarding completion.
+      onboarding_required: !(await this.profileService.hasCompletedOnboarding(
+        Number(user.id),
+      )),
     };
   }
 

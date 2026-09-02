@@ -14,7 +14,7 @@ import {
   computeSodiumMaxMg,
   computeWaterMl,
 } from '../src/macros';
-import { distributeMeals, isWithinTolerance } from '../src/meals';
+import { MealPatternError, distributeMeals, isWithinTolerance } from '../src/meals';
 import { applyOverrides } from '../src/overrides';
 import {
   EngineAssertionError,
@@ -83,6 +83,64 @@ describe('unknown enum values fail loudly rather than defaulting', () => {
         pack,
       }),
     ).toThrow(/unknown meal pattern/);
+  });
+});
+
+describe('a meal pattern too small for a condition (docs/04 §6 priority 5)', () => {
+  /// Three meals with diabetes reached the client as a 500 "Internal server error": the engine
+  /// threw a bare Error and nothing above it could tell an input conflict from a fault.
+  const threeMealsWithDiabetes = () =>
+    distributeMeals({
+      mealCount: '3',
+      targetKcal: 2000,
+      proteinTargetG: 120,
+      abw: 70,
+      constraints: applyOverrides(
+        input({ conditions: ['type2_diabetes'] }),
+        2000,
+        0.2,
+        2000,
+        25,
+        pack,
+      ).constraints,
+      pack,
+    });
+
+  it('is a typed rejection, not a bare Error', () => {
+    expect(threeMealsWithDiabetes).toThrow(MealPatternError);
+  });
+
+  it('carries the numbers, so the caller can say what to change', () => {
+    try {
+      threeMealsWithDiabetes();
+      throw new Error('expected a MealPatternError');
+    } catch (error) {
+      expect(error).toBeInstanceOf(MealPatternError);
+      const conflict = error as MealPatternError;
+      expect(conflict.mealCount).toBe('3');
+      expect(conflict.available).toBe(3);
+      expect(conflict.required).toBe(4);
+    }
+  });
+
+  it('accepts the four-meal pattern for the same condition', () => {
+    expect(() =>
+      distributeMeals({
+        mealCount: '4',
+        targetKcal: 2000,
+        proteinTargetG: 120,
+        abw: 70,
+        constraints: applyOverrides(
+          input({ conditions: ['type2_diabetes'] }),
+          2000,
+          0.2,
+          2000,
+          25,
+          pack,
+        ).constraints,
+        pack,
+      }),
+    ).not.toThrow();
   });
 });
 

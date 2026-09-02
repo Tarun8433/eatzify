@@ -15,14 +15,21 @@ export interface BodyWeights {
 }
 
 /** IBW at the Indian/Asian BMI reference of 23, not 25. */
-export function computeBodyWeights(input: EngineInput, pack: RulePack): BodyWeights {
+export function computeBodyWeights(
+  input: EngineInput,
+  pack: RulePack,
+): BodyWeights {
   const heightM = input.heightCm / 100;
   const ibw = pack.macros.ibw_bmi_reference * heightM * heightM;
   const abw =
     input.weightKg > ibw
       ? ibw + pack.macros.abw_excess_fraction * (input.weightKg - ibw)
       : input.weightKg;
-  return { ibw, abw, proteinBasisKg: input.weightKg > ibw ? abw : input.weightKg };
+  return {
+    ibw,
+    abw,
+    proteinBasisKg: input.weightKg > ibw ? abw : input.weightKg,
+  };
 }
 
 export interface ProteinResult {
@@ -59,7 +66,9 @@ export function computeProtein(
   // Renal caution: ckd (already a blocking gate) or unknown eGFR in >60 with diabetes + hypertension.
   const over60WithBoth =
     input.ageYears > 60 &&
-    input.conditions.some((c) => c === 'type2_diabetes' || c === 'prediabetes') &&
+    input.conditions.some(
+      (c) => c === 'type2_diabetes' || c === 'prediabetes',
+    ) &&
     input.conditions.includes('hypertension');
   if (input.conditions.includes('ckd') || over60WithBoth) {
     rate = Math.min(rate, p.renal_caution_rate);
@@ -125,15 +134,18 @@ export function computeCarbs(
   pack: RulePack,
 ): CarbResult {
   const minCarbG = pack.macros.carbs.min_g;
-  const proteinFloorG = pack.macros.protein.min_g_per_kg_actual * input.weightKg;
+  const proteinFloorG =
+    pack.macros.protein.min_g_per_kg_actual * input.weightKg;
   const warnings: WarningCode[] = [];
 
   const remainderG = (kcal: number, protein: number): number =>
-    (kcal - protein * KCAL_PER_G_PROTEIN - fatG * KCAL_PER_G_FAT) / KCAL_PER_G_CARB;
+    (kcal - protein * KCAL_PER_G_PROTEIN - fatG * KCAL_PER_G_FAT) /
+    KCAL_PER_G_CARB;
 
   let protein = proteinG;
   let carbG = remainderG(targetKcal, protein);
-  if (carbG >= minCarbG) return { carbG, proteinG: protein, targetKcal, warnings };
+  if (carbG >= minCarbG)
+    return { carbG, proteinG: protein, targetKcal, warnings };
 
   // Step 1: give back protein, down to its floor.
   const deficitG = minCarbG - carbG;
@@ -143,11 +155,17 @@ export function computeCarbs(
     carbG = remainderG(targetKcal, protein);
     warnings.push('protein_reduced_for_carb_floor');
   }
-  if (carbG >= minCarbG) return { carbG, proteinG: protein, targetKcal, warnings };
+  if (carbG >= minCarbG)
+    return { carbG, proteinG: protein, targetKcal, warnings };
 
   // Step 2: raise the target. Floors win over the calorie number, never the other way round.
   const raisedKcal = targetKcal + (minCarbG - carbG) * KCAL_PER_G_CARB;
-  return { carbG: minCarbG, proteinG: protein, targetKcal: raisedKcal, warnings };
+  return {
+    carbG: minCarbG,
+    proteinG: protein,
+    targetKcal: raisedKcal,
+    warnings,
+  };
 }
 
 export function computeFibre(targetKcal: number, pack: RulePack): number {
@@ -156,12 +174,21 @@ export function computeFibre(targetKcal: number, pack: RulePack): number {
   return Math.min(Math.max(raw, f.min_g), f.max_g);
 }
 
-export function computeSodiumMaxMg(conditions: readonly Condition[], pack: RulePack): number {
+export function computeSodiumMaxMg(
+  conditions: readonly Condition[],
+  pack: RulePack,
+): number {
   const s = pack.macros.sodium;
-  return conditions.includes('hypertension') ? s.max_mg_hypertension : s.max_mg_default;
+  return conditions.includes('hypertension')
+    ? s.max_mg_hypertension
+    : s.max_mg_default;
 }
 
-const SUGAR_ABSOLUTE_CONDITIONS: readonly Condition[] = ['type2_diabetes', 'prediabetes', 'pcos'];
+const SUGAR_ABSOLUTE_CONDITIONS: readonly Condition[] = [
+  'type2_diabetes',
+  'prediabetes',
+  'pcos',
+];
 
 export function computeAddedSugarMaxG(
   targetKcal: number,
@@ -170,7 +197,9 @@ export function computeAddedSugarMaxG(
 ): number {
   const s = pack.macros.added_sugar;
   const byEnergy = (s.max_pct_energy * targetKcal) / KCAL_PER_G_CARB;
-  const needsAbsolute = conditions.some((c) => SUGAR_ABSOLUTE_CONDITIONS.includes(c));
+  const needsAbsolute = conditions.some((c) =>
+    SUGAR_ABSOLUTE_CONDITIONS.includes(c),
+  );
   return needsAbsolute ? Math.min(byEnergy, s.max_g_absolute) : byEnergy;
 }
 
@@ -181,7 +210,9 @@ export function computeSaturatedFatMaxG(
 ): number {
   const f = pack.macros.fat;
   const tighten = conditions.includes('hypertension');
-  const pct = tighten ? f.saturated_max_pct_tightened : f.saturated_max_pct_default;
+  const pct = tighten
+    ? f.saturated_max_pct_tightened
+    : f.saturated_max_pct_default;
   return (pct * targetKcal) / KCAL_PER_G_FAT;
 }
 

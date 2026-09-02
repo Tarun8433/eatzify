@@ -25,9 +25,11 @@ export type Condition =
   | 'eating_disorder'
   | 'other_declared';
 
-export type FoodPreference = 'veg' | 'non_veg' | 'eggetarian' | 'jain' | 'vegan';
+export type FoodPreference =
+  'veg' | 'non_veg' | 'eggetarian' | 'jain' | 'vegan';
 export type BudgetTier = 'low' | 'medium' | 'premium';
-export type Lifestyle = 'office' | 'student' | 'night_shift' | 'flexible' | 'home';
+export type Lifestyle =
+  'office' | 'student' | 'night_shift' | 'flexible' | 'home';
 
 export interface EngineInput {
   readonly userId: string;

@@ -1,4 +1,6 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
+import 'package:health_pro/core/network/log_interceptor.dart';
 
 /// dio, configured once. docs/06 §topology, docs/09 §2.
 class ApiClient {
@@ -13,7 +15,11 @@ class ApiClient {
           // We handle every non-2xx through mapDioError rather than letting dio decide.
           validateStatus: (s) => s != null && s >= 200 && s < 300,
         ),
-      );
+      ) {
+    // Added in the constructor so every call is logged, including the ones made before
+    // attachAuth runs. Release builds get no interceptor at all rather than a silent one.
+    if (kDebugMode) dio.interceptors.add(ApiLogInterceptor());
+  }
 
   final Dio dio;
 
@@ -28,8 +34,15 @@ class ApiClient {
     dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) {
+          // Never clobber a header the caller set deliberately (D-79). `/auth/refresh` carries the
+          // REFRESH token as its bearer; overwriting it with the access token — which is expired,
+          // because being expired is why we are refreshing — made every refresh a 401. The 401 read
+          // as "your session is dead", the session was cleared, and the user was asked for their
+          // phone number again in the middle of onboarding.
           final token = accessToken();
-          if (token != null) options.headers['Authorization'] = 'Bearer $token';
+          if (token != null && !options.headers.containsKey('Authorization')) {
+            options.headers['Authorization'] = 'Bearer $token';
+          }
           handler.next(options);
         },
         onError: (e, handler) async {

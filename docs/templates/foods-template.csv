@@ -1,0 +1,6 @@
+name,nameHi,kcal,proteinG,fatG,carbG,fibreG,sodiumMg,addedSugarG,saturatedFatG,tags,suitableFor,allergens,costTier,source,sourceRef,measures
+Roti (whole wheat),रोटी,297,11.0,3.7,55.0,10.0,2.0,0,0.6,gi:medium|attr:high_fibre|meal:lunch|cuisine:north,veg|eggetarian|non_veg|vegan,wheat_gluten,low,IFCT2017,A-014,roti=35*
+Dal (arhar cooked),अरहर दाल,116,6.8,2.7,16.0,3.2,240.0,0,0.5,gi:low|attr:high_fibre|meal:lunch,veg|eggetarian|non_veg|vegan|jain,,low,IFCT2017,B-021,katori=150*
+Curd (full fat),दही,60,3.1,4.0,3.4,0,45.0,0,2.6,gi:low|attr:calcium_rich,veg|eggetarian|non_veg,milk,low,IFCT2017,C-003,katori=150*|bowl=200
+Paneer,पनीर,296,18.3,22.8,3.6,0,22.0,0,14.0,gi:low|attr:calcium_rich,veg|eggetarian|non_veg,milk,medium,IFCT2017,C-011,katori=100*
+Rice (cooked white),चावल,130,2.7,0.3,28.0,0.4,1.0,0,0.1,gi:high|meal:lunch,veg|eggetarian|non_veg|vegan|jain,,low,IFCT2017,A-002,katori=150*

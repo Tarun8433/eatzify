@@ -180,4 +180,37 @@ void main() {
       }
     });
   });
+
+  group('healthy weight guidance (D-76)', () {
+    test('the range comes from the same bound the goal weight is rejected on', () {
+      const heightCm = 170;
+      final range = ValidateOnboarding.healthyWeightRangeKg(heightCm);
+
+      // A weight a hair under the floor must be refused, and the floor itself accepted — otherwise
+      // the app shows a range it will not let the user pick from.
+      expect(
+        ValidateOnboarding.goalWeightKg(range.low - 0.5, heightCm: heightCm).reject,
+        OnboardingReject.goalWeightBelowHealthyBmi,
+      );
+      expect(ValidateOnboarding.goalWeightKg(range.low + 0.1, heightCm: heightCm).reject, isNull);
+    });
+
+    test('the range is the healthy BMI band for the height', () {
+      final range = ValidateOnboarding.healthyWeightRangeKg(180);
+      expect(ValidateOnboarding.bmiFor(weightKg: range.low, heightCm: 180), closeTo(18.5, 0.01));
+      expect(ValidateOnboarding.bmiFor(weightKg: range.high, heightCm: 180), closeTo(24.9, 0.01));
+    });
+
+    test('a taller person gets a heavier band', () {
+      final short = ValidateOnboarding.healthyWeightRangeKg(150);
+      final tall = ValidateOnboarding.healthyWeightRangeKg(190);
+      expect(tall.low, greaterThan(short.low));
+      expect(tall.high, greaterThan(short.high));
+    });
+
+    test('bmi is the plain figure — no band, no label', () {
+      // 80 kg at 2.00 m is exactly 20. docs/05 §6: the number informs, it never scores anybody.
+      expect(ValidateOnboarding.bmiFor(weightKg: 80, heightCm: 200), closeTo(20, 0.001));
+    });
+  });
 }

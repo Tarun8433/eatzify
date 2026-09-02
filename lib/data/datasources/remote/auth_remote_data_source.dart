@@ -6,9 +6,8 @@ import 'package:health_pro/domain/entities/session.dart';
 
 /// docs/09 §3 over dio.
 ///
-/// The API does not exist yet — `api/src/auth` is the boilerplate's email flow, not phone OTP
-/// (docs/20 §2 pruned social sign-in for exactly that reason). Every call here is real and will
-/// work unchanged once E1 lands the endpoints; today they surface an honest ApiFailure.
+/// `otp/request` and `otp/verify` are live in `api/src/auth`. OTP delivery is a dev stub today —
+/// every number gets the fixed `OTP_DEV_CODE` — so this works end to end without an SMS provider.
 class AuthRemoteDataSource {
   const AuthRemoteDataSource(this._dio);
 
@@ -39,17 +38,42 @@ class AuthRemoteDataSource {
     }
   }
 
+  /// The endpoint this posts to does not exist in `api/src/auth` yet — see the contract on
+  /// `AuthRepository.signInWithGoogle`. The request body is the minimum a verifier needs: the
+  /// token, and the device the session belongs to.
+  Future<Either<Failure, Session>> signInWithGoogle({
+    required String idToken,
+    required String deviceId,
+  }) async {
+    try {
+      final res = await _dio.post<Map<String, dynamic>>(
+        '/auth/google',
+        data: {'id_token': idToken, 'device': deviceId},
+      );
+      return Right(_sessionFrom(res.data!));
+    } on DioException catch (e) {
+      return Left(mapDioError(e));
+    }
+  }
+
+  /// `POST /auth/refresh` is guarded by `AuthGuard('jwt-refresh')`, which reads the REFRESH token
+  /// from the Authorization header — not from the body. The auth interceptor has already put the
+  /// (expired) ACCESS token there, so it has to be overridden here or every refresh 401s and the
+  /// user is signed out the moment their access token ages out.
+  ///
+  /// The response is the boilerplate's `RefreshResponseDto` — `token` / `refreshToken`, not the
+  /// `access` / `refresh` pair that `/auth/otp/verify` returns.
   Future<Either<Failure, Session>> refresh(Session current) async {
     try {
       final res = await _dio.post<Map<String, dynamic>>(
         '/auth/refresh',
-        data: {'refresh': current.refreshToken},
+        options: Options(headers: {'Authorization': 'Bearer ${current.refreshToken}'}),
       );
       final data = res.data!;
       return Right(
         current.copyWith(
-          accessToken: data['access'] as String,
-          refreshToken: data['refresh'] as String,
+          accessToken: data['token'] as String,
+          refreshToken: data['refreshToken'] as String,
         ),
       );
     } on DioException catch (e) {

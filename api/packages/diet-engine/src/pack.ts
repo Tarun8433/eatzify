@@ -81,10 +81,24 @@ export interface RulePack {
       readonly saturated_max_pct_tightened: number;
     };
     readonly carbs: { readonly min_g: number };
-    readonly fibre: { readonly g_per_1000_kcal: number; readonly min_g: number; readonly max_g: number };
-    readonly sodium: { readonly max_mg_default: number; readonly max_mg_hypertension: number };
-    readonly added_sugar: { readonly max_pct_energy: number; readonly max_g_absolute: number };
-    readonly water: { readonly ml_per_kg: number; readonly min_ml: number; readonly max_ml: number };
+    readonly fibre: {
+      readonly g_per_1000_kcal: number;
+      readonly min_g: number;
+      readonly max_g: number;
+    };
+    readonly sodium: {
+      readonly max_mg_default: number;
+      readonly max_mg_hypertension: number;
+    };
+    readonly added_sugar: {
+      readonly max_pct_energy: number;
+      readonly max_g_absolute: number;
+    };
+    readonly water: {
+      readonly ml_per_kg: number;
+      readonly min_ml: number;
+      readonly max_ml: number;
+    };
   };
   readonly meals: {
     readonly patterns: Readonly<Record<string, readonly MealSlotSpec[]>>;
