@@ -1,22 +1,17 @@
+# Production image (D-159). The boilerplate's dev Dockerfile referenced wait-for-it.sh and
+# startup.relational.dev.sh, which never existed in this repo — it had never actually been built.
+# This one builds the compiled server; readiness ordering lives in docker-compose.yaml
+# (postgres healthcheck + depends_on), not in a wrapper script.
 FROM node:24.14.1-alpine
 
-RUN apk add --no-cache bash
-RUN npm i -g @nestjs/cli typescript ts-node
-
-COPY package*.json /tmp/app/
-RUN cd /tmp/app && npm install
-
-COPY . /usr/src/app
-RUN cp -a /tmp/app/node_modules /usr/src/app
-COPY ./wait-for-it.sh /opt/wait-for-it.sh
-RUN chmod +x /opt/wait-for-it.sh
-COPY ./startup.relational.dev.sh /opt/startup.relational.dev.sh
-RUN chmod +x /opt/startup.relational.dev.sh
-RUN sed -i 's/\r//g' /opt/wait-for-it.sh
-RUN sed -i 's/\r//g' /opt/startup.relational.dev.sh
-
 WORKDIR /usr/src/app
-RUN if [ ! -f .env ]; then cp env-example-relational .env; fi
+
+COPY package*.json ./
+RUN npm ci
+
+COPY . .
 RUN npm run build
 
-CMD ["/opt/startup.relational.dev.sh"]
+# Migrations run on every boot — idempotent, and what keeps a deploy from racing its schema.
+# Seeds are a deliberate one-time step, never automatic: npm run seed:run:relational.
+CMD ["sh", "-c", "npm run migration:run && node dist/main"]
