@@ -75,7 +75,6 @@ dependencies:
 
   # Platform
   intl: ^0.20.2                # doc 20 §7 says ^0.19.0; Flutter SDK flutter_localizations pins 0.20.2
-  sentry_flutter: ^8.9.0
   package_info_plus: ^8.1.0    # fixes the hardcoded "Version 1.0.0" (doc 15 D-07)
   google_sign_in: ^7.2.0
   intl_phone_field: ^3.2.0
