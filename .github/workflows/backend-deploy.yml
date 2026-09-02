@@ -1,0 +1,61 @@
+# Backend CI/CD (docs/18 ops): every push touching api/** is built and tested; a push to main
+# that passes then deploys to the server over SSH and restarts the containers.
+#
+# One-time setup on GitHub (Settings → Secrets and variables → Actions → New repository secret):
+#   DEPLOY_HOST      the server's IP or hostname
+#   DEPLOY_USER      the SSH user (must be able to run docker)
+#   DEPLOY_SSH_KEY   a private key whose public half is in that user's ~/.ssh/authorized_keys
+#   DEPLOY_PATH      where the repo is cloned on the server, e.g. /opt/eatzify
+#
+# One-time setup on the server:
+#   git clone https://github.com/Tarun8433/eatzify.git $DEPLOY_PATH
+#   cp <real production env> $DEPLOY_PATH/api/.env       # .env is git-ignored on purpose
+#   cd $DEPLOY_PATH/api && docker compose up -d --build
+name: backend
+
+on:
+  push:
+    branches: [main]
+    paths: ['api/**', '.github/workflows/backend-deploy.yml']
+  pull_request:
+    paths: ['api/**']
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: api
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: api/package-lock.json
+      - run: npm ci
+      - run: npm run build
+      # Pure unit specs — the rule tests (measurement, diary window, food validation) run with no
+      # database, which is what lets CI stay a two-minute gate.
+      - run: npm test
+
+  deploy:
+    needs: test
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Deploy over SSH
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.DEPLOY_HOST }}
+          username: ${{ secrets.DEPLOY_USER }}
+          key: ${{ secrets.DEPLOY_SSH_KEY }}
+          script: |
+            set -e
+            cd "${{ secrets.DEPLOY_PATH }}"
+            git fetch origin main
+            git reset --hard origin/main
+            cd api
+            docker compose up -d --build
+            docker compose ps
