@@ -95,3 +95,9 @@ Path-scoped rules in the monorepo's root `.claude/rules/` fire on these paths:
 | `api/**/*.spec.ts`, `api/**/*.e2e-spec.ts` | `api-testing.md` |
 
 Slash commands: `/impl-endpoint`, `/engine-change`, `/schema-change`, `/safety-review`.
+
+## Deployments
+
+Push to `main` touching `api/**` → GitHub Actions builds, runs the unit specs, and deploys to
+the server over SSH (`.github/workflows/backend-deploy.yml`). Server checkout: `/opt/eatzify`;
+its `api/.env` and `docker-compose.override.yaml` are server-only and survive deploys.

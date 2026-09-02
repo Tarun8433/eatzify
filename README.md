@@ -15,3 +15,8 @@ A few resources to get you started if this is your first Flutter project:
 For help getting started with Flutter development, view the
 [online documentation](https://docs.flutter.dev/), which offers tutorials,
 samples, guidance on mobile development, and a full API reference.
+
+flutter run --dart-define=API_BASE_URL=http://187.127.137.245:3002/api/v1
+
+flutter build apk --release
+# → build/app/outputs/flutter-apk/app-release.apk  — send this file to your tester
