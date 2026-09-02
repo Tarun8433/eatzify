@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kReleaseMode;
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:get/get.dart';
@@ -96,10 +97,13 @@ class EatzifyApp extends StatelessWidget {
     //
     // ponytail: override per-machine with --dart-define=API_BASE_URL=... — a tunnel URL, or
     // another developer's own hostname.
-    const baseUrl = String.fromEnvironment(
-      'API_BASE_URL',
-      defaultValue: 'http://THINKs-MacBook-Air.local:3001/api/v1',
-    );
+    //
+    // A RELEASE build defaults to the live server (D-160): an APK handed to a tester must not
+    // ship pointing at a developer's laptop. Debug keeps the Mac; the dart-define wins over both.
+    const override = String.fromEnvironment('API_BASE_URL');
+    const live = 'http://187.127.137.245:3002/api/v1';
+    const dev = 'http://THINKs-MacBook-Air.local:3001/api/v1';
+    final baseUrl = override.isNotEmpty ? override : (kReleaseMode ? live : dev);
     final client = ApiClient(baseUrl: baseUrl);
     final auth = AuthRepositoryImpl(AuthRemoteDataSource(client.dio));
     // Held rather than only registered: SessionController reads it on boot to check a cached
