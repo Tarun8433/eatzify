@@ -2,6 +2,7 @@ import { ForbiddenException, HttpStatus, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { SubscriptionEntity } from './entities/subscription.entity';
+import { CashfreeClient } from './cashfree.client';
 import {
   ENTITLED_STATUSES,
   entitlementsFor,
@@ -15,6 +16,10 @@ export type SubscriptionView = {
   status: string;
   current_period_end: string | null;
   entitlements: Entitlements;
+  /// `stub` · `sandbox` · `production`. The app asks so its paywall can tell the truth: a build
+  /// that cannot take money must not draw a pay button, and one that can must not say payments
+  /// are coming soon. Rule 3's spirit — the server decides, the app renders.
+  payments_mode: string;
 };
 
 @Injectable()
@@ -22,6 +27,7 @@ export class BillingService {
   constructor(
     @InjectRepository(SubscriptionEntity)
     private readonly subscriptions: Repository<SubscriptionEntity>,
+    private readonly cashfree: CashfreeClient,
   ) {}
 
   /// docs/11 §4: resolved server-side, always. The client renders what it is told and never
@@ -38,6 +44,7 @@ export class BillingService {
       status: row?.status ?? 'active',
       current_period_end: row?.currentPeriodEnd?.toISOString() ?? null,
       entitlements: entitlementsFor(tier),
+      payments_mode: this.cashfree.mode,
     };
   }
 

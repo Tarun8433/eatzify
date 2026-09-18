@@ -5843,3 +5843,25 @@ Questions the reviewer must answer, not us: whether breakfast should demand a ve
 `veg` alone may satisfy a protein requirement for a jain profile whose pool has few pulses;
 whether starchy roots should count as `veg` in the lunch/dinner rule; and the D-231 diabetic
 carb-cap conflict, which is still theirs.
+
+## D-236 — Offers an admin can hand out, and a revenue page that says what actually sold
+
+**Coupons.** One kind of discount on purpose: a percentage, capped at 90 at creation — a flat
+amount can go below zero when prices change, and 100 % makes a zero-amount gateway order. The
+body still never names a price: checkout recomputes the list price, prices the code server-side,
+and refuses unknown/expired/exhausted/switched-off codes with ONE user_message — which check
+failed is the admin's business. The order stores `couponCode` and `discountPaise` so a later
+coupon change cannot rewrite what someone paid, and a use is spent only in `markPaid`, the one
+place a payment is known to be real — an abandoned checkout never burns one. Codes deactivate,
+never delete: usage stays visible. Creating or switching off an offer sits behind the TOTP second
+factor like the other actions that change what people pay (D-229).
+
+**Revenue.** `GET /admin/metrics/revenue`: rolling 7/30/365-day and all-time sums over `paidAt`,
+kept money only (refunds shown apart), demo accounts excluded like every rollup (docs/08 §10),
+and every plan cell ever sold, best-seller first. Paise cross the wire as strings — a bigint sum
+must never become a JS float. The dashboard's Metrics view carries the cards, the plans table
+and the offers panel; the app's paywall gains one optional "Offer code" field whose only logic
+is sending the string — the server prices it, rule 2 as ever.
+
+Not built, deliberately: coupons on UPGRADES (the proration quote is its own machine; an offer
+on it is a separate decision) and stacking (one code per order, by shape).

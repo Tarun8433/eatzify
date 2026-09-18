@@ -128,6 +128,10 @@ Track D  AdminJS on food tables                     unblocks Track A
 8. ~~E8's routes have no admin screen~~ — closed by D-232: the dashboard reaches tickets, the
    food review queue, user search, rule-pack activation and TOTP enrolment.
 
+9. **Offers + revenue (D-236) are live behind the dev stack** — coupon checkout, TOTP-gated admin
+   offers, and the revenue rollup. Untested against a real gateway for the same reason as item 7:
+   the money paths still need the sandbox pass.
+
 ## Epic status (doc 17)
 
 | Epic | Est | State |
