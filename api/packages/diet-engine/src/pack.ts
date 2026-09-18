@@ -112,8 +112,36 @@ export interface RulePack {
     readonly min_eating_occasions_diabetes: number;
     readonly fill_max_iterations: number;
   };
+  /// docs/04 §8. Present in every pack since v1.0.0; the engine had no step that rounded a
+  /// QUANTITY until the fill existed, so the block was never declared here.
+  readonly rounding: {
+    readonly kcal: string;
+    readonly macros_g: string;
+    readonly household_increments: readonly number[];
+    readonly quantity_ml_increment: number;
+  };
   readonly validation: {
     readonly kcal_tolerance_pct: number;
     readonly protein_tolerance_g: number;
+  };
+  /// docs/04 §2 step 14, window from docs/09 §4. Optional: a pack without it offers no swaps,
+  /// which is a smaller lie than a window the engine chose for itself.
+  readonly alternates?: {
+    readonly kcal_tolerance_pct: number;
+    readonly protein_tolerance_g: number;
+    readonly max_per_item: number;
+  };
+  /**
+   * What a meal must be MADE OF, over and above what it must add up to (D-235). Each rule names
+   * the slots it governs and a list of requirements; every requirement is satisfied by one food
+   * in the meal carrying any of its `group:` tags. Optional: a pack without it prices nothing,
+   * and the fill behaves exactly as before — the rules themselves are a nutrition decision and
+   * arrive only by a reviewed pack diff.
+   */
+  readonly composition?: {
+    readonly rules: readonly {
+      readonly slots: readonly string[];
+      readonly require_one_of: readonly (readonly string[])[];
+    }[];
   };
 }
