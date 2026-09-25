@@ -84,7 +84,11 @@ class _WeightHero extends StatelessWidget {
             ),
             const SizedBox(width: AppSpacing.md),
             ExcludeSemantics(
-              child: Image.asset(AppAssets.weightHero, width: art, fit: BoxFit.contain),
+              child: Image.asset(
+                AppAssets.themed(AppAssets.weightHero, Theme.of(context).brightness),
+                width: art,
+                fit: BoxFit.contain,
+              ),
             ),
           ],
         );

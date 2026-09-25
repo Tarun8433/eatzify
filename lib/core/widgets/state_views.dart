@@ -1,9 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:health_pro/core/errors/failures.dart';
 import 'package:health_pro/core/theme/app_spacing.dart';
+import 'package:health_pro/core/widgets/skeleton.dart';
 
 /// Loading skeleton. docs/14 §6 asks for a skeleton, not a spinner — a spinner on a slow Indian
 /// 3G connection reads as "broken", a skeleton reads as "coming".
+///
+/// The generic shape, for a screen with no skeleton of its own. A screen whose real layout is
+/// distinctive deserves one that mirrors it — see `HomeSkeleton` (D-162) — because bars that turn
+/// into a hero and a tile grid are a jump, not a fill-in.
 class LoadingView extends StatelessWidget {
   const LoadingView({super.key, this.lines = 3});
 
@@ -11,23 +16,18 @@ class LoadingView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final base = Theme.of(context).colorScheme.surfaceContainerHighest;
-    return Padding(
-      padding: const EdgeInsets.all(AppSpacing.lg),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: List.generate(lines, (i) {
-          return Padding(
-            padding: const EdgeInsets.only(bottom: AppSpacing.md),
-            child: Container(
-              height: i == 0 ? 96 : 56,
-              decoration: BoxDecoration(
-                color: base,
-                borderRadius: BorderRadius.circular(AppRadius.card),
-              ),
-            ),
-          );
-        }),
+    return Skeleton(
+      child: Padding(
+        padding: const EdgeInsets.all(AppSpacing.lg),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: List.generate(lines, (i) {
+            return Padding(
+              padding: const EdgeInsets.only(bottom: AppSpacing.md),
+              child: SkeletonBox(height: i == 0 ? 96 : 56),
+            );
+          }),
+        ),
       ),
     );
   }

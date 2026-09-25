@@ -24,10 +24,19 @@ class GoalResultView extends StatelessWidget {
     required this.inHealthyRange,
     super.key,
     this.chromeOnly = false,
+    this.healthyLowKg,
+    this.healthyHighKg,
   });
 
   final double? startKg;
   final double? targetKg;
+
+  /// The healthy band for this height, straight from the same domain helper the form validates
+  /// against. When both ends are given, the note names the numbers instead of only saying "inside
+  /// the range" — still shown only when [inHealthyRange] is true, so docs/05 §6's silence about a
+  /// goal outside it is unchanged.
+  final double? healthyLowKg;
+  final double? healthyHighKg;
 
   /// Drops the headline and the encouragement, leaving the card (D-114). The summary step shows
   /// the curve a second time, and the words that introduce it belong to the step where they land
@@ -50,6 +59,7 @@ class GoalResultView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
+    final theme = Theme.of(context);
     final start = startKg;
     final target = targetKg ?? start;
     // A target is optional (see the basics step), so with none given there is no gap and the
@@ -83,35 +93,59 @@ class GoalResultView extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // A Wrap, so the second pill drops under the first at 200 % font scale rather than
-              // running 441 pt off the side of the card (rule 12).
-              Wrap(
-                spacing: AppSpacing.sm,
-                runSpacing: AppSpacing.sm,
-                alignment: WrapAlignment.spaceBetween,
-                children: [
-                  _Pill(icon: Icons.show_chart_rounded, label: l.onboardingResultJourney),
-                  if (inHealthyRange ?? false)
-                    _Pill(
-                      icon: Icons.check_circle_outline_rounded,
-                      label: l.onboardingResultHealthyChip,
-                      tinted: true,
+              // The reference heads the card with words, not chips: a bold title and one warm
+              // line under it. The heart is drawn, not typed — no emoji as iconography.
+              Text(
+                l.onboardingResultProgressTitle,
+                style: theme.textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.w800,
+                  color: theme.colorScheme.primary,
+                ),
+              ),
+              const SizedBox(height: AppSpacing.xs),
+              Text.rich(
+                TextSpan(
+                  children: [
+                    TextSpan(text: l.onboardingResultProgressSub),
+                    WidgetSpan(
+                      alignment: PlaceholderAlignment.middle,
+                      child: Padding(
+                        padding: const EdgeInsets.only(left: AppSpacing.xs),
+                        child: ExcludeSemantics(
+                          child: Icon(
+                            Icons.favorite,
+                            size: AppSpacing.lg,
+                            color: theme.colorScheme.secondary,
+                          ),
+                        ),
+                      ),
                     ),
-                ],
+                  ],
+                ),
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
               ),
               const SizedBox(height: AppSpacing.lg),
               _CurveWithNote(
                 startKg: start ?? 0,
                 targetKg: target ?? 0,
-                // The note only appears when there is something true to say.
-                note: (inHealthyRange ?? false) ? l.onboardingResultHealthyNote : null,
+                noteTitle: l.onboardingResultGoalChip,
+                // The note only appears when there is something true to say — and it names the
+                // band when the numbers are known.
+                note: !(inHealthyRange ?? false)
+                    ? null
+                    : (healthyLowKg != null && healthyHighKg != null)
+                    ? l.onboardingResultRangeNote(
+                        healthyLowKg!.toStringAsFixed(0),
+                        healthyHighKg!.toStringAsFixed(0),
+                      )
+                    : l.onboardingResultHealthyNote,
               ),
               const SizedBox(height: AppSpacing.lg),
               _Ends(
-                fromLabel: l.onboardingResultFrom,
                 fromChip: l.onboardingResultCurrentChip,
                 fromKg: start,
-                toLabel: l.onboardingResultTo,
                 toChip: l.onboardingResultGoalChip,
                 toKg: target,
                 between: l.onboardingResultOnWay,
@@ -260,25 +294,70 @@ class _Header extends StatelessWidget {
   }
 }
 
-/// The curve, with an optional note hanging off its anchor.
+/// The curve, with the reference's "Now" and "Goal" flags over its two ends and an optional note
+/// hanging off its anchor.
 class _CurveWithNote extends StatelessWidget {
-  const _CurveWithNote({required this.startKg, required this.targetKg, required this.note});
+  const _CurveWithNote({
+    required this.startKg,
+    required this.targetKg,
+    required this.note,
+    required this.noteTitle,
+  });
 
   final double startKg;
   final double targetKg;
   final String? note;
+  final String noteTitle;
+
+  /// Headroom the curve leaves above its start dot so the "Now" flag can stand over it.
+  static const _flagRoom = 56.0;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l = AppLocalizations.of(context);
 
     final roomy = GoalResultView._roomy(context);
-    final curve = WeightCurve(
+    Widget curve = WeightCurve(
       startKg: startKg,
       targetKg: targetKg,
+      topInset: roomy ? _flagRoom : AppSpacing.xl,
       // The anchor is only worth drawing when something is hanging off it in the same box.
       markerAt: note == null || !roomy ? null : GoalResultView._markerAt,
     );
+
+    if (roomy) {
+      // Decoration for a screen reader — the weights below already speak both ends.
+      //
+      // Each flag is anchored at its dot's x (the curve insets its ends by AppSpacing.xl) and
+      // then pulled back by half its own width, so the tail points AT the dot whatever the
+      // translated label's width. Pinned to the Stack's corners, "Now" hung in space beside its
+      // dot with the arrow aiming at nothing. Clip.none because a wide label may run a few
+      // pixels past the chart's box, into the card's padding.
+      curve = Stack(
+        clipBehavior: Clip.none,
+        children: [
+          curve,
+          Positioned(
+            left: AppSpacing.xl,
+            top: 0,
+            child: FractionalTranslation(
+              translation: const Offset(-0.5, 0),
+              child: _CurveFlag(l.onboardingResultFrom),
+            ),
+          ),
+          // Above the end dot, which sits at the bottom inset.
+          Positioned(
+            right: AppSpacing.xl,
+            bottom: AppSpacing.xl + AppSpacing.md,
+            child: FractionalTranslation(
+              translation: const Offset(0.5, 0),
+              child: _CurveFlag(l.onboardingResultGoalFlag),
+            ),
+          ),
+        ],
+      );
+    }
 
     if (note == null) return curve;
 
@@ -302,14 +381,26 @@ class _CurveWithNote extends StatelessWidget {
                 shape: BoxShape.circle,
               ),
               child: Icon(
-                Icons.eco,
+                Icons.track_changes,
                 size: AppSpacing.lg,
                 color: theme.colorScheme.onSecondaryContainer,
               ),
             ),
           ),
           const SizedBox(width: AppSpacing.sm),
-          Expanded(child: Text(note!, style: theme.textTheme.bodySmall)),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  noteTitle,
+                  style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+                ),
+                const SizedBox(height: AppSpacing.xs),
+                Text(note!, style: theme.textTheme.bodySmall),
+              ],
+            ),
+          ),
         ],
       ),
     );
@@ -328,11 +419,50 @@ class _CurveWithNote extends StatelessWidget {
     }
 
     return Stack(
+      clipBehavior: Clip.none,
       children: [
         curve,
-        // Just under half the width, so the note never covers the descent it points at.
-        Positioned(top: 0, right: 0, width: MediaQuery.sizeOf(context).width * 0.45, child: card),
+        // Just over half the width — enough for the note to sit two lines tall, which keeps its
+        // bottom edge above the sine descent it points at. At 0.45 it ran three lines deep and
+        // its corner sat on the line.
+        Positioned(top: 0, right: 0, width: MediaQuery.sizeOf(context).width * 0.52, child: card),
       ],
+    );
+  }
+}
+
+/// One of the reference's flags over the curve — "Now" above the start dot, "Goal" above the end
+/// ring: a filled label with a tail aiming at its dot. Decoration only.
+class _CurveFlag extends StatelessWidget {
+  const _CurveFlag(this.label);
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+
+    return ExcludeSemantics(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.xs),
+            decoration: BoxDecoration(
+              color: scheme.primary,
+              borderRadius: BorderRadius.circular(AppRadius.card),
+            ),
+            child: Text(
+              label,
+              style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                color: scheme.onPrimary,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+          Icon(Icons.arrow_drop_down, size: AppSpacing.lg, color: scheme.primary),
+        ],
+      ),
     );
   }
 }
@@ -340,19 +470,15 @@ class _CurveWithNote extends StatelessWidget {
 /// The two weights under the curve, and the reassurance between them.
 class _Ends extends StatelessWidget {
   const _Ends({
-    required this.fromLabel,
     required this.fromChip,
     required this.fromKg,
-    required this.toLabel,
     required this.toChip,
     required this.toKg,
     required this.between,
   });
 
-  final String fromLabel;
   final String fromChip;
   final double? fromKg;
-  final String toLabel;
   final String toChip;
   final double? toKg;
   final String between;
@@ -361,8 +487,8 @@ class _Ends extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    final from = _End(label: fromLabel, chip: fromChip, kg: fromKg);
-    final to = _End(label: toLabel, chip: toChip, kg: toKg, emphasis: true);
+    final from = _End(chip: fromChip, kg: fromKg);
+    final to = _End(chip: toChip, kg: toKg, emphasis: true);
 
     // Stacked at large text scales: two four-character weights at 44 pt do not share a phone's
     // width, and the flourish between them is the first thing worth giving up (rule 12).
@@ -381,20 +507,41 @@ class _Ends extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         from,
+        // The reference's sparkle pill between the two weights.
         Expanded(
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
-            child: Column(
-              children: [
-                ExcludeSemantics(
-                  child: Icon(
-                    Icons.trending_flat_rounded,
-                    color: theme.colorScheme.primary.withValues(alpha: 0.6),
-                  ),
+            child: Center(
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.md,
+                  vertical: AppSpacing.sm,
                 ),
-                const SizedBox(height: AppSpacing.xs),
-                Text(between, textAlign: TextAlign.center, style: theme.textTheme.bodySmall),
-              ],
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.secondaryContainer.withValues(alpha: 0.5),
+                  borderRadius: BorderRadius.circular(AppRadius.tile),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    ExcludeSemantics(
+                      child: Icon(
+                        Icons.auto_awesome,
+                        size: AppSpacing.lg,
+                        color: theme.colorScheme.primary,
+                      ),
+                    ),
+                    const SizedBox(width: AppSpacing.xs),
+                    Flexible(
+                      child: Text(
+                        between,
+                        textAlign: TextAlign.center,
+                        style: theme.textTheme.bodySmall,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
           ),
         ),
@@ -404,11 +551,12 @@ class _Ends extends StatelessWidget {
   }
 }
 
-/// One end of the curve: the weight, counting up, and which end it is.
+/// One end of the curve: the weight, counting up, and which end it is said in words below it —
+/// the reference drops the Now/Target micro-labels (the flags on the curve carry those) and lets
+/// the number lead.
 class _End extends StatelessWidget {
-  const _End({required this.label, required this.chip, required this.kg, this.emphasis = false});
+  const _End({required this.chip, required this.kg, this.emphasis = false});
 
-  final String label;
   final String chip;
   final double? kg;
   final bool emphasis;
@@ -421,71 +569,21 @@ class _End extends StatelessWidget {
     return Column(
       crossAxisAlignment: align,
       children: [
-        Text(
-          label,
-          style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
-        ),
         AnimatedCount(
           value: kg ?? 0,
           fractionDigits: 1,
           suffix: ' kg',
-          style: theme.textTheme.titleLarge?.copyWith(
-            fontWeight: FontWeight.w700,
+          style: theme.textTheme.headlineSmall?.copyWith(
+            fontWeight: FontWeight.w800,
             color: emphasis ? theme.colorScheme.primary : null,
           ),
         ),
-        const SizedBox(height: AppSpacing.sm),
-        // Says in words what the number is, for anyone who arrived at the card before the labels
-        // above it. Decoration for a screen reader, which has already read "Now, 70 kg".
-        ExcludeSemantics(
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.xs),
-            decoration: BoxDecoration(
-              color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.7),
-              borderRadius: BorderRadius.circular(AppRadius.pill),
-            ),
-            child: Text(chip, style: theme.textTheme.bodySmall),
-          ),
+        const SizedBox(height: AppSpacing.xs),
+        Text(
+          chip,
+          style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant),
         ),
       ],
-    );
-  }
-}
-
-/// A label with an icon in front of it. Two of these head the card.
-class _Pill extends StatelessWidget {
-  const _Pill({required this.icon, required this.label, this.tinted = false});
-
-  final IconData icon;
-  final String label;
-  final bool tinted;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-    final on = tinted ? scheme.onSecondaryContainer : scheme.onSurface;
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.sm),
-      decoration: BoxDecoration(
-        color: tinted
-            ? scheme.secondaryContainer.withValues(alpha: 0.6)
-            : scheme.surfaceContainerHighest.withValues(alpha: 0.7),
-        borderRadius: BorderRadius.circular(AppRadius.pill),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          ExcludeSemantics(
-            child: Icon(icon, size: AppSpacing.lg, color: on),
-          ),
-          const SizedBox(width: AppSpacing.sm),
-          Flexible(
-            child: Text(label, style: theme.textTheme.labelLarge?.copyWith(color: on)),
-          ),
-        ],
-      ),
     );
   }
 }

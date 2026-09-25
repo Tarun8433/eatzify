@@ -2,6 +2,9 @@ import { Module } from '@nestjs/common';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { OtpService } from './otp.service';
+import { MeService } from './me.service';
+import { BillingModule } from '../billing/billing.module';
+import { PlansModule } from '../plans/plans.module';
 import { ProfileModule } from '../profile/profile.module';
 import { PassportModule } from '@nestjs/passport';
 import { JwtModule } from '@nestjs/jwt';
@@ -16,6 +19,10 @@ import { UsersModule } from '../users/users.module';
   imports: [
     ProfileModule,
     UsersModule,
+    // `GET /auth/me` answers with entitlements and the active plan (docs/09 §3). Neither module
+    // imports AuthModule, so this is a one-way edge.
+    BillingModule,
+    PlansModule,
     SessionModule,
     PassportModule,
     MailModule,
@@ -24,6 +31,7 @@ import { UsersModule } from '../users/users.module';
   controllers: [AuthController],
   providers: [
     OtpService,
+    MeService,
     AuthService,
     JwtStrategy,
     JwtRefreshStrategy,

@@ -4,7 +4,12 @@ import type { CouponEntity } from '../src/billing/entities/coupon.entity';
 
 /// D-236. The rules an offer lives by, against an in-memory repo.
 function repo(rows: Partial<CouponEntity>[] = []) {
-  const store = rows.map((r) => ({ usedCount: 0, active: true, expiresAt: null, ...r }));
+  const store = rows.map((r) => ({
+    usedCount: 0,
+    active: true,
+    expiresAt: null,
+    ...r,
+  }));
   return {
     store,
     findOne: ({ where }: { where: { code: string } }) =>
@@ -29,7 +34,9 @@ const NOW = new Date('2026-09-18T10:00:00Z');
 
 describe('coupons (D-236)', () => {
   it('prices a valid code in integer paise, floored', async () => {
-    const s = new CouponsService(repo([{ code: 'DIWALI33', percentOff: 33, maxUses: 10 }]));
+    const s = new CouponsService(
+      repo([{ code: 'DIWALI33', percentOff: 33, maxUses: 10 }]),
+    );
     const offer = await s.discountFor(' diwali33 ', 64_900n, NOW);
     // 33 % of 64,900 = 21,417 exactly; bigint math never sees a float.
     expect(offer).toEqual({ code: 'DIWALI33', discountPaise: 21_417n });
@@ -39,7 +46,12 @@ describe('coupons (D-236)', () => {
     const s = new CouponsService(
       repo([
         { code: 'OFF', percentOff: 10, maxUses: 5, active: false },
-        { code: 'OLD', percentOff: 10, maxUses: 5, expiresAt: new Date('2026-01-01') },
+        {
+          code: 'OLD',
+          percentOff: 10,
+          maxUses: 5,
+          expiresAt: new Date('2026-01-01'),
+        },
         { code: 'DONE', percentOff: 10, maxUses: 2, usedCount: 2 },
       ]),
     );
@@ -56,11 +68,17 @@ describe('coupons (D-236)', () => {
   });
 
   it('refuses a malformed code and a duplicate', async () => {
-    const s = new CouponsService(repo([{ code: 'TAKEN', percentOff: 5, maxUses: 1 }]));
-    await expect(s.create({ code: 'x', percent_off: 10, max_uses: 1 })).rejects.toMatchObject({
+    const s = new CouponsService(
+      repo([{ code: 'TAKEN', percentOff: 5, maxUses: 1 }]),
+    );
+    await expect(
+      s.create({ code: 'x', percent_off: 10, max_uses: 1 }),
+    ).rejects.toMatchObject({
       status: 422,
     });
-    await expect(s.create({ code: 'taken', percent_off: 10, max_uses: 1 })).rejects.toMatchObject({
+    await expect(
+      s.create({ code: 'taken', percent_off: 10, max_uses: 1 }),
+    ).rejects.toMatchObject({
       status: 422,
     });
   });

@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Large: four cells by four.
+
+  One of three entries in the widget picker (D-219). All three render through the same renderer,
+  which picks the layout from the widget's real size — so any of them, resized, shows the layout
+  that fits. `minResize*` keeps a widget from being squeezed below the smallest layout.
+
+  `updatePeriodMillis` is 0 on purpose: the app pushes an update every time the diary changes,
+  which is the only moment the figures actually move.
+-->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:minWidth="250dp"
+    android:minHeight="250dp"
+    android:minResizeWidth="110dp"
+    android:minResizeHeight="110dp"
+    android:targetCellWidth="4"
+    android:targetCellHeight="4"
+    android:updatePeriodMillis="0"
+    android:initialLayout="@layout/eatzify_widget_large"
+    android:previewLayout="@layout/eatzify_widget_large"
+    android:resizeMode="horizontal|vertical"
+    android:description="@string/widget_description_large"
+    android:widgetCategory="home_screen" />

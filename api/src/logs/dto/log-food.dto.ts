@@ -1,4 +1,4 @@
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional, PickType } from '@nestjs/swagger';
 import {
   IsIn,
   IsNumber,
@@ -18,6 +18,10 @@ export const MEAL_SLOTS = [
   'dinner',
   'bedtime',
 ] as const;
+
+/// `barcode` and `plan_tick` (docs/08 §8) join when something writes them.
+export const LOG_SOURCES = ['manual', 'photo'] as const;
+export type LogSource = (typeof LOG_SOURCES)[number];
 
 export class LogFoodDto {
   @ApiProperty({ example: 'lunch', enum: MEAL_SLOTS })
@@ -79,4 +83,23 @@ export class LogFoodDto {
   @IsNumber()
   @Min(0)
   fat_g?: number;
+
+  /// How the entry was chosen (docs/08 §8). `photo` means the user confirmed a scan's match (D-238);
+  /// the nutrition is still the food row's, never the model's.
+  @ApiPropertyOptional({ example: 'photo', enum: LOG_SOURCES })
+  @IsOptional()
+  @IsIn([...LOG_SOURCES])
+  source?: LogSource;
+}
+
+/// "What would this portion give me?" — the add sheet's preview (D-238). The same quantity fields
+/// as a log, so the preview and the entry it becomes are scaled by the same code.
+export class PreviewFoodDto extends PickType(LogFoodDto, [
+  'quantity_g',
+  'measure',
+  'measure_count',
+] as const) {
+  @ApiProperty({ example: '3f1c…' })
+  @IsUUID()
+  food_id: string;
 }

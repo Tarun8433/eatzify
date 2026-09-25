@@ -26,6 +26,10 @@ class SecureStore {
   /// app's declared persistence (rule 11) and it is the one thing that must SURVIVE [clear] —
   /// signing out should not replay a marketing carousel at someone who already has an account.
   static const _kIntroSeen = 'intro.seen';
+  static const _kHealthConnected = 'health.connected';
+  static const _kHealthOffered = 'health.offered';
+  static const _kReminders = 'reminders.state';
+  static const _kGymBoxKey = 'gym.box_key';
 
   Future<void> save(Session session) async {
     await Future.wait([
@@ -53,19 +57,62 @@ class SecureStore {
     );
   }
 
+  /// Showing the intro once more is the harmless direction to be wrong in.
+  Future<bool> readIntroSeen() => _readFlag(_kIntroSeen);
+
+  Future<void> markIntroSeen() => _storage.write(key: _kIntroSeen, value: 'true');
+
+  /// Whether this account tapped Connect on the health screen (D-215).
+  ///
+  /// Only iOS needs it: HealthKit never says whether read access was granted, so "has this person
+  /// connected" is something the app has to remember rather than ask. Cleared by [clear] with
+  /// everything else — it belongs to the account, not to the phone.
+  Future<bool> readHealthConnected() => _readFlag(_kHealthConnected);
+
+  Future<void> markHealthConnected() => _storage.write(key: _kHealthConnected, value: 'true');
+
+  /// Whether this account has already seen the one-time "connect your health app" sheet (D-218).
+  /// Per account for the same reason as the flag above.
+  Future<bool> readHealthOffered() => _readFlag(_kHealthOffered);
+
+  Future<void> markHealthOffered() => _storage.write(key: _kHealthOffered, value: 'true');
+
+  /// The phone's reminders (D-222), as JSON: what is switched on, and the day they were planned
+  /// from. Per account like everything else — [clear] removes it, so the next person to sign in
+  /// starts with nothing switched on.
+  Future<String?> readReminders() async {
+    try {
+      return await _storage.read(key: _kReminders);
+    } on Object {
+      return null;
+    }
+  }
+
+  Future<void> writeReminders(String json) => _storage.write(key: _kReminders, value: json);
+
+  /// The key the Gym box is encrypted with on disk (ADR-013), base64. A workout in progress holds
+  /// a body weight, so the box is ciphertext; [clear] takes the key with everything else, and the
+  /// box is deleted at sign-out too, so nothing of the last person survives on the phone.
+  Future<String?> readGymBoxKey() async {
+    try {
+      return await _storage.read(key: _kGymBoxKey);
+    } on Object {
+      return null;
+    }
+  }
+
+  Future<void> writeGymBoxKey(String key) => _storage.write(key: _kGymBoxKey, value: key);
+
   /// False rather than throwing when the keychain is unreadable. [clear] is the recovery path for
   /// exactly that failure, so a read in it that can throw would strand the app on the splash — the
-  /// bug the boot-resilience test exists to catch. Showing the intro once more is the harmless
-  /// direction to be wrong in.
-  Future<bool> readIntroSeen() async {
+  /// bug the boot-resilience test exists to catch.
+  Future<bool> _readFlag(String key) async {
     try {
-      return await _storage.read(key: _kIntroSeen) == 'true';
+      return await _storage.read(key: key) == 'true';
     } on Object {
       return false;
     }
   }
-
-  Future<void> markIntroSeen() => _storage.write(key: _kIntroSeen, value: 'true');
 
   /// Called on logout and on refresh-token rejection. Clears every key, not just the access token —
   /// a half-cleared session is how a revoked refresh token gets retried forever. `deleteAll` rather

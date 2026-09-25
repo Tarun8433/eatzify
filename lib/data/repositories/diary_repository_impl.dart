@@ -2,6 +2,7 @@ import 'package:dartz/dartz.dart';
 import 'package:health_pro/core/errors/failures.dart';
 import 'package:health_pro/data/datasources/remote/diary_remote_data_source.dart';
 import 'package:health_pro/domain/entities/food.dart';
+import 'package:health_pro/domain/entities/health_metric.dart';
 import 'package:health_pro/domain/repositories/diary_repository.dart';
 
 class DiaryRepositoryImpl implements DiaryRepository {
@@ -15,7 +16,14 @@ class DiaryRepositoryImpl implements DiaryRepository {
     int limit = 20,
     int offset = 0,
     String? suitableFor,
-  }) => _remote.searchFoods(query, limit: limit, offset: offset, suitableFor: suitableFor);
+    List<String>? groups,
+  }) => _remote.searchFoods(
+    query,
+    limit: limit,
+    offset: offset,
+    suitableFor: suitableFor,
+    groups: groups,
+  );
 
   @override
   Future<Either<Failure, LogEntry>> logFood({
@@ -24,8 +32,23 @@ class DiaryRepositoryImpl implements DiaryRepository {
     String? measure,
     double? measureCount,
     double? quantityG,
+    String? source,
   }) => _remote.logFood(
     slot: slot,
+    foodId: foodId,
+    measure: measure,
+    measureCount: measureCount,
+    quantityG: quantityG,
+    source: source,
+  );
+
+  @override
+  Future<Either<Failure, NutritionPreview>> previewFood({
+    required String foodId,
+    String? measure,
+    double? measureCount,
+    double? quantityG,
+  }) => _remote.previewFood(
     foodId: foodId,
     measure: measure,
     measureCount: measureCount,
@@ -34,6 +57,9 @@ class DiaryRepositoryImpl implements DiaryRepository {
 
   @override
   Future<Either<Failure, DiaryDay>> day({String? date}) => _remote.day(date: date);
+
+  @override
+  Future<Either<Failure, List<DiaryWindow>>> windows(int days) => _remote.windows(days);
 
   @override
   Future<Either<Failure, Unit>> remove(String id) => _remote.remove(id);

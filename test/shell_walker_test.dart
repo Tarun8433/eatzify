@@ -453,11 +453,10 @@ void main() {
   group('where each tab puts him', () {
     test('every tab has an anchor, and only two of them show him', () {
       expect(WalkingMan.anchors, hasLength(ClientTab.values.length));
-      expect(
-        ClientTab.values.where(WalkingMan.showsWalker),
-        [ClientTab.home, ClientTab.you],
-        reason: 'Home draws his rings and You his circle; the other two are lists',
-      );
+      expect(ClientTab.values.where(WalkingMan.showsWalker), [
+        ClientTab.home,
+        ClientTab.you,
+      ], reason: 'Home draws his rings and You his circle; the other two are lists');
     });
 
     test('a settled tab is its own anchor', () {

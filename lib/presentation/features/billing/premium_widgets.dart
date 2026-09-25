@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:health_pro/core/format/rupees.dart';
 import 'package:health_pro/core/theme/app_colors.dart';
 import 'package:health_pro/core/theme/app_spacing.dart';
-import 'package:health_pro/core/widgets/app_card.dart';
 import 'package:health_pro/presentation/features/billing/billing_controller.dart';
+import 'package:health_pro/presentation/features/billing/paywall_sheet.dart';
 import 'package:health_pro/presentation/l10n/app_localizations.dart';
 
 /// The pill in the heading. Rendered ONLY when the server has said this account is FREE —
@@ -163,90 +162,5 @@ class PremiumBanner extends StatelessWidget {
         ),
       );
     });
-  }
-}
-
-/// The plans and their prices — the server's own, from GET /billing/prices, in paise formatted
-/// the Indian way. Checkout does not exist server-side yet (D-134), and the sheet says so rather
-/// than drawing a pay button that goes nowhere.
-class PaywallSheet extends StatelessWidget {
-  const PaywallSheet({required this.billing, super.key});
-
-  final BillingController billing;
-
-  static Future<void> show(BuildContext context, BillingController billing) {
-    billing.loadPrices();
-    return showModalBottomSheet<void>(
-      context: context,
-      builder: (_) => PaywallSheet(billing: billing),
-    );
-  }
-
-  /// CLAUDE.md rule 4: a tier is a wire value and l10n on screen.
-  static String _tierLabel(AppLocalizations l, String tier) => switch (tier) {
-    'BASIC' => l.tierBasic,
-    _ => l.tierPro,
-  };
-
-  @override
-  Widget build(BuildContext context) {
-    final l = AppLocalizations.of(context);
-    final theme = Theme.of(context);
-
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.all(AppSpacing.lg),
-        child: Obx(() {
-          final rows = billing.prices;
-
-          return Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(l.premiumSheetTitle, style: theme.textTheme.titleLarge),
-              const SizedBox(height: AppSpacing.sm),
-              HintCard(icon: Icons.info_outline, text: l.premiumComingSoon),
-              const SizedBox(height: AppSpacing.md),
-              if (rows.isEmpty)
-                const Center(
-                  child: Padding(
-                    padding: EdgeInsets.all(AppSpacing.lg),
-                    child: CircularProgressIndicator(),
-                  ),
-                )
-              else
-                Flexible(
-                  child: ListView.separated(
-                    shrinkWrap: true,
-                    itemCount: rows.length,
-                    separatorBuilder: (_, _) => const Divider(),
-                    itemBuilder: (_, i) {
-                      final row = rows[i];
-                      return Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              '${_tierLabel(l, row.tier)} · ${l.premiumMonths(row.months)}',
-                              style: theme.textTheme.bodyMedium,
-                            ),
-                          ),
-                          Text(
-                            // Integer paise on the wire, rupees on screen, grouped the Indian
-                            // way — and never a float in between (api rule 3).
-                            Rupees.format(row.pricePaise ~/ 100),
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ],
-                      );
-                    },
-                  ),
-                ),
-            ],
-          );
-        }),
-      ),
-    );
   }
 }

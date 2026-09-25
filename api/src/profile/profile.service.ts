@@ -11,7 +11,8 @@ import { ConsentEntity } from './entities/consent.entity';
 import { OnboardingDto } from './dto/onboarding.dto';
 import { PatchHealthDto } from './dto/patch-health.dto';
 import { PatchProfileDto } from './dto/patch-profile.dto';
-import { evaluateGates } from './screening';
+import { bmiOf, evaluateGates, MIN_AGE, MIN_HEALTHY_BMI } from './screening';
+import { GOAL_WEIGHT_TOO_LOW, UNDER_18 } from '../plans/plan-copy';
 import { applyNoneExclusivity } from './onboarding-vocabulary';
 import { ProfileAuditService } from './profile-audit.service';
 
@@ -39,6 +40,11 @@ export type ProfileView = {
   latest_measurements: unknown[];
   /// Absolute URL of the user's photo, or null. Served by the files module.
   photo_url: string | null;
+  /// The number this account signs in with, E.164, or null for an email or social signup.
+  ///
+  /// Unmasked, unlike every admin-facing view of the same column: docs/13 §4 masks a phone so one
+  /// person cannot casually read another's, and this is the account holder reading their own.
+  phone: string | null;
 };
 
 /// A health-profile row minus the columns that identify *that* row, ready to be saved as the next
@@ -77,6 +83,8 @@ export class ProfileService {
   /// half-onboarded user is not a state that can exist.
   async onboard(userId: number, dto: OnboardingDto): Promise<OnboardingResult> {
     this.assertConsented(dto);
+    this.assertEligibleAge(dto);
+    this.assertReachableGoalWeight(dto);
 
     const gates = evaluateGates({
       ageYears: dto.profile.age_years,
@@ -118,6 +126,8 @@ export class ProfileService {
         sleepHours: dto.profile.sleep_hours?.toFixed(1) ?? null,
         breakfastTime: dto.profile.breakfast_time ?? null,
         lunchTime: dto.profile.lunch_time ?? null,
+        midMorningTime: dto.profile.mid_morning_time ?? null,
+        bedtimeSnackTime: dto.profile.bedtime_snack_time ?? null,
         eveningSnackTime: dto.profile.evening_snack_time ?? null,
         dinnerTime: dto.profile.dinner_time ?? null,
         foodDislikes: dto.profile.food_dislikes?.trim() || null,
@@ -163,7 +173,9 @@ export class ProfileService {
   /// is present so the client contract does not change when it lands.
   async getProfile(
     userId: number,
-    photoUrl: string | null = null,
+    /// Both come from the `user` row, which the controller has already loaded — passing them beats
+    /// a second read of the same row from here.
+    account: { photoUrl?: string | null; phone?: string | null } = {},
   ): Promise<ProfileView> {
     const [profile, health] = await Promise.all([
       this.profiles.findOne({ where: { userId } }),
@@ -174,7 +186,8 @@ export class ProfileService {
       profile: profile ? this.toProfileView(profile) : null,
       health_profile: health ? this.toHealthView(health) : null,
       latest_measurements: [],
-      photo_url: photoUrl,
+      photo_url: account.photoUrl ?? null,
+      phone: account.phone ?? null,
     };
   }
 
@@ -306,6 +319,8 @@ export class ProfileService {
       sleepHours: dto.sleep_hours?.toFixed(1) ?? current.sleepHours,
       breakfastTime: dto.breakfast_time ?? current.breakfastTime,
       lunchTime: dto.lunch_time ?? current.lunchTime,
+      midMorningTime: dto.mid_morning_time ?? current.midMorningTime,
+      bedtimeSnackTime: dto.bedtime_snack_time ?? current.bedtimeSnackTime,
       eveningSnackTime: dto.evening_snack_time ?? current.eveningSnackTime,
       dinnerTime: dto.dinner_time ?? current.dinnerTime,
       foodDislikes: dto.food_dislikes?.trim() ?? current.foodDislikes,
@@ -388,6 +403,8 @@ export class ProfileService {
       sleep_hours: p.sleepHours === null ? null : Number(p.sleepHours),
       breakfast_time: p.breakfastTime,
       lunch_time: p.lunchTime,
+      mid_morning_time: p.midMorningTime,
+      bedtime_snack_time: p.bedtimeSnackTime,
       evening_snack_time: p.eveningSnackTime,
       dinner_time: p.dinnerTime,
       food_dislikes: p.foodDislikes,
@@ -455,6 +472,43 @@ export class ProfileService {
 
   async hasCompletedOnboarding(userId: number): Promise<boolean> {
     return (await this.profiles.countBy({ userId })) > 0;
+  }
+
+  /// FR-1.2: an applicant under 18 is REFUSED, not stored and gated.
+  ///
+  /// Every other gate keeps the answers, because docs/05 §3 blocks plan generation rather than the
+  /// account and re-asking the same questions to reach the same refusal helps nobody. This one is
+  /// different in kind: FR-1.2 says "no profile row is created, no health field is persisted", and
+  /// for a minor that is a DPDP obligation rather than a preference — a gate flag on a stored row
+  /// does not un-store their height, weight and conditions.
+  private assertEligibleAge(dto: OnboardingDto): void {
+    if (dto.profile.age_years >= MIN_AGE) return;
+
+    throw new UnprocessableEntityException({
+      status: HttpStatus.UNPROCESSABLE_ENTITY,
+      error: {
+        code: 'AGE_INELIGIBLE',
+        // docs/05 §7, verbatim. Rule 7 makes this the only string the app may show.
+        user_message: UNDER_18,
+      },
+    });
+  }
+
+  /// FR-1.5 / docs/05 §2: "Goal weight implies BMI < 18.5 → reject at input with plain
+  /// explanation. No override." At input, so nothing is written — a target nobody may pursue is
+  /// not a profile worth keeping, and storing it would leave the engine to refuse it later.
+  private assertReachableGoalWeight(dto: OnboardingDto): void {
+    const goal = dto.profile.goal_weight_kg;
+    if (goal == null) return;
+    if (bmiOf(goal, dto.profile.height_cm) >= MIN_HEALTHY_BMI) return;
+
+    throw new UnprocessableEntityException({
+      status: HttpStatus.UNPROCESSABLE_ENTITY,
+      error: {
+        code: 'VALIDATION_FAILED',
+        user_message: GOAL_WEIGHT_TOO_LOW,
+      },
+    });
   }
 
   /// FR-1.7: no health field is stored until storage itself is consented to.

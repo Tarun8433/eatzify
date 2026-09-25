@@ -129,6 +129,16 @@ export class PatchProfileDto {
   @ApiPropertyOptional({ example: '17:30' })
   @IsOptional()
   @Matches(TIME_OF_DAY)
+  mid_morning_time?: string;
+
+  @ApiPropertyOptional({ example: '17:30' })
+  @IsOptional()
+  @Matches(TIME_OF_DAY)
+  bedtime_snack_time?: string;
+
+  @ApiPropertyOptional({ example: '17:30' })
+  @IsOptional()
+  @Matches(TIME_OF_DAY)
   evening_snack_time?: string;
 
   @ApiPropertyOptional({ example: '20:30' })

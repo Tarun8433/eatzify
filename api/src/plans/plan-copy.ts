@@ -15,7 +15,7 @@ const CLINICIAN_GATE =
   "This needs a clinician's input before we set your targets. Your coach can unlock it once " +
   "they've confirmed your doctor's guidance.";
 
-const UNDER_18 =
+export const UNDER_18 =
   "Eatzify is built for adults, so we can't create a plan for you yet. Nutrition needs during " +
   'growth are different and are best handled with a doctor or a registered dietitian who can see ' +
   "the full picture. If you'd like, we can send information you could share with a parent or " +
@@ -25,6 +25,13 @@ const EATING_DISORDER =
   "Thanks for telling us. We're not going to set calorie or weight targets for you — that " +
   "wouldn't be safe or kind. Support from a professional who specialises in this makes a real " +
   "difference, and we're happy to help you find it.";
+
+/// docs/05 §2: "Goal weight implies BMI < 18.5 → reject at input with plain explanation. No
+/// override." Not a §7 verbatim string — §7 has no entry for it — so it is written to §2's brief:
+/// plain, non-punitive, and it names what to do next rather than only what is refused.
+export const GOAL_WEIGHT_TOO_LOW =
+  'That goal weight would put you below a healthy weight for your height, so we can’t set it as ' +
+  'a target. Pick a slightly higher goal and we can build a plan for it.';
 
 const SAFETY_CLAMP =
   "We've set your daily target a little higher than your goal alone would suggest. Going lower " +
@@ -38,6 +45,30 @@ export function mealPatternConflictMessage(required: number): string {
   return (
     `Because of a health condition you've told us about, your plan needs at least ${required} ` +
     'eating occasions a day. Change the number of meals in your profile and we can build it.'
+  );
+}
+
+/// Not a docs/05 §7 safety string either, and for the same reason as the one above: the person can
+/// act on it. A carbohydrate limit per meal times four meals can come to less energy than the day's
+/// target (D-231), and the plan is then genuinely short. Saying nothing would leave somebody
+/// looking at a 2,000 kcal plan against a 2,700 kcal target with no explanation.
+///
+/// ⚠ Needs a clinician's eye at the next docs/05 §8 review: it is advice to somebody with a
+/// diagnosed condition, even though what it suggests — more, smaller meals — is what the rule pack
+/// already asks for.
+const CARB_CAP_SHORTFALL =
+  'Your plan keeps carbohydrate within a safe limit at each meal, which means it comes to fewer ' +
+  'calories than your daily target. Spreading the same food over more meals closes the gap — you ' +
+  'can change the number of meals in your profile.';
+
+/// docs/13 §3: withdrawing health-processing consent stops plan generation, and the screen has to
+/// say what to do about it. Not a §7 safety string — it is a state the person put themselves in and
+/// can undo in one tap, so it names the tap (D-233).
+export function consentWithdrawnMessage(): string {
+  return (
+    'We can’t build a plan while health-data processing is switched off, because a plan is made ' +
+    'from your height, weight and conditions. Turn it back on under Privacy & data and we will ' +
+    'pick up where you left off.'
   );
 }
 
@@ -81,9 +112,17 @@ export function warningsForUser(codes: readonly string[]): UserFacingWarning[] {
   const out: UserFacingWarning[] = [];
 
   for (const code of codes) {
-    if (!CLAMP_WARNINGS.has(code) || seen.has(SAFETY_CLAMP)) continue;
-    seen.add(SAFETY_CLAMP);
-    out.push({ code: 'safety_clamp_applied', user_message: SAFETY_CLAMP });
+    if (CLAMP_WARNINGS.has(code)) {
+      if (seen.has('safety_clamp_applied')) continue;
+      seen.add('safety_clamp_applied');
+      out.push({ code: 'safety_clamp_applied', user_message: SAFETY_CLAMP });
+      continue;
+    }
+
+    if (code === 'carb_cap_limits_energy' && !seen.has(code)) {
+      seen.add(code);
+      out.push({ code, user_message: CARB_CAP_SHORTFALL });
+    }
   }
 
   return out;

@@ -25,7 +25,11 @@ abstract final class LogWeightSheet {
     context: context,
     isScrollControlled: true,
     useSafeArea: true,
-    builder: (_) => LogWeightForm(controller: controller, kind: kind, unit: unit, title: title),
+    // ponytail: the sheet scrolls, not the form - weight_log_tab.dart already scrolls around
+    // LogWeightForm, and nesting two vertical scroll views would unbound the inner one.
+    builder: (_) => SingleChildScrollView(
+      child: LogWeightForm(controller: controller, kind: kind, unit: unit, title: title),
+    ),
   );
 }
 
@@ -223,6 +227,7 @@ class _LogWeightFormState extends State<LogWeightForm> {
                   controller: _field,
                   autofocus: widget.autofocus,
                   suffix: _isWeight ? _unit.label : widget.unit,
+                  hint: _opensAt.toStringAsFixed(1),
                   onChanged: _onTyped,
                 ),
                 const SizedBox(height: AppSpacing.sm),
@@ -328,12 +333,17 @@ class _WeightField extends StatelessWidget {
     required this.controller,
     required this.autofocus,
     required this.suffix,
+    required this.hint,
     required this.onChanged,
   });
 
   final TextEditingController controller;
   final bool autofocus;
   final String suffix;
+
+  /// Where the ruler is sitting, greyed. Not a value — an empty field with a "0.0" hint next to a
+  /// ruler resting on 69 showed the reading twice and disagreed with itself.
+  final String hint;
   final ValueChanged<String> onChanged;
 
   @override
@@ -351,7 +361,7 @@ class _WeightField extends StatelessWidget {
         color: theme.colorScheme.primary,
       ),
       decoration: InputDecoration(
-        hintText: '0.0',
+        hintText: hint,
         hintStyle: theme.textTheme.displayLarge?.copyWith(
           fontSize: AppSizes.inputFigure,
           color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.4),

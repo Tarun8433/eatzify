@@ -11,6 +11,7 @@ import 'package:health_pro/domain/entities/session.dart';
 import 'package:health_pro/domain/repositories/auth_repository.dart';
 import 'package:health_pro/domain/repositories/plan_repository.dart';
 import 'package:health_pro/domain/repositories/profile_repository.dart';
+import 'package:health_pro/domain/repositories/reminder_repository.dart';
 import 'package:health_pro/main.dart';
 import 'package:health_pro/presentation/features/account/account_controller.dart';
 import 'package:health_pro/presentation/features/home/home_controller.dart';
@@ -197,6 +198,17 @@ void main() {
 
       expect(Get.find<NavController>().current, ClientTab.home);
       expect(Get.isRegistered<NavController>(), isTrue, reason: 'chrome, not user data');
+    });
+
+    /// D-222. The last person's water reminders must not ring for whoever signs in next.
+    test("the previous person's reminders are cancelled", () async {
+      final reminders = FakeReminderRepository();
+      Get.put<ReminderRepository>(reminders, permanent: true);
+
+      EatzifyApp.clearUserScopedState();
+      await Future<void>.delayed(Duration.zero);
+
+      expect(reminders.cancels, 1);
     });
 
     test('clearing twice is harmless — nothing is registered the second time', () {

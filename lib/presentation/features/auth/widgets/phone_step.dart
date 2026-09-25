@@ -73,7 +73,10 @@ class _PhoneStepState extends State<PhoneStep> {
           // typed. The button is what says whether the number is usable.
           autovalidateMode: AutovalidateMode.disabled,
           dropdownIconPosition: IconPosition.trailing,
-          flagsButtonPadding: const EdgeInsets.only(right: AppSpacing.sm),
+          // LEFT as well as right. The package defaults the left to zero, so the flag sat flush
+          // against the field's border while the hint beside it kept the normal inset — the one
+          // element on the screen that looked like it had fallen out of its box.
+          flagsButtonPadding: const EdgeInsets.only(left: AppSpacing.md, right: AppSpacing.sm),
           decoration: InputDecoration(
             labelText: l.loginPhoneLabel,
             hintText: l.loginPhoneHint,

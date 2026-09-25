@@ -15,7 +15,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { AuthGuard } from '@nestjs/passport';
 import { ApiBearerAuth, ApiBody, ApiConsumes, ApiTags } from '@nestjs/swagger';
 import { FoodsService, type ImportResult } from './foods.service';
-import { FOOD_PREFERENCES } from './food-validation';
+import { FOOD_GROUPS, FOOD_PREFERENCES } from './food-validation';
 import { FoodEntity } from './entities/food.entity';
 import { Roles } from '../roles/roles.decorator';
 import { RoleEnum } from '../roles/roles.enum';
@@ -55,6 +55,7 @@ export class FoodsController {
     @Query('limit') limit?: string,
     @Query('offset') offset?: string,
     @Query('suitableFor') suitableFor?: string,
+    @Query('group') group?: string,
   ) {
     // Bounded rather than trusted: a client asking for 100000 rows is either a bug or an attempt,
     // and either way it is the database that pays. 20 is what the app's first page asks for.
@@ -79,7 +80,26 @@ export class FoodsController {
       });
     }
 
-    return this.service.searchWithImages(q ?? '', take, skip, suitableFor);
+    // A comma list — the app's "Protein" chip is four groups. Rejected on an unknown name for the
+    // same reason as the preference above.
+    const groups = group?.split(',').filter((g) => g.length > 0);
+    if (groups?.some((g) => !(FOOD_GROUPS as readonly string[]).includes(g))) {
+      throw new BadRequestException({
+        status: HttpStatus.BAD_REQUEST,
+        error: {
+          code: 'FOOD_GROUP_INVALID',
+          user_message: 'That food category is not one we know. Try another.',
+        },
+      });
+    }
+
+    return this.service.searchWithImages(
+      q ?? '',
+      take,
+      skip,
+      suitableFor,
+      groups,
+    );
   }
 
   /// Admin only — this is what makes a food visible to every user.

@@ -71,6 +71,22 @@ class ProfileRemoteDataSource {
     }
   }
 
+  /// The roles this account holds, from the `GET /auth/me` aggregate (docs/09 §3).
+  ///
+  /// Used for ONE thing: which shell to draw (CLAUDE.md rule 1). docs/10 §1 is explicit that a
+  /// role is not permission to see a client — a consent grant is — so nothing else may key off it,
+  /// and the server refuses the read regardless of what the app believes.
+  Future<Either<Failure, List<String>>> roles() async {
+    try {
+      final res = await _dio.get<Map<String, dynamic>>('/auth/me');
+      final roles = res.data?['roles'];
+      if (roles is! List) return const Right([]);
+      return Right(roles.map((r) => r.toString()).toList());
+    } on DioException catch (e) {
+      return Left(mapDioError(e));
+    }
+  }
+
   /// Detaches the photo. `docs/13`: a user must be able to remove a personal image they uploaded.
   Future<Either<Failure, Unit>> removePhoto() async {
     try {

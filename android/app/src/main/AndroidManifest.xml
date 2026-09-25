@@ -1,13 +1,43 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+    <!-- D-238: the ads SDK merges in the advertising-ID permission; removed, because FREE scan ads
+         are non-personalised and docs/13 keeps health use away from ad identifiers. -->
+    <uses-permission android:name="com.google.android.gms.permission.AD_ID" tools:node="remove" />
+    <!--
+      Health Connect, READ ONLY, and exactly the three things docs/HEALTH-SYNC-TRACKER.md lists.
+
+      Deliberately absent:
+        - READ_TOTAL_CALORIES_BURNED — includes BMR, which the plan's TDEE already counts.
+        - READ_HEALTH_DATA_IN_BACKGROUND — there is no background sync.
+        - READ_HEALTH_DATA_HISTORY — the backfill is 30 days, which is the default grant.
+        - ACTIVITY_RECOGNITION and location, which the plugin's example declares — they are for the
+          raw sensor and workout routes. This app reads neither, and both are `dangerous`.
+    -->
+    <uses-permission android:name="android.permission.health.READ_STEPS" />
+    <uses-permission android:name="android.permission.health.READ_ACTIVE_CALORIES_BURNED" />
+    <uses-permission android:name="android.permission.health.READ_DISTANCE" />
+
+    <!--
+      Reminders, scheduled on the phone (D-222). POST_NOTIFICATIONS comes from the plugin's own
+      manifest. Boot lets the plugin put the week back after a restart. No exact-alarm permission:
+      a water reminder a few minutes late is fine, and Play grants USE_EXACT_ALARM to alarm clocks.
+    -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+
     <application
         android:usesCleartextTraffic="true"
         android:label="Eatzify"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
+        <!-- AdMob (D-238). Google's TEST app id — replace with the real one before release. -->
+        <meta-data
+            android:name="com.google.android.gms.ads.APPLICATION_ID"
+            android:value="ca-app-pub-3940256099942544~3347511713" />
         <activity
             android:name=".MainActivity"
             android:exported="true"
             android:launchMode="singleTop"
+            android:screenOrientation="portrait"
             android:taskAffinity=""
             android:theme="@style/LaunchTheme"
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
@@ -26,6 +56,112 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
+
+        <!--
+          Health Connect's "privacy policy" link, Android 13 and below. A translucent activity that
+          opens the policy and closes — not MainActivity, which would boot the whole app first.
+        -->
+        <activity
+            android:name=".PrivacyPolicyActivity"
+            android:exported="true"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar">
+            <intent-filter>
+                <action android:name="androidx.health.ACTION_SHOW_PERMISSIONS_RATIONALE" />
+            </intent-filter>
+        </activity>
+
+        <!--
+          The same link on Android 14+, where Health Connect is part of the OS and asks for it through
+          a different action. Google app review requires one of these for health permissions.
+        -->
+        <activity-alias
+            android:name="ViewPermissionUsageActivity"
+            android:exported="true"
+            android:targetActivity=".PrivacyPolicyActivity"
+            android:permission="android.permission.START_VIEW_PERMISSION_USAGE">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW_PERMISSION_USAGE" />
+                <category android:name="android.intent.category.HEALTH_PERMISSIONS" />
+            </intent-filter>
+        </activity-alias>
+
+        <!--
+          The home-screen widget (D-210), in three sizes (D-219). Three receivers so the picker
+          offers three; the medium one keeps the original class name so widgets already on a home
+          screen stay bound to it.
+
+          `APPWIDGET_UPDATE` is the system asking for a redraw. The app pushes its own updates when
+          the diary changes, which is the only moment the figures actually move.
+        -->
+        <receiver
+            android:name=".widget.EatzifyWidgetSmall"
+            android:exported="false"
+            android:label="@string/widget_name_small">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/eatzify_widget_info_small" />
+        </receiver>
+
+        <receiver
+            android:name=".widget.EatzifyWidgetProvider"
+            android:exported="false"
+            android:label="@string/widget_name_medium">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/eatzify_widget_info_medium" />
+        </receiver>
+
+        <receiver
+            android:name=".widget.EatzifyWidgetLarge"
+            android:exported="false"
+            android:label="@string/widget_name_large">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/eatzify_widget_info_large" />
+        </receiver>
+
+        <!-- Receives the water button's tap and wakes the Dart background isolate. -->
+        <receiver
+            android:name="es.antonborri.home_widget.HomeWidgetBackgroundReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="es.antonborri.home_widget.action.BACKGROUND" />
+            </intent-filter>
+        </receiver>
+
+        <service
+            android:name="es.antonborri.home_widget.HomeWidgetBackgroundService"
+            android:permission="android.permission.BIND_JOB_SERVICE"
+            android:exported="false" />
+
+        <!-- flutter_local_notifications: shows a scheduled reminder, restores them after a
+             restart, and handles "Log a glass" without opening the app (D-222). -->
+        <receiver
+            android:exported="false"
+            android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationReceiver" />
+        <receiver
+            android:exported="false"
+            android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationBootReceiver">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+                <action android:name="android.intent.action.QUICKBOOT_POWERON" />
+                <action android:name="com.htc.intent.action.QUICKBOOT_POWERON" />
+            </intent-filter>
+        </receiver>
+        <receiver
+            android:exported="false"
+            android:name="com.dexterous.flutterlocalnotifications.ActionBroadcastReceiver" />
+
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
         <meta-data
@@ -41,6 +177,14 @@
         <intent>
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
+        </intent>
+        <!--
+          On Android 8–13 Health Connect is a separate Play Store app, and without these the system
+          hides it from us: the app could not even tell whether it is installed.
+        -->
+        <package android:name="com.google.android.apps.healthdata" />
+        <intent>
+            <action android:name="androidx.health.ACTION_SHOW_PERMISSIONS_RATIONALE" />
         </intent>
     </queries>
 </manifest>

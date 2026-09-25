@@ -39,7 +39,9 @@ class ProgressController extends GetxController {
   /// Same endpoint as the body measurements — one row per kind per diary day — so seeing them over
   /// time needed no new API, only a screen that asks. Until this, they were visible on Home for
   /// today and nowhere at all tomorrow, which is not tracking; it is a display.
-  static const habitKinds = ['steps', 'water_ml', 'energy_burned_kcal'];
+  /// `distance_m` only ever arrives from the phone's health store (D-214); there is no hand-entry
+  /// field for it, so it shows up here once someone connects and not before.
+  static const habitKinds = ['steps', 'distance_m', 'water_ml', 'energy_burned_kcal'];
 
   final MeasurementsRepository measurements;
 

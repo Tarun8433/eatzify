@@ -36,6 +36,24 @@ export const FOOD_PREFERENCES = [
 ] as const;
 export const COST_TIERS = ['low', 'medium', 'premium'] as const;
 
+/// docs/03 §4's food groups, stored as `group:<name>` tags (D-235). The app's category chips filter
+/// on these (D-238).
+export const FOOD_GROUPS = [
+  'cereal',
+  'pulse',
+  'dairy',
+  'veg',
+  'fruit',
+  'nut_seed',
+  'meat',
+  'fish',
+  'egg',
+  'fat_oil',
+  'sugar',
+  'beverage',
+  'prepared',
+] as const;
+
 export type FoodRow = {
   name: string;
   nameHi: string | null;
