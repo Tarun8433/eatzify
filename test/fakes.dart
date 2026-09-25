@@ -1,29 +1,62 @@
+import 'dart:async';
+
 import 'package:dartz/dartz.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:get/get.dart';
 import 'package:health_pro/core/errors/failures.dart';
 import 'package:health_pro/core/session/session_controller.dart';
 import 'package:health_pro/core/storage/secure_store.dart';
+import 'package:health_pro/domain/entities/app_notification.dart';
 import 'package:health_pro/domain/entities/billing.dart';
 import 'package:health_pro/domain/entities/food.dart';
+import 'package:health_pro/domain/entities/health_metric.dart';
 import 'package:health_pro/domain/entities/measurement.dart';
 import 'package:health_pro/domain/entities/onboarding_submission.dart';
 import 'package:health_pro/domain/entities/plan.dart';
+import 'package:health_pro/domain/entities/privacy.dart';
 import 'package:health_pro/domain/entities/profile_view.dart';
+import 'package:health_pro/domain/entities/reminder.dart';
 import 'package:health_pro/domain/entities/session.dart';
+import 'package:health_pro/domain/entities/support_ticket.dart';
 import 'package:health_pro/domain/repositories/auth_repository.dart';
 import 'package:health_pro/domain/repositories/billing_repository.dart';
 import 'package:health_pro/domain/repositories/diary_repository.dart';
+import 'package:health_pro/domain/repositories/health_repository.dart';
 import 'package:health_pro/domain/repositories/measurements_repository.dart';
+import 'package:health_pro/domain/repositories/notifications_repository.dart';
 import 'package:health_pro/domain/repositories/plan_repository.dart';
+import 'package:health_pro/domain/repositories/privacy_repository.dart';
 import 'package:health_pro/domain/repositories/profile_repository.dart';
+import 'package:health_pro/domain/repositories/reminder_repository.dart';
+import 'package:health_pro/domain/repositories/tickets_repository.dart';
 
 /// Stands in for the profile endpoints so widgets can be driven without a dio.
 ///
 /// Defaults to a completed profile, because that is the state most screens are built for. Pass
 /// `profileResult` to exercise Empty (`Right(null)`) or Failed (`Left(...)`).
 class FakeProfileRepository implements ProfileRepository {
-  FakeProfileRepository({this.result, this.failure, this.profileResult, this.patchFailure});
+  FakeProfileRepository({
+    this.result,
+    this.failure,
+    this.profileResult,
+    this.patchFailure,
+    this.roleNames = const [],
+    this.rolesFailure,
+  });
+
+  /// What `GET /auth/me` reports for this account. Empty means a plain client, which is what
+  /// every test that is not about the coach shell wants. Mutable, so a test can do what an admin
+  /// does — grant the role while the app is already open — and check the app notices.
+  List<String> roleNames;
+
+  /// When set, `GET /auth/me` refuses — the shell has to fall back to the client tabs.
+  final Failure? rolesFailure;
+
+  @override
+  Future<Either<Failure, List<String>>> roles() async {
+    final failure = rolesFailure;
+    return failure != null ? Left(failure) : Right(roleNames);
+  }
 
   final OnboardingResult? result;
   final Failure? failure;
@@ -43,9 +76,15 @@ class FakeProfileRepository implements ProfileRepository {
     return Right(result ?? const OnboardingResult(userId: '1', healthProfileVersion: 1, gates: []));
   }
 
+  /// How many times the screen asked for the profile. Pull-to-refresh is only a refresh if it
+  /// actually re-fetches.
+  int profileCalls = 0;
+
   @override
-  Future<Either<Failure, ProfileView?>> profile() async =>
-      profileResult ?? const Right(defaultProfile);
+  Future<Either<Failure, ProfileView?>> profile() async {
+    profileCalls++;
+    return profileResult ?? const Right(defaultProfile);
+  }
 
   @override
   Future<Either<Failure, Unit>> updateProfile(Map<String, dynamic> changed) async {
@@ -98,6 +137,7 @@ class FakeMeasurementsRepository implements MeasurementsRepository {
   final Failure? failure;
 
   double? lastRecorded;
+  String? lastKind;
 
   /// What the last call claimed as its origin. Recorded so a test can prove a hand-entry screen
   /// sends `manual` — the server's conflict rule (D-97) turns on this value, so a screen that
@@ -116,6 +156,7 @@ class FakeMeasurementsRepository implements MeasurementsRepository {
     DateTime? at,
   }) async {
     lastRecorded = value;
+    lastKind = kind;
     lastSource = source;
     lastAt = at;
     if (failure != null) return Left(failure!);
@@ -131,6 +172,16 @@ class FakeMeasurementsRepository implements MeasurementsRepository {
       ),
       isSuspect: isSuspect,
     ));
+  }
+
+  /// Every bulk write, in order. A sync test reads what was sent from here.
+  final batches = <List<NewMeasurement>>[];
+
+  @override
+  Future<Either<Failure, Unit>> recordMany(List<NewMeasurement> readings) async {
+    batches.add(readings);
+    if (failure != null) return Left(failure!);
+    return const Right(unit);
   }
 
   @override
@@ -156,11 +207,15 @@ final defaultHistory = MeasurementHistory(
 
 /// Stands in for the diary endpoints.
 class FakeDiaryRepository implements DiaryRepository {
-  FakeDiaryRepository({this.dayResult, this.foods = const [], this.failure});
+  FakeDiaryRepository({this.dayResult, this.foods = const [], this.failure, this.delay});
+
+  /// Holds the day open so a test can see the LOADING state. Without it the future completes on
+  /// the first microtask and the skeleton is gone before any frame can be inspected.
 
   final Either<Failure, DiaryDay>? dayResult;
   final List<Food> foods;
   final Failure? failure;
+  final Duration? delay;
 
   String? lastLoggedFoodId;
 
@@ -216,7 +271,18 @@ class FakeDiaryRepository implements DiaryRepository {
   Future<Either<Failure, DiaryDay>> day({String? date}) async {
     // Which day was asked for, so a test can assert the app browses rather than re-reads today.
     dayDatesAsked.add(date);
+    final held = delay;
+    if (held != null) await Future<void>.delayed(held);
     return dayResult ?? const Right(emptyDay);
+  }
+
+  /// What `GET /logs/windows` answers. Null is a server that could not be reached.
+  List<DiaryWindow>? windowsResult;
+
+  @override
+  Future<Either<Failure, List<DiaryWindow>>> windows(int days) async {
+    final result = windowsResult;
+    return result == null ? const Left(OfflineFailure('offline')) : Right(result);
   }
 
   @override
@@ -251,20 +317,160 @@ class CountingDiaryRepository extends FakeDiaryRepository {
 /// Stands in for the two billing endpoints that exist (D-136). The tier is the whole point:
 /// premium surfaces render only when the server says FREE.
 class FakeBillingRepository implements BillingRepository {
-  FakeBillingRepository({this.tier = 'FREE'});
+  FakeBillingRepository({
+    this.tier = 'FREE',
+    this.priceRows,
+    this.priceFailure,
+    this.paymentsMode = 'stub',
+    this.checkoutFailure,
+  });
 
   final String tier;
 
-  @override
-  Future<Either<Failure, Entitlements>> entitlements() async =>
-      Right(Entitlements(tier: tier, status: 'active'));
+  /// `stub` by default, matching a build with no Cashfree credentials — the paywall then draws its
+  /// "opening soon" note rather than a live pay button.
+  final String paymentsMode;
+
+  /// When set, `POST /billing/checkout` refuses.
+  final Failure? checkoutFailure;
+
+  /// What the fake was asked to buy, so a test can tell "the sheet sent it" from "the sheet
+  /// redrew itself".
+  final List<({String tier, int months})> bought = [];
+
+  /// Order ids the stub payment was completed for.
+  final List<String> completed = [];
+
+  /// The matrix the paywall renders. Null keeps the two-row default; pass [fullPriceMatrix] for a
+  /// test that cares about the ladder, or an empty list for the empty state.
+  final List<TierPrice>? priceRows;
+
+  /// When set, `GET /billing/prices` refuses — the failed state and its retry.
+  final Failure? priceFailure;
+
+  /// What `GET /billing/subscription` answers. Null is a FREE account with the week still on offer.
+  Either<Failure, SubscriptionState>? subscriptionResult;
+
+  /// What the trial, the cancel and the upgrade leave the plan as. Null keeps what is there.
+  Either<Failure, SubscriptionState>? afterTrial;
+  Either<Failure, SubscriptionState>? afterCancel;
+  Either<Failure, SubscriptionState>? afterUpgrade;
+
+  /// docs/11 §7's quote. Null refuses, as the server does when there is nothing to upgrade.
+  Either<Failure, UpgradeQuote>? quoteResult;
+
+  /// Holds the read open so a test can see the loading state.
+  Completer<void>? hold;
+
+  final List<String> trialTiers = [];
+  final List<({String tier, int months})> upgrades = [];
+  int cancels = 0;
 
   @override
-  Future<Either<Failure, List<TierPrice>>> prices() async => const Right([
-    TierPrice(tier: 'BASIC', months: 3, pricePaise: 69900),
-    TierPrice(tier: 'PRO', months: 12, pricePaise: 549900),
-  ]);
+  Future<Either<Failure, Entitlements>> entitlements() async =>
+      Right(Entitlements(tier: tier, status: 'active', paymentsMode: paymentsMode));
+
+  @override
+  Future<Either<Failure, SubscriptionState>> subscription() async {
+    await hold?.future;
+    return subscriptionResult ??
+        const Right(SubscriptionState(tier: 'FREE', status: 'active', trialAvailable: true));
+  }
+
+  @override
+  Future<Either<Failure, SubscriptionState>> startTrial(String tier) async {
+    trialTiers.add(tier);
+    final next = afterTrial;
+    if (next != null) subscriptionResult = next.isRight() ? next : subscriptionResult;
+    return next ?? await subscription();
+  }
+
+  @override
+  Future<Either<Failure, SubscriptionState>> cancelRenewal({String? reason}) async {
+    cancels++;
+    final next = afterCancel;
+    if (next != null) subscriptionResult = next;
+    return next ?? await subscription();
+  }
+
+  @override
+  Future<Either<Failure, UpgradeQuote>> upgradeQuote({
+    required String tier,
+    required int months,
+  }) async =>
+      quoteResult ??
+      const Left(ApiFailure('You do not have an active plan right now.', code: 'NO_ACTIVE_PLAN'));
+
+  @override
+  Future<Either<Failure, CheckoutSession>> upgrade({
+    required String tier,
+    required int months,
+    required String idempotencyKey,
+  }) async {
+    upgrades.add((tier: tier, months: months));
+    final next = afterUpgrade;
+    if (next != null) subscriptionResult = next;
+    // Nothing left to pay: the server settled it, which is what an amount of zero says.
+    return Right(
+      CheckoutSession(orderId: 'eatzify_upgrade_1', amountPaise: 0, tier: tier, mode: paymentsMode),
+    );
+  }
+
+  @override
+  Future<Either<Failure, CheckoutSession>> checkout({
+    required String tier,
+    required int months,
+    required String idempotencyKey,
+    String? couponCode,
+  }) async {
+    final failure = checkoutFailure;
+    if (failure != null) return Left(failure);
+
+    bought.add((tier: tier, months: months));
+    return Right(
+      CheckoutSession(
+        orderId: 'eatzify_test_1',
+        amountPaise: 179900,
+        tier: tier,
+        mode: paymentsMode,
+      ),
+    );
+  }
+
+  @override
+  Future<Either<Failure, Unit>> completeStubPayment(String orderId) async {
+    completed.add(orderId);
+    return const Right(unit);
+  }
+
+  @override
+  Future<Either<Failure, List<TierPrice>>> prices() async {
+    final failure = priceFailure;
+    if (failure != null) return Left(failure);
+    return Right(
+      priceRows ??
+          const [
+            TierPrice(tier: 'BASIC', months: 3, pricePaise: 69900),
+            TierPrice(tier: 'PRO', months: 12, pricePaise: 549900),
+          ],
+    );
+  }
 }
+
+/// `api/src/billing/tiers.ts` PRICES, in the order the data source sorts them (tier, then months).
+/// The real ladder, so a test that checks a per-month figure is checking the number a user sees.
+const fullPriceMatrix = <TierPrice>[
+  TierPrice(tier: 'BASIC', months: 1, pricePaise: 24900),
+  TierPrice(tier: 'BASIC', months: 3, pricePaise: 69900),
+  TierPrice(tier: 'BASIC', months: 6, pricePaise: 119900),
+  TierPrice(tier: 'BASIC', months: 9, pricePaise: 159900),
+  TierPrice(tier: 'BASIC', months: 12, pricePaise: 209900),
+  TierPrice(tier: 'PRO', months: 1, pricePaise: 64900),
+  TierPrice(tier: 'PRO', months: 3, pricePaise: 179900),
+  TierPrice(tier: 'PRO', months: 6, pricePaise: 279900),
+  TierPrice(tier: 'PRO', months: 9, pricePaise: 379900),
+  TierPrice(tier: 'PRO', months: 12, pricePaise: 499900),
+];
 
 /// Stands in for `POST /plans/generate`.
 class FakePlanRepository implements PlanRepository {
@@ -330,6 +536,304 @@ const samplePlan = Plan(
     MealTarget(slot: 'dinner', pct: 0.3, kcal: 558, proteinG: 38, carbG: 67, fatG: 16),
   ],
 );
+
+/// A phone's health store, answering whatever a test sets.
+class FakeHealthRepository implements HealthRepository {
+  HealthAvailability available = HealthAvailability.ready;
+  HealthPermission permitted = HealthPermission.denied;
+
+  /// What a tap on Connect leaves things at.
+  HealthPermission afterRequest = HealthPermission.granted;
+  Map<String, Map<HealthMetric, num>> recorded = const {};
+
+  /// Holds [availability] open so a test can see the loading state.
+  Completer<void>? hold;
+
+  int prompts = 0;
+  int installs = 0;
+
+  /// Whether the one-time connect sheet has already been shown to this account.
+  bool offered = false;
+
+  @override
+  Future<HealthAvailability> availability() async {
+    await hold?.future;
+    return available;
+  }
+
+  @override
+  Future<HealthPermission> permission() async => permitted;
+
+  @override
+  Future<HealthPermission> requestPermission() async {
+    prompts++;
+    return permitted = afterRequest;
+  }
+
+  @override
+  Future<Either<Failure, Map<String, Map<HealthMetric, num>>>> readDaily(
+    List<DiaryWindow> windows,
+  ) async => Right(recorded);
+
+  @override
+  Future<void> openInstall() async => installs++;
+
+  @override
+  Future<bool> wasOffered() async => offered;
+
+  @override
+  Future<void> markOffered() async => offered = true;
+}
+
+/// The server's messages, in memory.
+class FakeNotificationsRepository implements NotificationsRepository {
+  FakeNotificationsRepository({this.feedResult, this.failure});
+
+  final Either<Failure, NotificationFeed>? feedResult;
+  final Failure? failure;
+
+  /// Holds the list open so a test can see the loading state.
+  Completer<void>? hold;
+
+  final readIds = <String>[];
+  int readAllCalls = 0;
+
+  @override
+  Future<Either<Failure, NotificationFeed>> list({DateTime? before}) async {
+    await hold?.future;
+    final failed = failure;
+    if (failed != null) return Left(failed);
+    return feedResult ?? const Right((items: <AppNotification>[], unreadCount: 0));
+  }
+
+  @override
+  Future<Either<Failure, Unit>> markRead(String id) async {
+    readIds.add(id);
+    return const Right(unit);
+  }
+
+  @override
+  Future<Either<Failure, Unit>> markAllRead() async {
+    readAllCalls++;
+    return const Right(unit);
+  }
+}
+
+/// docs/13 §3 and §9, in memory (D-233).
+class FakePrivacyRepository implements PrivacyRepository {
+  FakePrivacyRepository({
+    List<ConsentItem>? consents,
+    this.requests = const [],
+    this.failure,
+    this.actionFailure,
+  }) : consents =
+           consents ??
+           const [
+             ConsentItem(type: 'health_data_storage', granted: true),
+             ConsentItem(type: 'plan_generation', granted: true),
+             ConsentItem(type: 'marketing', granted: false),
+           ];
+
+  List<ConsentItem> consents;
+  List<PrivacyRequest> requests;
+
+  /// Fails the initial read.
+  final Failure? failure;
+
+  /// Fails whatever the person presses — the refusal the screen has to show verbatim.
+  final Failure? actionFailure;
+
+  /// Holds the read open so a test can see the loading state.
+  Completer<void>? hold;
+
+  final setCalls = <({String type, bool granted})>[];
+  int exports = 0;
+  int deletions = 0;
+  int cancellations = 0;
+
+  @override
+  Future<Either<Failure, PrivacyState>> load() async {
+    await hold?.future;
+    final failed = failure;
+    if (failed != null) return Left(failed);
+    return Right((consents: consents, requests: requests));
+  }
+
+  @override
+  Future<Either<Failure, List<ConsentItem>>> setConsent(
+    String type, {
+    required bool granted,
+  }) async {
+    final failed = actionFailure;
+    if (failed != null) return Left(failed);
+
+    setCalls.add((type: type, granted: granted));
+    consents = [
+      for (final c in consents) if (c.type == type) c.copyWith(granted: granted) else c,
+    ];
+    return Right(consents);
+  }
+
+  @override
+  Future<Either<Failure, PrivacyRequest>> requestExport() async {
+    final failed = actionFailure;
+    if (failed != null) return Left(failed);
+
+    exports++;
+    return const Right(PrivacyRequest(id: 'x1', kind: 'export', status: 'done'));
+  }
+
+  @override
+  Future<Either<Failure, Map<String, dynamic>>> exportBundle(String requestId) async {
+    return const Right({
+      'account': {'user_id': 7},
+      'food_logs': [1, 2, 3],
+    });
+  }
+
+  @override
+  Future<Either<Failure, PrivacyRequest>> requestDeletion() async {
+    final failed = actionFailure;
+    if (failed != null) return Left(failed);
+
+    deletions++;
+    requests = [
+      PrivacyRequest(
+        id: 'd1',
+        kind: 'delete',
+        status: 'pending',
+        executeAfter: DateTime(2026, 9, 25),
+      ),
+    ];
+    return Right(requests.first);
+  }
+
+  @override
+  Future<Either<Failure, Unit>> cancelDeletion() async {
+    final failed = actionFailure;
+    if (failed != null) return Left(failed);
+
+    cancellations++;
+    requests = const [];
+    return const Right(unit);
+  }
+}
+
+/// Support conversations, in memory (D-228).
+class FakeTicketsRepository implements TicketsRepository {
+  FakeTicketsRepository({
+    this.tickets = const [],
+    this.threadResult,
+    this.failure,
+    this.openFailure,
+  });
+
+  final List<SupportTicket> tickets;
+  final SupportThread? threadResult;
+  final Failure? failure;
+
+  /// What `open` refuses with — the "you already have several open" answer, in the test that
+  /// checks the server's own words reach the sheet.
+  final Failure? openFailure;
+
+  /// Holds a read open so a test can see the loading state.
+  Completer<void>? hold;
+
+  final replies = <String>[];
+  final opened = <String>[];
+
+  @override
+  Future<Either<Failure, List<SupportTicket>>> list() async {
+    await hold?.future;
+    final failed = failure;
+    return failed != null ? Left(failed) : Right(tickets);
+  }
+
+  @override
+  Future<Either<Failure, SupportTicket>> open({
+    required String subject,
+    required String body,
+    String? requestId,
+  }) async {
+    final failed = openFailure;
+    if (failed != null) return Left(failed);
+    opened.add(subject);
+    return Right(
+      SupportTicket(id: 't-new', subject: subject, status: 'new', createdAt: DateTime(2026, 9, 18)),
+    );
+  }
+
+  @override
+  Future<Either<Failure, SupportThread>> thread(String id) async {
+    await hold?.future;
+    final failed = failure;
+    if (failed != null) return Left(failed);
+    final only =
+        threadResult ??
+        (
+          ticket: tickets.isEmpty
+              ? SupportTicket(id: id, subject: 'Support', status: 'new')
+              : tickets.first,
+          messages: const <SupportMessage>[],
+        );
+    return Right(only);
+  }
+
+  @override
+  Future<Either<Failure, Unit>> reply(String id, String body) async {
+    final failed = openFailure;
+    if (failed != null) return Left(failed);
+    replies.add(body);
+    return const Right(unit);
+  }
+}
+
+/// The phone's reminders, in memory: what was stored, and what was last scheduled.
+class FakeReminderRepository implements ReminderRepository {
+  FakeReminderRepository({this.permitted = ReminderPermission.denied});
+
+  ReminderPermission permitted;
+
+  /// What the system's question is answered with.
+  ReminderPermission afterRequest = ReminderPermission.granted;
+
+  ReminderState state = const ReminderState();
+
+  /// Null until something is scheduled or cancelled; empty after a cancel.
+  List<PlannedReminder>? scheduled;
+  int prompts = 0;
+  int cancels = 0;
+
+  /// Holds [permission] open so a test can see the loading state.
+  Completer<void>? hold;
+
+  @override
+  Future<ReminderState> readState() async => state;
+
+  @override
+  Future<void> writeState(ReminderState state) async => this.state = state;
+
+  @override
+  Future<ReminderPermission> permission() async {
+    await hold?.future;
+    return permitted;
+  }
+
+  @override
+  Future<ReminderPermission> requestPermission() async {
+    prompts++;
+    return permitted = afterRequest;
+  }
+
+  @override
+  Future<void> replaceAll(List<PlannedReminder> reminders) async => scheduled = reminders;
+
+  @override
+  Future<void> cancelAll() async {
+    cancels++;
+    scheduled = const [];
+  }
+}
 
 /// In-memory keychain, so a test never touches the real one.
 class FakeSecureStorage extends FlutterSecureStorage {

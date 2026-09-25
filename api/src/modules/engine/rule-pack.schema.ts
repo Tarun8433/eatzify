@@ -131,6 +131,27 @@ export const rulePackSchema = z
       kcal_tolerance_pct: fraction,
       protein_tolerance_g: positive,
     }),
+    /// docs/04 §2 step 14. Optional so a pack written before alternates existed still boots —
+    /// the engine treats an absent block as "offer no swaps" rather than inventing a window.
+    alternates: z
+      .object({
+        kcal_tolerance_pct: fraction,
+        protein_tolerance_g: positive,
+        max_per_item: z.number().int().positive(),
+      })
+      .optional(),
+    /// D-235. Optional like `alternates`: the block is machinery the engine can consume, and the
+    /// VALUES are a dietitian's to supply via a reviewed pack diff.
+    composition: z
+      .object({
+        rules: z.array(
+          z.object({
+            slots: z.array(z.string()).min(1),
+            require_one_of: z.array(z.array(z.string()).min(1)).min(1),
+          }),
+        ),
+      })
+      .optional(),
     overrides: z
       .array(
         z.object({

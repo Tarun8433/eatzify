@@ -16,8 +16,12 @@ import {
   computeWaterMl,
 } from './macros';
 import { distributeMeals } from './meals';
+import { buildPool, type EngineFood } from './foods';
+import { pickAlternates } from './alternates';
+import { fillMeals } from './fill';
 import { applyOverrides, type PackWithOverrides } from './overrides';
 import {
+  assertFilledDayCoherent,
   assertMealsCoherent,
   assertTargetsCoherent,
   round1,
@@ -42,19 +46,32 @@ export type { RulePack } from './pack';
 export { EngineAssertionError } from './output';
 export { EngineInputError } from './validate';
 export { MealPatternError } from './meals';
+export { buildPool } from './foods';
+export type { EngineFood, EngineMeasure, PoolResult } from './foods';
+export { fillMeals } from './fill';
+export { pickAlternates } from './alternates';
+export type { AlternateItem, ItemAlternates } from './alternates';
+export type { Meal, MealItem } from './fill';
 export { createPrng, hashSeed } from './prng';
 
 /**
  * docs/04 §2 — the pipeline, in order. Pure: no clock, no random, no I/O, no locale formatting.
  * Same input + same pack version = byte-identical output, forever.
  *
- * Steps 11, 13 and 14 (candidate pool, greedy fill, alternates) require the food database. It does
- * not exist yet (docs/20 §1, §6), so this returns per-meal targets and leaves `meals` unfilled
- * rather than inventing food. A partial plan is worse than no plan, and fake food is worse than both.
+ * Steps 11 and 13 (candidate pool, greedy fill) run only when the caller hands in `foods`. The
+ * engine has no database — purity is what makes a plan reproducible — so the pool is queried
+ * upstream and passed in. Without it the output carries targets and an empty `meals`, which is
+ * what shipped before the food table existed: a partial plan is worse than no plan, and invented
+ * food is worse than both.
+ *
+ * Step 14 (alternates) is not here yet. Its ±10 % / ±5 g window belongs in the rule pack and the
+ * pack directory is deny-listed to this agent (.claude/rules/engine.md), so the diff is proposed
+ * rather than written.
  */
 export function generatePlan(
   input: EngineInput,
   pack: PackWithOverrides,
+  foods: readonly EngineFood[] = [],
 ): EngineOutput {
   const trace: TraceStep[] = [];
   const warnings: WarningCode[] = [];
@@ -133,6 +150,10 @@ export function generatePlan(
       targets: null,
       derived: null,
       mealTargets: [],
+      // docs/04 §2 step 6: a blocking gate emits NO plan. Not an empty one it might fill later —
+      // there is nothing to fill, which is the point.
+      meals: [],
+      alternates: [],
       constraints: null,
       warnings: dedupe(warnings),
       gates: gateResult.gates,
@@ -237,9 +258,76 @@ export function generatePlan(
     split: mealTargets.map((m) => Math.round(m.pct * 100)),
   });
 
+  // A conflict INSIDE the pack, surfaced rather than papered over (D-231). A per-occasion carb cap
+  // times the number of occasions can be less than the day's carbohydrate target — for type 2
+  // diabetes on v1.0.0 it is 4 × 55 g against 394 g — and no search can satisfy both. The plan
+  // that comes back is short on energy and says so, because the alternatives are worse: quietly
+  // breaching a clinical cap, or quietly serving the difference as fat.
+  const carbCap = overrides.constraints.maxCarbGPerOccasion;
+  if (carbCap !== undefined && carbCap * mealTargets.length < targets.carbG) {
+    warnings.push('carb_cap_limits_energy');
+    trace.push({
+      step: 'carb_cap',
+      cap_g_per_occasion: carbCap,
+      occasions: mealTargets.length,
+      reachable_carb_g: carbCap * mealTargets.length,
+      target_carb_g: targets.carbG,
+    });
+  }
+
+  // 11 — candidate pool. Traced even when empty: "why is there no food" is the first question a
+  // blank plan raises, and the rejection counts are the answer.
+  const pool = buildPool(foods, input, overrides.constraints);
+  trace.push({
+    step: 'pool',
+    offered: foods.length,
+    eligible: pool.foods.length,
+    rejected: pool.rejected,
+  });
+
+  // 13 — fill. No pool means no meals; it never means invented ones.
+  const meals =
+    pool.foods.length > 0
+      ? fillMeals({
+          mealTargets,
+          pool: pool.foods,
+          pack,
+          constraints: overrides.constraints,
+          proteinTargetG: carbs.proteinG,
+          sodiumMaxMg: targets.sodiumMaxMg,
+          addedSugarMaxG: targets.addedSugarMaxG,
+          fatMaxG: targets.fatG,
+          fibreTargetG: targets.fibreG,
+          saturatedFatMaxG: targets.saturatedFatMaxG,
+        })
+      : [];
+  if (meals.length > 0) {
+    trace.push({
+      step: 'fill',
+      slots: meals.map((m) => m.slot),
+      items: meals.reduce((n, m) => n + m.items.length, 0),
+      // docs/04 §7: the residual is recorded when the loop falls back to its closest attempt.
+      approximated: meals.filter((m) => m.approximated).map((m) => m.slot),
+    });
+  }
+
+  // 14 — alternates. Same-group swaps inside the pack's tolerances; a pack without the block
+  // offers none, and that is a statement, not a gap (D-235).
+  const alternates = meals.length > 0 ? pickAlternates(meals, pool.foods, pack) : [];
+  if (meals.length > 0) {
+    trace.push({
+      step: 'alternates',
+      items_with_options: alternates.length,
+      offered: alternates.reduce((n, a) => n + a.alternates.length, 0),
+    });
+  }
+
   // 15 — validate. An assertion failure here is a bug, never a warning.
   assertTargetsCoherent(targets, pack);
   assertMealsCoherent(mealTargets, carbs.targetKcal, pack);
+  // docs/04 §8 asserts the FILLED day, not only the split. The split was always coherent while
+  // the meals under it summed to 328 g of protein against a 117 g target.
+  if (meals.length > 0) assertFilledDayCoherent(meals, targets, pack);
 
   return {
     packVersion: pack.version,
@@ -254,6 +342,8 @@ export function generatePlan(
       effectiveGoal: goal,
     },
     mealTargets,
+    meals,
+    alternates,
     constraints: overrides.constraints,
     warnings: dedupe(warnings),
     gates: gateResult.gates,

@@ -3270,3 +3270,2598 @@ And the "how does a user see the full report, date-wise" half: the Progress weig
 trend card's See all leads there — now carries a History card: every reading newest first with
 its date, its source (rule 10), and the value; a suspect reading is shown with the neutral "left
 out of the trend" note, never hidden and never red (docs/08, docs/05 §6).
+
+## D-159 — The heroes moved to the darker grade, and two of them arrived with the checkerboard drawn in
+
+The art was re-supplied in a deeper, more saturated grade — the same drawings, not a dark-mode
+variant, so this is a straight replacement rather than a themed pair. Five of the six heroes with
+a darker version now carry it: the steps walker, the scales, the water bottle, the Home stage, and
+the routine and consent onboarding art. `plan_bowl` stays on its original grade because no darker
+version was supplied.
+
+The filenames did not change and neither did `AppAssets`. `pubspec.yaml` globs `assets/activity/`,
+so anything left beside a hero ships whether or not a widget names it (NFR-4); the `_dark`
+intermediates were therefore moved out to `assets/requirement_screens_img/`, which is not in
+pubspec, and the grade they replaced was moved to `light/` in the same folder rather than deleted.
+Both grades' originals are now in the repo and neither reaches the bundle.
+
+The two onboarding sources — `clock_dark`, `helth_dark` — were exported flattened against a DRAWN
+checkerboard instead of a transparent ground. That is precisely the failure D-115 exists to
+prevent: dropped in as supplied, the consent screen would have shown a grey checker rectangle
+behind the one question on the page that asks for a decision. The ground is flood-filled back out
+from the four corners at 18 % tolerance before encoding — measured, not guessed: 14 % leaves the
+checker greys standing and 25 % eats the cream curtains and the white pot. Both files are opaque
+srgb going in and carry real alpha coming out. A clean re-export would be better than a repair,
+and would make the flood fill a no-op rather than a dependency.
+
+Every hero keeps the documented treatment (trimmed where it was trimmed, three times its display
+width, palette-quantised). The six together weigh 413 KB against 441 KB before, so the deeper
+grade cost nothing: the biggest single win was consent, 224 KB to 46 KB.
+
+## D-160 — The paywall became the sheet the reference draws, and lost its infinite spinner
+
+The premium sheet was a title, a note and a flat list of ten "Tier · N months → ₹price" rows. It is
+now the reference's layout: a handle and a header with a close, the coming-soon note, BASIC and PRO
+as two cards of five durations each with the per-month figure under every price, a Compare Features
+table, and one pinned action. `premium_widgets.dart` keeps the pill and the plan banner; the sheet
+moved to `paywall_sheet.dart` with the cards, the table and the tier palette beside it.
+
+Four things the reference could not tell us, decided here:
+
+**The comparison table lists what `api/src/billing/tiers.ts` ENFORCES.** The reference's nine rows
+are a stock SaaS list — "ad-free experience", "early access", "custom goals", "advanced analytics" —
+and four of them are not entitlement keys at all. Shipping them would have the paywall selling what
+the backend cannot deliver, which docs/11 §10 names as a defect of the old build. The table carries
+the six real gaps instead, and a test fails if any of the invented four appears. Where the tiers
+differ by AMOUNT the cell is the figure, not a tick: "2 a day" against "3 a day", "90 days" against
+"Unlimited", because two ticks would hide the difference the row exists to show. The matrix is a
+COPY of the server's and will go stale — `GET /billing/prices` should return it, and then
+`compareRows` should read the response.
+
+**The action promises nothing.** There is no checkout and no waiting list on the server (D-134), so
+"Notify me when payments are live" says that the plans open in this sheet when payments do rather
+than collecting an address nothing would ever read.
+
+**Monthly/Yearly rereads the same prices.** The wire carries one price per term; both lines are
+derived from the same paise and neither is stored. The per-month figure is ROUNDED — ₹1,199 over
+six months is ₹199.83, which is the ₹200 every pricing page prints, and integer division would have
+understated each of the longer terms by a rupee.
+
+**Two golden bugs the widget tests could not see.** The badge started as a peer of the tier name in
+one row and took the whole of it, so "Pro" and its tagline rendered one letter per line on a 393 pt
+phone; it sits above the name now, and the unbadged card keeps the space so both ladders start on
+the same line. The duration row then broke "1 Month" into "1 Mo / nth", which a smaller radio,
+tighter gaps and one type step fixed. Terms still wrap at their space in a narrow card, and that is
+deliberate: Hindi terms are longer, and a line forced to fit clips them.
+
+PRO is the warm card. Two cards in the same green differ only by their words, so `AppColors` gained
+a tint/ink/badge trio at the green pair's own contrast (6.6:1 light, 8.8:1 dark). The sheet also
+implements all four states (rule 6): it showed a spinner whenever the list was empty, so a refused
+request and an empty catalogue were the same picture and neither ever resolved.
+
+Goldens at 100 %, 200 % and dark are the repo's first, which `.claude/rules/testing.md` has asked
+for all along. They substitute Roboto for Inter: every style goes through `google_fonts`, which in
+a test is an HTTP fetch that fails to Ahem and renders the sheet as rows of black boxes. They are a
+layout check, not a typography one.
+
+## D-161 — The two grades are a THEME PAIR, not a replacement — D-159 read them wrong
+
+D-159 treated the re-supplied art as a straight upgrade and swapped every hero to the darker grade
+in both themes. That was the wrong reading of `_dark`, and the user said so on seeing it: the images
+were meant to follow the theme. Nothing was lost — D-159 kept the pale grade rather than deleting
+it — so this is a re-pairing, not a re-do.
+
+Both grades ship now. The light grade is back at the canonical path it always had; the dark grade
+sits in a `dark/` sibling under the same filename, and `AppAssets.themed(asset, brightness)` maps
+one to the other by inserting that one path segment. A widget reads the constant through `themed`
+and never directly.
+
+Three things this had to get right, each with a test:
+
+**A pubspec directory entry is not recursive.** `assets/activity/` does not carry
+`assets/activity/dark/`; both folders are listed. Missing this ships no dark grade at all, which
+looks exactly like the bug being fixed — so a test reads pubspec and fails without them.
+
+**A resolver that is right is not the same as screens that use it.** The real failure mode is a
+hero drawn straight from the constant: it keeps the light grade in dark mode and nothing throws.
+A widget test pumps the weight tab in both themes and asserts the `AssetImage` the tree actually
+holds, so a call site that forgets `themed` fails rather than merely looking off.
+
+**A missing asset in Flutter is a broken image, not an exception.** So the pairing is an explicit
+set rather than "try `dark/` and fall back": `planHero` genuinely has no dark grade — none was
+supplied — and it returns itself in both themes rather than pointing at a file nobody drew. Tests
+check both directions: every paired path has a file behind it, and no `dark/` file is stranded
+without a constant resolving to it, which is how a hero would silently keep rendering the light
+grade after being given a dark one.
+
+`assets/requirement_screens_img/` keeps both grades' originals, now in `light/` and `dark/` beside
+each other. It stays out of pubspec, so neither set of originals reaches the bundle. The Plan tab's
+bowl is the one hero that still looks the same in both themes.
+
+## D-162 — The dashboard got a skeleton shaped like the dashboard, and the shimmer got switched on
+
+Two separate faults behind one complaint. `shimmer` has been a dependency since NFR-8 asked for
+skeleton loaders and was never imported, so every loading state in the app was a set of flat grey
+rectangles — which reads as a broken layout rather than one filling in. And Home used the generic
+three-bar `LoadingView`, so the diary landing turned three bars into a hero, a heading row, a tile
+grid and a list of meals. That is a jump, not a fill-in, which is the whole thing a skeleton exists
+to prevent.
+
+`Skeleton` wraps a page in ONE sweep rather than shimmering each block on its own clock — a page of
+independently flickering boxes is a page of unrelated flickers. It honours reduce-motion the way
+`AppMotion` requires: the blocks stay, because the page still has to read as loading, and only the
+sweep goes. `SkeletonBox` paints its own fill rather than relying on the gradient, so a skeleton
+still looks like one with the sweep off. `LoadingView` now uses both, so every other screen gained
+the sweep without changing shape.
+
+`HomeSkeleton` mirrors `_Today` block for block at the same paddings, the same 0.56 hero fraction
+and the same breakpoints, so the two agree at every width and text scale rather than only on a
+390 pt phone.
+
+Two of its blocks were wrong until the goldens were put side by side with the loaded page, which is
+why the loaded dashboard is now a golden too:
+
+- **The macro tiles were 96 pt against the real 172.** A real tile is a disc, a label, a value, a
+  ring and a percentage. Guessed once, measured off the loaded golden the second time.
+- **A block stood in for the streak card, which usually is not there.** `_StreakCard` returns
+  `SizedBox.shrink()` whenever the streak is 0 — most days, and every new account — so reserving
+  space for it WAS the jump, just relocated.
+
+`FakeDiaryRepository` gained an optional `delay`, because the loading state is otherwise
+unobservable: the fake's future completes on the first microtask and the skeleton is gone before
+any frame can be inspected. The Plan, Progress, Account and paywall screens still take the generic
+skeleton; each deserves its own shaped one on the same argument, and none has the dashboard's
+distinctive layout.
+
+## D-163 — E1 closed: a minor is refused rather than stored, and `/auth/me` answers the spec
+
+Four gaps stood between E1 and done. Three of them were the same mistake — a rule written down in
+two places and implemented in neither.
+
+**A minor was being stored.** `POST /profile/onboarding` ran screening, found `age_below_minimum`,
+and then saved the profile, the health profile and the consents anyway, returning the gate as data.
+That is right for every other gate: docs/05 §3 blocks plan GENERATION rather than the account, and
+discarding a diabetic's answers would march them through the same questions to reach the same
+refusal. It is wrong for age. docs/02 FR-1.2 puts "no profile row is created, no health field is
+persisted" in the same sentence as the 422, because for someone under 18 the storage IS the harm —
+a gate flag on a saved row does not un-store their height, weight and conditions. Onboarding now
+refuses with 422 `AGE_INELIGIBLE` before anything is written. D-31's "a blocked user is still
+stored" was over-general and is narrowed to non-age gates.
+
+**The approved copy was unreachable.** `plan-copy.ts` has carried the docs/05 §7 under-18 string
+since it was written, keyed `age_ineligible`. Screening emitted `age_below_minimum`. Nothing joined
+them, so `gateMessage` fell through to its default and a minor was answered with the generic
+blocking-condition text — the wrong approved string, which is its own §7 violation given that
+section opens "use verbatim; do not paraphrase". The key is now `age_ineligible` everywhere, which
+is also the error code docs/09 §4 names.
+
+**The DB had no floor.** api/CLAUDE.md rule 10 has always read "Onboarding rejects users under 18.
+There is a DB CHECK constraint too." There was no constraint. There is now, added `NOT VALID` so a
+deploy cannot fail on rows written before the fix — the service half is what stops new ones, and a
+constraint that blocks the deploy leaves the fix undeployed. Validate it once `SELECT id FROM
+profile WHERE "ageYears" < 18` returns nothing. Verified against the live database: age 17 is
+refused by the constraint, age 18 passes it and fails only on the foreign key.
+
+**FR-1.5 was missing entirely.** A goal weight implying a BMI under 18.5 is refused at input, which
+docs/05 §2 requires with "No override". It is refused before the write for the same reason as the
+age: a target nobody may pursue is not a profile worth keeping.
+
+`GET /auth/me` was the gap PROJECT-STATE actually named. The boilerplate's version returned the bare
+user row; docs/09 §3 specifies `{ user, roles, entitlements, active_plan_summary }`. It is a new
+`MeService` rather than a method on `AuthService` — that class owns credentials, sessions and token
+rotation, and folding this in would give the authentication service a reason to depend on the price
+matrix. The plan half is a SUMMARY: `GET /plans/current` carries every meal and every item, and this
+call runs on every cold start, so it answers "is there a plan and what are its targets" without a
+day's food attached. `roles` is a list because the spec says so, and because that shape survives a
+user gaining a second role.
+
+The Flutter app needs no change — it uses `PATCH /auth/me` for the profile photo and never called
+the GET. It can now drop two cold-start round trips whenever that is worth doing.
+
+One thing left alone, deliberately: `MIN_AGE`, `MIN_BMI` and the new `MIN_HEALTHY_BMI` are numeric
+literals in `src/profile/screening.ts`, which api/CLAUDE.md rule 1 reserves for the rule pack. They
+were already there, moving them is a rule-pack version bump plus a changelog, and doing that inside
+a bug fix would bury it.
+
+## D-164 — The engine picks food: steps 11 and 13 built, step 14 waiting on a pack diff
+
+`meals: []` was hardcoded because docs/04 §2 steps 11, 13 and 14 were never written. Two of the
+three now are, and the pipeline runs them.
+
+**Step 11, the candidate pool.** A filter, never a ranking: a food is either eatable by this person
+or it is not. The trap here is the namespace. A rule pack writes `allergen:peanut` and `group:jain`;
+the food table keeps allergens in their own column and diet groups in `suitableFor`, and the tag
+vocabulary forbids both prefixes. Matched naively against `tags` every one of those exclusions hits
+nothing, so a peanut allergy filters no peanuts. The pool resolves each prefix against the column
+that actually holds it, and `group:` inverts — it means "must be fit for", not "must not be". Both
+polarities have a test. `preferTags` and `costLowFraction` are deliberately NOT filters: they say
+what to reach for first, and applied here they shrink the pool until the fill cannot reach a target.
+
+**Step 13, the fill.** Greedy by protein density, then repair in household increments, capped at the
+pack's `fill_max_iterations` with the closest attempt kept and flagged — docs/04 §7's algorithm as
+written. Determinism is the part that needed care: the sort breaks ties on food id, so the same pool
+fills the same way whatever order it arrives in, and rule 2's byte-identical promise survives.
+
+The tests caught a real bug before it shipped. Greedy respected the per-occasion carbohydrate cap
+and then the repair pass grew the same portion straight past it, which made a diabetic's cap hold
+only until the meal needed another hundred calories — precisely the case it exists for. The cap is
+now checked on the way up as well as on the way in.
+
+**A meal with no admissible food comes back EMPTY.** An empty slot is visible and arguable; a slot
+padded with something the pool rejected is neither, and it is what turns a safety filter into
+decoration.
+
+**Step 14 is not built, and cannot be here.** Alternates need a ±10 % kcal / ±5 g protein window,
+which docs/09 §4 already specifies, and rule 1 keeps numbers out of engine code — so it belongs in
+the rule pack. `.claude/rules/engine.md` puts the pack directory in the deny list: "propose the
+diff, don't write it." I wrote it, noticed, and reverted. The proposed diff is below and needs a
+version bump, a changelog entry and a `reviewed_by` before it lands. The engine and the boot schema
+already accept an optional `alternates` block and treat its absence as "offer no swaps", which is a
+smaller lie than a window the engine chose for itself.
+
+```yaml
+# additive; no existing computation reads these, so every golden vector is byte-identical
+alternates:
+  kcal_tolerance_pct: 0.10     # docs/09 §4
+  protein_tolerance_g: 5       # docs/09 §4
+  max_per_item: 3              # product decision, needs an authority field
+```
+
+`RulePack` in the engine also gained the `rounding` block. It has been in every pack since v1.0.0
+and was simply never declared, because no engine step rounded a QUANTITY until the fill existed.
+
+**Known limitation, not a bug.** Greedy always takes the single densest admissible food, so a meal
+tends towards one repeated item. docs/04 §7 specifies exactly that and says nothing about variety,
+so inventing a variety rule would be a product decision made in code. It needs a decision and
+probably a pack constant.
+
+Still open in E3: step 14, wiring the pool through `PlansService` (the engine takes it as a
+parameter, nothing passes one yet), a `meals` jsonb column and its migration, coach override with
+server-side floor re-validation, and plan revisions.
+
+## D-165 — Plans carry food now, and running it against the real 281 caught three bugs the unit tests could not
+
+Steps 11 and 13 are wired end to end: `plan.meals` (jsonb, expand-only), `PlansService` reads the
+verified food rows and hands them to the engine, `EngineService` passes them through, and the API
+returns them. The engine still never queries anything — the pool arrives as a parameter, which is
+what keeps a plan reproducible.
+
+Then it was run against the actual 281-food table, and that is where the work really started. Every
+one of these passed the unit tests.
+
+**The pool came back EMPTY — 250 of 281 rejected.** v1.0.0 excludes `group:egg`, `group:fish`,
+`group:meat`. Those are food CATEGORIES to exclude; I had read `group:` as a diet group to REQUIRE,
+so the filter rejected every food that was not an egg. A vegetarian got a plan with no food in it.
+They are ordinary tags and now resolve as ordinary tags — which also means they match nothing today,
+because the seed data never tagged them (D-134's data debt, now visible in the pool trace rather
+than hidden).
+
+**Every meal was whey protein powder.** Greedy by protein density, as docs/04 §7 specifies, answers
+an energy gap with more of the densest thing it has. The day came to 328 g of protein against a
+117 g target while sitting inside the kcal tolerance the whole way. The meal's share of the day's
+protein is now a ceiling as well as a floor: while the slot still owes protein the search runs
+densest-first, and once the share is met it inverts to the least dense admissible food, because
+what is left to close is energy.
+
+**The fix was not enough, twice.** A whole serving is a coarse move — one scoop of whey is 80 g
+against a 30 g allowance — so the allowance is checked BEFORE the food goes in, not after. And the
+repair pass was growing the same portion straight past both ceilings, exactly as it had with the
+carb cap earlier in D-164: same bug, second ceiling. It now reaches for a filler instead.
+
+**Nothing was asserting any of this.** `assertMealsCoherent` checks the SPLIT, which is arithmetic
+and was always right. docs/04 §8 asserts the FILLED day, and nothing did. `assertFilledDayCoherent`
+now does, and it is what turned each of the above from a plausible-looking plan into a failure.
+After the fixes a real profile lands on 1775 kcal against 1774 and 117 g of protein against 117.
+
+**The numbers are right and the food is still wrong — this is not shippable yet.** That same plan
+offers two glasses of cola, mango pickle and jam at breakfast. The least-dense heuristic reaches
+for sugar water because it is energy without protein, and nothing in the algorithm knows what
+belongs in a meal. docs/04 §7 specifies no such notion. Three things would fix it and all three are
+decisions rather than code:
+
+- The food rows already carry `meal:breakfast`, `meal:lunch` tags that nothing reads. Filtering a
+  slot to its own tag is the obvious first move.
+- Something has to keep cola, pickle and jam out of a prescribed plan. A `attr:condiment` /
+  `attr:beverage` exclusion, or a per-meal cap on foods with no protein.
+- `preferTags` and `costLowFraction` are still unused; they are what "reach for this first" was for.
+
+Until then `POST /plans/generate` returns arithmetically valid meals that a dietitian would reject,
+which is worth knowing before it reaches a user.
+
+## D-166 — Slot-appropriateness landed; the fill now picks real food and misses the protein target by 8 g
+
+The plan offering cola and jam at breakfast (D-165) is gone. Three changes, each reading data that
+was already in the table.
+
+**Slot filtering.** The food rows carry `meal:breakfast`, `meal:lunch`, `meal:dinner`,
+`meal:snack` — 233 of 281 tagged — and nothing read them. A slot now accepts its own tag plus the
+48 untagged foods, which are the staples that belong anywhere; excluding those would leave
+breakfast choosing between 43 items instead of 91. The five- and six-meal patterns name slots the
+data has no tag for (`mid_morning`, `evening`, `bedtime`), and they take the snack vocabulary
+because that is what they are by size.
+
+**Sodium and added sugar as per-meal shares.** Both are already computed targets and docs/04 §8
+already asserts the sodium one. Sharing them by energy split is what actually removed the cola: it
+was being chosen precisely because sugar water carries energy and no protein, which is what the
+energy-closing phase was asking for.
+
+**Fat, after one wrong turn.** With sugar capped the fill moved to ghee — 7.5 teaspoons at lunch
+and no cereal in the day at all — for the same reason. Adding fat as a HARD ceiling then starved
+protein: the day came to 109 g against 117. So fat and added sugar are soft (they steer the search)
+while protein and sodium are hard (§8 asserts them), chosen in three tiers rather than one filter
+with a single fallback.
+
+The plan now reads as food: paneer, Greek yoghurt, soya chunks, sprouted moong, buttermilk, in the
+right slots, at 1767 kcal against a 1774 target.
+
+**And it still fails, honestly.** Protein lands at 109 g against 117, outside the 5 g tolerance, so
+`assertFilledDayCoherent` throws and no plan is emitted. That is docs/04 §8's specified behaviour —
+"failing an assertion is a bug, not a warning" — and the assertion is doing its job. Every meal
+stops just short because the protein ceiling blocks the last increment that would cross its share.
+
+One fix was tried and reverted: allowing an increment to cross the share when it lands CLOSER than
+stopping. It let protein-dense foods in early, filled the ceiling immediately, and then nothing
+else could be added because almost every food carries some protein — the day collapsed to 940 kcal
+against 1774. The revert is recorded because the idea is the obvious next one to reach for.
+
+**What this actually needs is a different algorithm.** Greedy plus a repair pass is being asked to
+satisfy four simultaneous targets (energy, protein, fat, sodium) from a 250-item set in
+half-serving increments. docs/04 §7 specifies greedy because it is simple, and simple is not
+sufficient here. The honest options are a small search with backtracking, or per-meal
+protein-first assembly followed by an energy filler chosen for low protein AND low fat. Both are
+bigger than a heuristic tweak, and neither should be guessed at inside a session that has already
+tried five.
+
+Until then `POST /plans/generate` throws for a profile whose targets the 281-food set cannot hit.
+That is worse than the previous silence and better than the previous wrong answer.
+
+## D-167 — Slot tags were the wrong idea, and seven fill iterations proved greedy cannot do this
+
+**The slot filter is gone, and the user was right to kill it.** D-166 filtered each slot to its
+`meal:` tag and it looked obviously correct, because it removed a plan offering cola at breakfast.
+It was wrong for a reason no test would ever have caught: who eats what, and when, is a fact about
+the PERSON, not about the food. Poha, idli, paratha and rice all move between meals by region and
+by household, and a global tag on the food row imposes one household's habit on every user. If a
+nutritionist wants a food pinned to a slot, that belongs to that individual's plan. The tags stay
+in the data for search and display; the engine no longer reads them.
+
+What had actually removed the cola was the added-sugar share, which is a real target. The slot
+filter was taking credit for it.
+
+**A genuine bug the removal exposed.** With the bigger pool the fill produced eleven teaspoons of
+sugar in one meal. The added-sugar check was comparing ONE SERVING against the whole allowance
+instead of the accumulated total, so every spoonful passed on its own merits. `addedSugarG` is now
+carried through `totals()` like every other nutrient. The food data was fine — sugar declares 100 g
+per 100 g, correctly.
+
+**A second one.** Once protein was satisfied the fill reached for the least protein-dense
+admissible food, which is whatever is closest to water: green tea at 1 kcal a cup passed every
+ceiling, moved the total by nothing, and was added until the iteration cap — nineteen and a half
+cups in a single meal. "Least dense" was the wrong question; the goal is closing an energy gap, so
+`bestFiller` now picks the serving nearest to the gap.
+
+**And the conclusion, after seven iterations.** Every fix revealed the next constraint conflict:
+protein ceiling too tight → 109 g against 117; let it overshoot → 940 kcal against 1774; fat as a
+hard cap → protein starves; fat as soft → ghee returns; caps tight enough to exclude ghee → 1590
+kcal against 1774. This is not a heuristic that needs one more tweak. Greedy-plus-repair is being
+asked to satisfy energy, protein, fat and sodium simultaneously from a 250-item set in half-serving
+increments, and docs/04 §7 specifies greedy because it is simple rather than because it is
+sufficient.
+
+The two honest routes are a small bounded search with backtracking, or per-meal protein-first
+assembly followed by an energy filler selected on low protein AND low fat together. Both are
+design work, not a patch, and the next person should not start by adjusting a threshold.
+
+`assertFilledDayCoherent` throws today for a normal profile. That is docs/04 §8's specified
+behaviour and the assertion is the thing working correctly — it is the reason none of the five
+wrong plans above could have reached a user.
+
+## D-168 — Role-gated shells: a coach signs in and lands on coach tabs
+
+E6's first brick, because nothing coach-side can be built until an account can reach a coach
+surface. The app was hard-wired to `ClientShell` for every signed-in account.
+
+**Eight roles, not two.** The boilerplate shipped `admin = 1` and `user = 2`. docs/10 §1 needs six
+more: three coach levels, a partner organisation, support, and super_admin. 1 and 2 keep their ids
+because `user.roleId` is a foreign key and renumbering them would silently re-role every existing
+account — a migration that type-checks and is still wrong. The seed is idempotent by id, so it adds
+the six without touching anyone's current role.
+
+**The app has two shells, not eight.** CLAUDE.md rule 1 fixes them and says a third needs an ADR,
+so `SessionRole` answers the question the shell actually asks — client tabs or coach tabs — rather
+than mirroring the server's roles. Admin, support and partner organisations map to the client
+shell: doc 20 §3 puts admin in a separate web panel, and they are also people with their own data.
+
+**An unknown role is a CLIENT.** A server that starts sending a role this build has never heard of
+must not be able to hand somebody the coach tabs by accident, and the same reasoning covers a
+failed `/auth/me`: a coach losing their tabs until the next launch costs them a screen, while a
+client handed coach navigation because a request timed out is a different kind of mistake. Both
+paths are tested.
+
+The mapping also accepts the seeded DISPLAY names ("Verified Coach") as well as the enum keys
+("coach_l2"), because `GET /auth/me` returns whatever the role row holds and which one that is
+depends on how the seed was written.
+
+**What this deliberately does NOT do.** docs/10 §1: "the level does not grant access. The consent
+grant does." `SessionRole` decides navigation and nothing else. A coach reaching the coach shell
+still sees nothing about any person without a grant, and the server refuses those reads whatever
+the app believes. Anything later that keys an authorisation decision off this type is reading the
+wrong thing.
+
+`CoachShell` is a skeleton on purpose: the four tabs of rule 1, each stating plainly that its
+screen is unbuilt. The `[+]` of the client shell has no coach equivalent yet — a coach's centre
+action is "invite a client", which docs/09 §6 makes a POST the client must then accept, so it is a
+flow rather than a tab and is left out until that flow exists. The one thing that must never be
+added to it is any form of client export (docs/10 §5.1).
+
+## D-169 — Coach signup: an applicant can reach level 1 alone, and no further
+
+docs/12 §6's two levels are built, and the line between them is the whole design.
+
+**Level 1 is the agreement and nothing else.** "Signup + agreement", says §6 — no documents, no
+review — so accepting it grants `coach_l1` immediately. That makes the agreement the thing a level 1
+affiliate's standing rests on, which is why the row stores WHICH VERSION was accepted: "they agreed"
+is only evidence if it says to what.
+
+**Level 2 stops at a human.** §6 is "ID + qualification document on file", and "on file" means
+somebody looked. The service can move an application to `submitted` and that is its ceiling —
+`verified` belongs to `POST /admin/coaches/{id}/verify` (docs/09 §9), which is E8 and does not
+exist. A test asserts that submitting leaves the applicant at level 1, because the quiet failure
+here is self-service verification.
+
+**Nothing reaches level 3.** §6 makes it "level 2 + active coaching agreement + client grant", and
+an application cannot grant itself a client's consent.
+
+Four decisions worth keeping:
+
+- **Promotion only.** Re-accepting the agreement never demotes a verified partner, and never
+  reopens an application a reviewer already holds. Coming back down a level is an admin decision
+  with a reason attached, not the result of tapping twice on a slow connection.
+- **Documents are ids, and the response says only whether they exist.** A file id in a response is
+  a file id in a log. Whether a document is attached is the applicant's business; the document is
+  the reviewer's.
+- **Editing is barred while in review.** Otherwise a reviewer approves one set of documents while
+  another is being swapped in underneath.
+- **The disclaimer ships with every response.** §6 says publish exactly what verification means and
+  to call it "Eatzify Verified Partner", never "Certified Coach" — doc 00 §8, and the National
+  Commission for Allied and Healthcare Professions Act framework makes loose certification claims a
+  bad place to be. The string is server-authored like every other user-facing one (rule 7), so no
+  client can paraphrase it into an accreditation claim.
+
+**A gap this surfaced and did not fill.** docs/13 §6's retention table has NO row for coach
+verification documents. Nothing here is purged automatically and the migration says so; the closest
+analogues are consent records at 7 years and invoices at 8, and choosing between them is a legal
+call rather than a code one.
+
+docs/09 has no section for these routes — they are new. `GET /coach/application`,
+`POST /coach/application/agreement`, `/documents` and `/submit`, all behind the JWT guard. docs/09
+§6 should gain them.
+
+## D-170 — The clock steps open answered, and "how many meals" now comes before "when"
+
+Three changes to the same complaint: the time steps read as work.
+
+**They open prefilled.** Wake, bedtime and every meal hour arrived as "Not set", so the day step
+read as two questions and the meal step as four — six blanks to fill before Continue would light
+up. They are now ordinary hours (07:00, 23:00, 08:00, 13:00, 17:00, 20:30) and the step is a
+CONFIRMATION. The people those hours do not suit are exactly the people who will change them, and
+a default you can see and correct beats an empty field you must fill to get past.
+
+**`routine` now precedes `mealTimings`.** It asked WHEN each meal is before asking HOW MANY meals
+there are, which is backwards: docs/04 §7 makes the slots a function of the count. Three meals are
+breakfast, lunch and dinner — no snack — so the old order asked when somebody eats a snack before
+they had said whether they eat one, and then asked it of everybody regardless.
+
+**The snack row is conditional.** Shown for four and five-to-six meal patterns, dropped for three,
+and `canAdvance` stops requiring it when it is not on screen — otherwise the step would block on a
+question nobody was shown.
+
+Two things left undone and worth knowing. The five-to-six pattern has six slots in docs/04 §7
+(mid-morning and an optional bedtime on top of the four), and `profile` has columns for four; the
+extra two need a migration, a DTO change and engine input before they can be asked for. And the
+defaults are fixed rather than derived — a night-shift worker gets 07:00 like everyone else,
+though `lifestyle` already knows they are on nights and could shift the whole set.
+
+## D-171 — The five-to-six pattern got the two occasions it always had on paper
+
+D-170 left this open and the user hit it on the first run: choosing 5–6 meals still showed four
+time rows.
+
+docs/04 §7 spells the pattern out as breakfast, mid-morning, lunch, evening, dinner and an OPTIONAL
+bedtime — six occasions. `profile` had columns for four, so anyone choosing 5–6 answered the
+four-meal question and had their plan built around a day they had never described. The rule pack
+has been splitting energy across six slots the whole time; only the question was missing.
+
+Two nullable columns, expand-only, plus the DTO, the service, the submission and two rows in the
+step. Nullable rather than defaulted: a profile that chose three meals genuinely has no mid-morning
+occasion, and a time for a meal nobody eats is not missing data — it is wrong data.
+
+Which rows appear, and which are required, both follow the pattern. Mid-morning sits between
+breakfast and lunch because that is where the meal is. Bedtime is offered and never required,
+because §7 marks it optional and `canAdvance` must not block on a question whose own spec calls it
+optional. And the times are sent only for the pattern that has them, so a three-meal profile never
+carries a mid-morning hour it was never asked for.
+
+The gap was visible in D-170's own closing note and shipped anyway. Writing a limitation down is
+not the same as leaving the user to find it.
+
+## D-172 — Product direction: no visible levels, referral-linked coaching, and a marketplace
+
+Recorded, not built. Three asks from the product owner, and each one meets something already
+written down — so this is the place those meet rather than a surprise during implementation.
+
+**1. Levels confuse users — drop them from the interface.** Agreed and cheap. docs/12 §6 already
+insists on "Eatzify Verified Partner" over "Certified Coach"; nothing requires showing a NUMBER.
+The three levels stay as internal roles because access depends on them, and the user sees at most
+two words: "Partner" and "Verified Partner". `SessionRole` already collapses the three coach roles
+into one shell for exactly this reason.
+
+**2. A partner who refers someone should see that client's complete progress once they subscribe.**
+This is the one that needs a decision, and it is not a small one.
+
+docs/10 §1 is a single sentence: "the level does not grant access. The consent grant does." Making
+a subscription grant access moves the basis for seeing someone's health data from THEIR permission
+to a COMMERCIAL event. Three consequences:
+
+- **Under DPDP that is consent bundled into a purchase**, which docs/13 §3 is written specifically
+  to avoid — consent has to be itemised, freely given and revocable without losing the thing paid
+  for.
+- **A referrer is not a coach.** docs/12 §6 makes level 1 "signup + agreement" with no documents
+  and no review. Under this change, anyone who accepted an agreement and shared a link would read
+  a stranger's weight history and conditions. That is also §5.1's "difference between a platform
+  and a lead-generation leak", arriving through a different door.
+- **"Complete progress" crosses a line the matrix draws deliberately.** A verified coach does not
+  see medical conditions or the food diary — only an adherence percentage — and no coach at any
+  level sees the eating-disorder screening answer.
+
+There is a version of this that works and costs the funnel almost nothing: **at signup, the client
+is shown who referred them and asked to grant `basic` + `progress` in one tap.** Same outcome for
+the honest case, still a consent grant, still revocable, and a referrer who never coaches anyone
+never silently acquires a client's health history. It needs a product decision, not a code one.
+
+**3. A marketplace: browse coach profiles, switch coach, buy products.** Three separate things
+wearing one name.
+
+- **Browsing and switching coaches** is the healthiest part of the idea: it makes revocation a
+  normal, visible act rather than a settings screen nobody finds. It is mostly consent plumbing —
+  revoke the old grant, create the new one — which E6 needs anyway.
+- **A new section is a new tab**, and CLAUDE.md rule 1 requires an ADR for that. The shell has
+  five slots and they are spoken for.
+- **Selling products is a new business line, and docs/17 already defers one version of it.**
+  "Supplement recommendations/sales — doc 00 §1: DGI 2024 explicitly discourages; reputational
+  risk." Anything nutritional needs that reason answered first. Non-nutritional goods do not, but
+  they bring payments, tax, returns and support, and E5 has no payment provider at all yet.
+
+Nothing here is refused. What is needed before any of it can be built: a decision on whether a
+subscription may substitute for consent (it should not), an ADR for the tab, and an answer to
+doc 00 §1 for whatever is sold.
+
+## D-173 — Consent grants, and the screen that makes revoking them real
+
+E6's foundation. Every coach surface is gated on this and none of it existed.
+
+**The row IS the access.** docs/10 §1: "the level does not grant access. The consent grant does."
+A `coach_l3` with no row sees nothing at all; the role only caps which scopes a row may contain.
+That cap is the safety property the whole referral idea (D-172) rests on, so it is enforced in one
+place and tested from four angles: an affiliate may hold no scope at all, a verified coach may not
+hold `health_conditions`, a request that exceeds the level is refused WHOLE rather than trimmed,
+and a coaching partner may hold the full set.
+
+Refusing rather than trimming matters. A silently smaller grant is one the client never agreed to
+and cannot see they did not get.
+
+**Re-granting replaces, never merges.** Otherwise a client taps "only progress" and keeps giving
+away their conditions, and there is no way back down.
+
+**Expiry is 180 days or the subscription end, whichever is sooner (docs/10 §3), and it binds on
+READ.** An expired grant answers with no scopes the moment the clock passes it, before any sweep
+has run — an expiry that depends on a cron job having fired is not an expiry. The sweep exists, but
+only to tidy the list.
+
+**Revocation pauses the row, never deletes it.** §3 requires the coach's UI to show a neutral
+"access ended" rather than the last cached data, and a deleted row cannot say anything: it leaves
+nothing to distinguish "never had access" from "had it until this morning".
+
+**"Who can see my data" is one screen, in the You tab, beside the partner door** — the place you
+give access away is the place you take it back. It names each permission instead of counting them,
+because "3 permissions" tells nobody what they gave away. Revoking is a single tap with no
+confirmation dialog: §3 forbids a retention dark pattern, and "are you sure you want to stop
+sharing your health data" is the shape one takes. Paused grants stay listed, marked ended.
+
+Two routes are new and docs/09 has no section for them: `GET /coach/access` and
+`POST /coach/access/{coachUserId}/revoke`. The client id comes from the token on both — a
+body-supplied one would let anyone revoke, or grant, anyone's data.
+
+Still missing before a coach can actually see a client: the invite flow, `GET /coach/clients`, and
+the field-level filtering that turns a scope list into a response. docs/10 §6 also requires an
+`audit_log` row for every grant change, which is not written yet.
+
+## D-174 — A coach is a client of their own app, so the shell ADDS rather than replaces
+
+D-168 swapped the client shell for the coach shell when the server said the account coaches. The
+user signed in as a nutritionist and lost Home, Plan and Progress — their own food tracking, gone,
+in exchange for four empty tabs.
+
+That is backwards, and no test caught it because every test asserted the swap worked. A trainer,
+a nutritionist and a doctor all eat. They are the most motivated users of a diet app there are, and
+being asked to coach is not a reason to stop tracking your own day.
+
+**Everyone lands on the client shell now.** The coach surface is reached from a "My clients" entry
+in the You tab, visible only when the server says the account coaches — so it adds a door rather
+than taking a room away. It has a back arrow, because it is a place you go and come back from
+rather than a mode you are locked into.
+
+This also stops the interface from having to explain a role to anyone. D-172 asked for levels to be
+invisible; a shell that changes shape under you is the loudest way to show one.
+
+CLAUDE.md rule 1 still holds and still lists two shells — the coach shell exists, with the tabs the
+rule names. What changed is how it is reached. No tab was added to either shell, so no ADR is owed.
+
+The user also suggested a scrollable bottom bar. Not taken: a bar you have to scroll hides its own
+options, and the destinations it would hide are exactly the ones a coach visits rarely. A door in
+the You tab is findable once and remembered; a bar that scrolls is neither.
+
+## D-175 — One screen gutter token, because a header and its body were picking separately
+
+Every client tab's title sat 8 pt left of the content beneath it. `TabScaffold` had taken
+`AppSpacing.lg` for its header padding; Home, Plan, Progress and Account had each taken
+`AppSpacing.xl` for their bodies. Both are on the scale, so rule 5 was satisfied and nothing
+flagged it — but on screen the heading hung off the edge of its own page, on all four tabs.
+
+`docs/DESIGN-SYSTEM §5` had already settled the value ("Screen padding: `AppSpacing.xl`
+horizontal"). What was missing was a name for it. `xl` is a step on a scale and says nothing about
+where it belongs, so two authors reading the same spec picked differently and neither was
+obviously wrong.
+
+**`AppSpacing.screenH` is that name**, and the page-level gutters now use it. The value is
+unchanged — this is not a visual change to the bodies, only to the header that was out of step —
+but the drift is now greppable: one token, and a header that disagrees with its body is visible in
+the diff rather than only on a device.
+
+The log tabs keep `lg` deliberately. They are sheets, already inset from the page, and the food
+log carries the comment saying so.
+
+## D-176 — The nutrient tiles hold a readable width and let the row scroll
+
+Home divided its content column by the number of nutrients. With fibre in the plan that is four
+tiles across a phone's 342 pt — 79 pt each — and a tile is a stack: disc, label, `0 / 121 g`, ring,
+percent. At 79 pt it read as four tall, narrow columns rather than as a row of tiles, which is what
+the user's screenshot shows.
+
+**`AppSizes.nutrientTile` (112) is the floor.** Above it the tiles still share the width evenly and
+nothing scrolls, so the three-macro case is unchanged; below it the row scrolls sideways instead of
+squeezing. One `SingleChildScrollView` serves both — when the even share wins there is nothing
+wider than the viewport inside it, so it simply does not scroll, and there is no second branch to
+keep in step.
+
+This replaces the old two-up fallback under `heroBreakpoint`. That branch existed to stop four
+tiles being crushed on a narrow screen; a floor and a scroll answer the same problem without the
+layout changing shape, and they answer it at 200 % text too, where two-up was still dividing the
+column. `test/home_page_test.dart` covers the four-tile case at both scales — it fails against the
+old `Wrap`.
+
+## D-177 — The screen gutter comes down to 12
+
+D-175 named the gutter and set it at `xl` (24), the value `docs/DESIGN-SYSTEM §5` had carried from
+the start. On a 390 pt phone that spends 48 pt — an eighth of the screen — on margin, and the user
+asked for 12.
+
+**`AppSpacing.screenH` is `md` now**, and that is the whole change: one constant, and the header,
+the four tab bodies and the skeleton all move together. Had D-175 not landed first this would have
+been eight edits with four chances to reintroduce the misalignment it fixed — which is the argument
+for naming a value rather than repeating a step off the scale down the tree.
+
+`docs/DESIGN-SYSTEM §5` is updated to name the token rather than the step, so the next person to
+read it cannot pick `xl` again in good faith.
+
+Two things fall out of the wider column, both good. The nutrient tiles keep their 112 pt floor
+(D-176), so the extra 24 pt goes into how much of the fourth tile shows rather than into stretching
+three — the row now peeks the fibre tile at the edge instead of cutting the third one, which is a
+plainer invitation to scroll than the hard clip was. And the hero card gains the same 24 pt, which
+is width the water figure and the walker were both short of.
+
+## D-178 — Portrait is locked in the platform configs, not in `main()`
+
+The app is portrait only. Two edits, no Dart:
+`android:screenOrientation="portrait"` on `.MainActivity`, and `UISupportedInterfaceOrientations`
+(plus `~ipad`) cut to `UIInterfaceOrientationPortrait`.
+
+**Not `SystemChrome.setPreferredOrientations` in `main()`**, which is the usual Flutter answer. It
+runs after the engine boots, so the native launch screen can still come up rotated and the Activity
+is still created in landscape and then turned — and on iOS it can only ever narrow within what the
+plist already permits, so the plist had to be edited regardless. Declaring it to the OS means no
+landscape window is ever created. One place per platform beats one place in Dart plus two in the
+platform configs anyway.
+
+Known ceiling, not a defect: Android 16 (API 36) ignores `screenOrientation` on displays wider than
+600 dp, so on a large-screen device or a desktop-mode window the app will rotate regardless. The
+layouts already survive it — every screen is a scroll view and the breakpoints in `AppSizes` are
+measured against width — so this is a fidelity limit rather than a break. If Play flags the
+restriction for large screens, the answer is to let those devices rotate, not to fight the platform.
+
+## D-179 — The scrolling tile row needs room for its own shadow inside the clip
+
+D-176 put the nutrient tiles in a horizontal `SingleChildScrollView`. A scroll view clips to its
+viewport, and the `IntrinsicHeight` sizes the row to exactly the tiles — so the drop shadow, which
+paints OUTSIDE the box it belongs to, was cut clean off. Measured against a card that is not in a
+scroll view: the water card falls off over 7 rows into the page, the tiles went from white to
+background in one. A card whose shade stops dead at its own edge reads as sliced, which is what the
+user marked.
+
+**`padding: EdgeInsets.only(bottom: AppSpacing.sm)` on the scroll view**, and the spacer after the
+row comes down from `lg` to `sm` to match. The shadow used to paint into that spacer; now it has
+`sm` of its own and the gap to the next heading is the two together, so the vertical rhythm is
+exactly what it was before the row ever scrolled.
+
+Bottom only. Both shadows in `AppElevation.card` are offset downwards, so there is nothing to make
+room for above. Not horizontal either: padding there would push the first tile off the screen
+gutter D-175 exists to hold. The outermost tiles lose their side shade to the clip — at 8 % alpha
+over a 16 pt blur that is not something you can see, and the alternative is worse.
+
+The guard is the golden, not a widget test. This is a shape, and `home_skeleton_golden_test.dart`
+already says shape is the one thing a widget test cannot check.
+
+## D-175 — Coach invites: asking is not assigning
+
+docs/09 §6's `POST /coach/clients/invite`, built on the grants from D-173.
+
+**An invite creates no access.** It records what a coach is ASKING for, and the only thing in the
+system that turns an ask into a grant is the client answering yes. A test asserts that creating an
+invite produces no grant at all, because that is the property the whole consent model rests on.
+
+**The level cap applies at the ASK, not only at the answer.** One method on the grant service, two
+callers — a coach is told their level is too low when they invite rather than leaving the client to
+hit it on accept, and there is no second copy of the rule to drift.
+
+**The scopes are re-checked on accept against the coach's CURRENT level**, not trusted from the
+invite. A coach demoted between asking and being answered must not keep the wider ask.
+
+**Creating an invite answers 204 whatever the number is.** docs/09 §3: "never return whether a
+number exists." A response that differed for a registered number would make this endpoint a way to
+enumerate who is on the app. The same reasoning makes an invite addressed to somebody else a plain
+404 rather than a "not yours": the id space must not become a way to learn who was invited by whom.
+
+**An unanswered invite expires after 30 days**, and the expiry binds on READ rather than waiting
+for a sweep — the same rule grants follow. Nothing in docs/09 §6 names a number, so 30 days is a
+product decision: long enough not to rush a busy person, short enough that a number typed once
+does not carry a live request months later.
+
+**A declined invite stays declined.** Re-answering it is refused, and the row is kept rather than
+deleted — a deleted invite is indistinguishable from one never sent.
+
+Inviting the same number twice refreshes the live ask instead of stacking a second one, so a
+client's inbox never shows the same coach twice.
+
+Four new routes, none of them in docs/09 as written: `POST /coach/clients/invite` is specced,
+while `GET /coach/invites` and the accept/decline pair are not. docs/09 §6 should gain them.
+
+The client-side inbox UI is not built. The endpoints are, and tested.
+
+## D-176 — The profile reads back what onboarding asked
+
+Onboarding collects around twenty-five answers. The profile screen showed ten of them: name, age,
+height, weight, sex, goal, activity, diet, conditions, allergies. Everything else — the hours the
+plan is built around, the meal pattern, the budget, the medicines, the foods avoided — was asked
+once and never readable again.
+
+That is worse than a missing feature. A user could not check what their plan was actually built
+from, and could not tell a wrong answer from one they never gave.
+
+Three sections now, all using the same row widget the screen already had, so nothing looks like it
+came from somewhere else:
+
+- **Your details** gains the goal weight.
+- **Health** gains medicines, digestive symptoms and injuries — declared, never diagnosed.
+- **Your day** and **Your routine** are new: wake and bedtime, every meal hour, meals a day,
+  typical day, monthly budget, foods avoided.
+
+**A meal slot the pattern does not have is ABSENT, not "Not set".** docs/04 §7 gives three and
+four-meal patterns no mid-morning or bedtime occasion, so those rows do not exist for those users —
+printing them as missing would invite somebody to fill in a meal they never eat. One `_TimeRow`
+enforces it in one place, and a test pins it.
+
+`ProfileView` also gained `midMorningTime` and `bedtimeSnackTime`. D-171 added them to the database,
+the DTO and the submission, and stopped short of the parser — so the API has been returning them
+since and the app has been dropping them on the floor.
+
+Editing is not wired for the new rows. The two existing edit sheets cover details and health; the
+day and routine answers are readable now and still only changeable by redoing onboarding.
+
+## D-190 — Every profile fact wears a glyph, and the last one in a card wears no line
+
+**Context.** The profile read back all of onboarding's answers after D-176, but as a plain
+label-and-value list: twenty rows of identical grey text. The user sent a reference design and
+asked for the same treatment on every field.
+
+**Decision.** One row widget for every fact on the screen. Each carries a tinted rounded-square
+glyph, the label in `onSurfaceVariant`, and the answer bold and right-aligned, with a divider
+between rows.
+
+The colour is IDENTITY, never judgement (docs/05 §6): weight is blue whether it is going up or
+down, the same way the macro rings are coloured by what they measure rather than by how the user
+is doing. Every colour comes from `AppColors` — rule 5 leaves no room for a one-off swatch.
+
+The glyph is wrapped in `ExcludeSemantics`. The label beside it already carries the meaning, and a
+screen reader should not be made to announce a decoration.
+
+**Why the last row is computed rather than declared.** The first cut marked the bottom row at the
+call site. That is wrong on every card whose rows are conditional: a user with no goal weight ends
+the details card on "Diet", and a three-meal pattern ends the day card on "Dinner" — in both cases
+under a divider separating the card from nothing. `_Row.card` takes the rows, drops the ones the
+user never answered, and marks whichever survives last. `_TimeRow.list` feeds the same builder, so
+there is one rule rather than two.
+
+**Cost.** A row is now 48pt plus its glyph rather than a line of text, so a full profile is a
+longer scroll. Accepted: the screen is read, not scanned past, and the colour is what makes
+twenty facts findable at a glance.
+
+## D-180 — The partner pipeline had no exit, and the admin surface is why
+
+`coach_application` has carried `status`, `reviewedAt`, `reviewedByUserId`, `rejectionReason` and a
+CHECK constraint permitting `verified` and `rejected` since 1756001600000. Nothing in the codebase
+ever wrote any of them. An applicant could accept the agreement, upload both documents, reach
+`submitted` — and stop there permanently. `CoachController`'s own header says the route it cannot
+reach is `POST /admin/coaches/{id}/verify`; it was never built, and docs/09 §9 shows why it could not
+be: every admin endpoint owes an `audit_log` row and that table did not exist either.
+
+Built now, in `src/admin/`: `audit_log` (append-only, docs/08 §8), `GET /admin/metrics/overview`,
+`GET /admin/coaches/applications`, `POST /admin/coaches/{id}/verify`, `POST /admin/coaches/{id}/reject`
+and `GET /admin/audit`. 15 tests.
+
+**Three places the implementation diverges from the specs, deliberately:**
+
+`audit_log.actorUserId` is `integer`, not docs/08 §8's `UUID`. That section describes a `users` table
+keyed by uuid; this codebase's is an integer and every existing foreign key follows the code. A uuid
+column here would not join to the table it points at.
+
+`is_demo` does not exist on any table, so `GET /admin/metrics/overview` counts seeded rows on a
+seeded box. docs/08 §10 requires the column precisely to prevent this — it names the exact failure,
+a dashboard showing ₹1,24,560 against four real users. The endpoint is honest about counting what is
+in the database; adding `is_demo` across the schema is its own migration and is not smuggled in here.
+
+The `discipline` CHECK has no Testcontainers test, which `.claude/rules/database.md` requires for
+every constraint. There is no Testcontainers harness in this repo yet — no spec file uses one. The
+constraint is verified against real Postgres by hand (it refuses `astronaut`, admits `nutritionist`)
+and the harness is a separate piece of work.
+
+## D-181 — AdminJS runs, and what it cost to get there
+
+doc 20 §3 recommended AdminJS and told us to revise ADR-006 rather than diverge from it silently.
+Taken. Three things stood in the way that the doc could not have known:
+
+**ESM against CommonJS.** `adminjs@7`, `@adminjs/nestjs@7`, `@adminjs/typeorm@5` and
+`@adminjs/express@6` are all `"type": "module"`; this API is `"module": "commonjs"` and stays that
+way. TypeScript downlevels `await import()` to `require()` under commonjs, which throws
+`ERR_REQUIRE_ESM`. The bridge is a `new Function('specifier', 'return import(specifier)')` the
+compiler cannot see and therefore cannot rewrite. It is the documented workaround, and it works.
+
+**Active Record against Data Mapper.** `@adminjs/typeorm`'s `isAdapterFor` is
+`!!rawResource.getRepository()` — an Active Record method. This codebase is Data Mapper: plain
+entities and injected repositories, which is the NestJS norm. `UserEntity` happened to work because
+the boilerplate's `EntityRelationalHelper` already extends `BaseEntity`; the six entities added since
+did not. They now extend TypeORM's `BaseEntity` directly — additive, no behaviour change, and
+deliberately NOT `EntityRelationalHelper`, whose `__entity` field and `toJSON` would have changed what
+existing endpoints serialise.
+
+**`rootPath` does not carry.** AdminJS defaults `rootPath`, `loginPath` and `logoutPath`
+independently. Setting only `rootPath` mounts the router at `/admin-panel` while the login redirect
+still points at `/admin/login` — the panel redirects to its own 404, with no error anywhere. All
+three are set explicitly.
+
+**What the panel deliberately cannot do.** AdminJS generates full CRUD by default. `users`,
+`coach_grant` and `audit_log` are read-only here: an editable grant would let an admin give consent
+only a client may give (docs/10 §3), an editable audit log contradicts the database's own REVOKE
+(docs/08 §8), and an editable role changes standing with no reason and no audit row (docs/10 §4).
+Verify and reject go through the audited API, never a grid cell. `email` and `phone` are absent from
+every list view — docs/13 §4 names that exact screen as a defect.
+
+**Not done: TOTP.** docs/10 §4 requires 2FA for `super_admin`, so the panel admits `admin` only.
+Letting a super_admin in through a password-only door would be the quieter failure.
+
+## D-182 — The HR dashboard is a separate app, and most of it has no data behind it
+
+The reference design is an HR dashboard for a dev agency: time tracking, a work-activity heatmap,
+salary, a task calendar and an "Apps & URLs" panel. It was asked for as the admin panel's UI.
+
+**AdminJS could not render it**, which settles the doubt D-181 left. AdminJS generates its own UI
+from the entities; matching this means overriding every layout component, at which point AdminJS is
+overhead. doc 20 §3 predicted exactly this — "Refine later for the surfaces where the UX matters".
+The dashboard is a Next.js 15 app in `admin/`, consuming the REST API from D-180. AdminJS stays
+mounted for CRUD.
+
+**Six of the eleven widgets have no backing data.** Checked against all 19 entities: there is no
+time tracking, no tasks, no salary, no work-hours record and no application-usage record anywhere in
+the schema. Eatzify is a diet platform; this design is for a different product. The widgets are
+built against types in `admin/lib/types.ts`, each annotated LIVE or PENDING, and every PENDING value
+comes from one function — `placeholder()` in `admin/lib/data.ts` — so "what is still fake?" has a
+one-file answer rather than a search. `GET /admin/metrics/overview` is wired for real.
+
+**"Apps & URLs" should not be built without a decision first.** It is workplace monitoring: which
+applications and sites a named employee used, and for how long. docs/13 §4 is an argument for
+collecting less, and the DPDP Act attaches consent and purpose-limitation duties to precisely this
+record. The widget renders; the entity behind it is deliberately not created.
+
+Three things the reference cost that were not obvious from looking at it: `Intl.DateTimeFormat` with
+a combined weekday/day/month format drops the comma and renders September as "Sept", so the date is
+assembled part by part; 18 Sep is a Wednesday in 2024 and a Friday in 2026, so the constant is
+pinned to 2024 to match the mock; and task blocks are clamped to the lane, because a block late in
+the week otherwise runs off the card and takes its own attendees with it.
+
+## D-183 — The admin dashboard is Eatzify's, not an HR product's
+
+D-182 built the reference design widget for widget: time tracking, salary, an employee roster and an
+"Apps & URLs" monitoring panel. That is an HR dashboard for a dev agency. Eatzify is a diet platform,
+and the screen showed "Capture IT · Developers" over data that did not exist.
+
+**The layout survives; the content is replaced.** The shape of an operations dashboard is not
+domain-specific, which is the whole reason the reference was worth copying:
+
+| Reference | Eatzify |
+|---|---|
+| Employee card | Client — goal, food preference, age, tier |
+| Days in company / Done projects | Days on plan / Logging streak |
+| Salary | Current weight against goal, with a sparkline |
+| Time tracking timer | Today's intake against the plan's kcal target |
+| Working format donut | Macros against target, adherence in the middle |
+| Work activity heatmap | Logging activity — meal slots against days |
+| Apps & URLs | Most logged foods |
+| Tasks calendar | Meal diary, last 7 days |
+
+Five of those are now real: `GET /admin/clients` and `GET /admin/clients/{id}` read profiles,
+diaries, plans and weights that exist. **"Apps & URLs" is gone entirely** — it was the one widget
+whose Eatzify equivalent would have been surveillance, and D-182 already said the entity behind it
+should not be built.
+
+**Reading a diary is a health read**, so `GET /admin/clients/{id}` requires an `X-Reason` from
+docs/10 §4's closed list and writes a `read_health` audit row. The dashboard picks the reason before
+it opens a record and sends it with the request — a proxy that always sent `support_ticket` would
+make every audit row identical and turn the requirement into decoration. Verified: the endpoint
+returns 400 without the header.
+
+**`scripts/seed-demo-clients.ts`** creates eight clients with profiles, plans, 28 days of diary
+against real rows from the 281-food table, weekly weights and subscriptions. Everything it writes is
+marked — `@demo.eatzify.test` emails, `[demo]` name prefix — so `--purge` removes all of it, and the
+script refuses to run against any host but a local one (docs/08 §10). It is a reserved email domain
+standing in for the `is_demo` column the schema still lacks (D-180).
+
+Two things the screenshots caught that the code looked fine for. The roster sorted by `days_on_plan`,
+so it opened the OLDEST account, whose last seven days were empty — a full dashboard with a blank
+diary in the middle; it sorts by most recent log now. And the dashboard held a pasted `ADMIN_API_TOKEN`
+which expired mid-session and turned every panel into "The API refused the request (401)" with no
+clue why; it signs in for itself now and re-mints on a 401.
+
+## D-191 — The profession answer lives on the partner application, and nowhere else
+
+**The question.** Where does a user see which of trainer / nutritionist / doctor they picked during
+signup, and how do they change it?
+
+**What was true before.** Nowhere, and they could not. Onboarding's `Profession` answer decides one
+thing — whether to show the partner benefits sheet — and is deliberately never sent to the server
+(docs/13 §4: collect less). The `coach_application.discipline` column existed with a CHECK
+constraint behind it and a migration already applied, and nothing in the service, the controller or
+the app ever wrote to it or read it back.
+
+**Decision.** The application is the record. `POST /coach/application/discipline` writes it, the
+application view returns it, and "Become a partner" shows it as the first rung of the ladder: the
+current answer when there is one, the question when there is not, and a sheet of four options on
+tap. That screen is already a quick-action pill on the You tab, so the route to it is one that
+exists rather than one invented for this.
+
+**Why the onboarding answer is still thrown away.** Persisting it would put a second copy of the
+same fact on the profile, where it means nothing: it grants no role, proves no qualification, and
+would be read as a credential sitting beside the user's health data. The version that matters is
+the one a reviewer reads, and a reviewer reads the application.
+
+**Two lists, not one.** `Profession` has a `none` because most people answering it are not
+professionals. `CoachDiscipline` has an `other` because everybody answering it is, and a closed
+list with no escape hatch gets answered wrongly rather than not at all.
+
+**Writable early, frozen late.** The discipline is the only step answerable before the agreement —
+asking someone to agree to a partnership before saying what kind of partner they are is backwards.
+It is also the only step revisable afterwards, right up until submission: a reviewer checks the
+qualification document AGAINST the claim, and a certificate means something different for a doctor
+than for a trainer, so switching underneath them would invalidate a review in progress without the
+reviewer knowing.
+
+**A bug this surfaced.** `toView` reported `agreement_accepted` with `row.agreementAcceptedAt !==
+null`. A row this service has just created has never been near the database, so a column nobody set
+is `undefined` — and `undefined !== null` is true. Creating an application by answering the
+discipline question reported the partner agreement as accepted. Every such field is now `Boolean(…)`
+or `?? null`.
+
+## D-192 — A user invites a contact through the OS, not through an address book upload
+
+**Request.** A client should be able to invite their own contacts, the way a coach can invite a
+client.
+
+**Decision.** "Invite friends" on the You tab hands the OS share sheet one message with a link. The
+person picks who to send it to inside WhatsApp, Messages or mail — apps that already hold their
+contacts and already have permission to read them.
+
+**Why not a contact picker.** A contacts permission is a request for personal data about people who
+have never heard of Eatzify and cannot consent, agree to a retention period, or ask for deletion.
+docs/13 §4 is collect less, and the DPDP Act attaches duties to exactly this kind of record. The
+share sheet reaches the same contact list and leaves that list where it is.
+
+**It is not a referral.** No code, no id, no attribution. docs/12 §3 locks attribution to a partner
+code entered at signup, first-touch and immutable; a plain user has no code and nothing to earn, so
+the invite carries only the link. When partner earnings land (E7), a partner's own code rides on
+their invite — that is a different message from the same button, not a reason to put an empty query
+string in this one.
+
+**The link is build-time**, `--dart-define=INVITE_LINK=…`, the same way the API base URL is set. A
+literal would send beta testers to the production listing.
+
+**Cost.** One dependency, `share_plus`, from the same family as `package_info_plus` which was
+already here. Hand-rolling the platform channel for two platforms is more code than the package.
+
+## D-193 — The profile shows the number the account signs in with
+
+**Gap.** Phone OTP is the primary signup path in India (doc 20 §2), so for most users the phone
+number IS the account. The profile screen read back every onboarding answer after D-176 and never
+showed it, so a user could not tell which number they were signed in as.
+
+**Decision.** `GET /profile` returns `phone` alongside `photo_url` — both come from the `user` row
+the controller already loads, so it costs no extra read and keeps the You tab to one request. The
+app shows it under its own "Account" heading above "Your details".
+
+**Unmasked, deliberately.** Every admin-facing view of this column is masked (docs/13 §4) so one
+person cannot casually read another's. This is the account holder reading their own, where masking
+would hide the one fact the row exists to tell them.
+
+**Its own section, with no Edit beside it.** Changing a phone number means proving the new one with
+an OTP, which is not built. Putting the row inside "Your details" would have placed it under a
+heading marked editable and promised a flow that does not exist.
+
+**Absent for an email or social signup** rather than reading "Not set" — there is no number to set,
+and an empty row would invent a step. The same rule the meal-time rows already follow.
+
+**A seed bug found on the way.** The demo partners were all seeded as email signups with no phone,
+so the admin review queue's masked-phone column was blank on every row. The code was right and the
+data was missing, which reads exactly like a broken screen. The seed now gives every demo account a
+synthetic `+9190000000NN` number and repairs rows written before the column was filled.
+
+## D-194 — Cashfree, with a stub mode that cannot reach production
+
+**Decision.** Cashfree Payment Gateway, wired behind `CASHFREE_MODE`: `stub`, `sandbox` or
+`production`. Checkout creates a `payment_order` row and asks Cashfree for a session; a signed
+webhook is what activates the subscription.
+
+**The property the whole module defends: a subscription is granted by a verified webhook and by
+nothing else.** Not by an order row existing, not by the app reporting success, not by a return URL
+being hit. Every other route into `activate()` is a way to get PRO for free.
+
+**Stub mode, because credentials do not exist yet.** It calls nobody and charges nothing, and
+`POST /billing/checkout/simulate` drives the same `markPaid` the webhook drives — so the activation
+path that ships is the path that gets exercised. Two locks keep it out of production: the route
+refuses unless the mode is `stub`, and boot refuses `stub` when `NODE_ENV=production`. A build that
+fakes successful payments must not be one environment variable away from doing it for real.
+
+**Signature verification over the RAW body.** Cashfree signs `timestamp + rawBody` with HMAC-SHA256.
+Nest is bootstrapped with `rawBody: true` because re-serialising a parsed body changes key order and
+whitespace, and the signature then never matches — which is how this check gets quietly disabled. A
+missing `CASHFREE_WEBHOOK_SECRET` refuses every webhook rather than waving them through, and the
+length is checked before `timingSafeEqual`, which throws rather than returning false on a mismatch.
+
+**The price comes from the matrix, never from the body.** A request that could name its own amount
+would name ₹1. `amountPaise` is BIGINT (rule 3) and is stored on the order, so a later price change
+cannot rewrite what somebody paid.
+
+**Deliberately refused rather than half-built:** a mid-term upgrade. docs/11 §7 makes it a proration
+calculation with a credit against the unused period, and charging a second full price would be the
+wrong answer rather than a simpler one. `ALREADY_SUBSCRIBED` says so plainly.
+
+**Also not built:** refunds (docs/11 §9), the renewal job and its T-7/T-3 notices (§8), trials (§6),
+and the `requires_afa` split for anything above ₹15,000. Every price in the current matrix is below
+that line, so no catalogue entry needs AFA today.
+
+**Verified end to end over HTTP** on a stub build: FREE → checkout → simulate → PRO with a period
+ending three months out. 21 tests cover the service and the signature.
+
+## D-195 — A coach can finally see their clients, and the grant is the only reason they can
+
+**Gap.** The consent machinery was complete — grants, scopes, level caps, expiry, revocation, the
+client's "Who can see my data" screen — and there was no endpoint that used any of it. A coach had
+clients in the database and no way to read one.
+
+**Decision.** `GET /coach/clients` returns the roster and `GET /coach/clients/:id` returns one
+person, filtered to the intersection of what the client granted and what the coach's level reaches.
+
+**The safety property, stated once so it can be checked once.** A role only ever NARROWS what a
+grant already allowed. There is no path in the module where holding a higher level reveals a field
+the client did not agree to, because every field is behind a scope and every scope comes from the
+grant.
+
+**A demotion now bites immediately.** `scopesFor` intersects the grant with the coach's level as it
+stands at read time rather than as it stood when the client agreed. The cap at grant time already
+stopped a level-1 coach ever being given `health_conditions`; this stops a former level-3 coach
+keeping it, without anyone having to rewrite grant rows — a job that can fail or lag, and during
+which somebody is reading medical conditions they no longer may.
+
+**Absent, not empty.** A coach without `health_conditions` gets no `conditions` key at all. An empty
+array reads as "this person declared nothing", which is a different fact and a wrong one.
+
+**404, not 403.** "You are not allowed to see this person" confirms the person exists. The id space
+must not answer that, so no grant and no such client are the same answer.
+
+**The screening answers are not filtered — they are never read.** docs/10 §5.5 puts the
+eating-disorder screen beyond every role and every grant, so the query that could return it does
+not exist in this file.
+
+**Audited where it should be.** Opening a client writes a `read_health` row only when a health
+field actually leaves. A read that carried a name and a goal is not a health read, and logging it
+anyway fills the trail with noise until the rows that matter stop standing out. The roster itself
+is not audited at all: docs/13 §4 wants a list browsable without every scroll writing a row.
+
+11 tests, one per matrix row that this endpoint can reach.
+
+## D-196 — The paywall stops saying "opening soon" and actually starts a purchase
+
+**What was wrong.** D-194 wired Cashfree and verified it over HTTP, and the app was never touched.
+The paywall still drew "Payments are opening soon" and a button that only showed a snackbar, so
+from the screen the feature did not exist. The backend working is not the feature working.
+
+**Decision.** The paywall calls `POST /billing/checkout`, and the sheet's one action is buying the
+selected row.
+
+**The screen asks the server what it can do.** `GET /billing/entitlements` now carries
+`payments_mode`. The "opening soon" note renders only when the server says `stub`, and disappears
+when it does not — a live build that kept saying payments were coming would be the same defect as a
+dead pay button, pointed the other way. The app defaults to `stub` when the field is missing: a
+build that cannot read the mode must not assume it can take money.
+
+**The button carries the price.** "Continue" on a screen showing ten prices is a button people tap
+to find out what it costs. On a stub build it reads "Unlock for testing (₹4,999)" instead — the
+label must not imply money moved when none did.
+
+**The tier still comes from the server.** After a stub purchase the app re-reads entitlements rather
+than assuming what it just bought (rule 3). Nothing in the app decides what someone is entitled to.
+
+**The idempotency key belongs to one attempt**, generated in the controller from a timestamp and a
+random, with no new dependency for a one-line string. The double tap is already blocked by the
+in-flight flag; the header is for the retry that happens below the app.
+
+Four paywall goldens were regenerated — the button changed, so they had to.
+
+## D-197 — Two guards between real credentials and a charged card that delivers nothing
+
+Real Cashfree credentials arrived with `CASHFREE_ENVIRONMENT=production`. Three things were wrong,
+and only one of them would have been visible.
+
+**The variable had the wrong name.** The code read `CASHFREE_MODE`; the dashboard calls it the
+environment, so that is what got written. The line was ignored entirely and the build stayed in
+stub. Both names are now the same setting — a variable that looks like it switched on live payments
+and did not is the worst kind of config bug, and renaming the one in the file only moves the trap.
+
+**When both names are set and disagree, boot refuses.** Whether this build charges a real card must
+not be decided by a precedence rule nobody remembers reading. Two lines saying different things is
+a question, not a configuration.
+
+**A gateway build with no real credentials refuses to boot.** This is the expensive one. Cashfree
+would take the card, send the notification, and the signature check would refuse it — because the
+key was still the placeholder. Every payment would succeed at the gateway and activate nothing
+here: charged, and given nothing. That is worse than being unable to charge at all.
+
+Refusing to boot is deliberate, and the message names the fix. A warning in a log gets read after
+the first refund request.
+
+The placeholder is matched by name (`REPLACE_ME`) as well as by emptiness, because a copied example
+file is the normal way this fails, not a missing line.
+
+**Still required before a real payment can work**, and none of it is code: a webhook URL registered
+in the Cashfree dashboard that is publicly reachable — `localhost` receives nothing — and a sandbox
+run before a customer's card is the first one tried.
+
+
+## D-198 — Cashfree has no webhook secret, and inventing one would have refused every payment
+
+**The question that found it.** "How do I create `CASHFREE_WEBHOOK_SECRET`?" There is no answer,
+because there is nothing to create.
+
+**What the docs say.** Cashfree signs a webhook as
+`base64(HMAC-SHA256(timestamp + rawBody, merchantSecretKey))` — the merchant's **Client Secret**,
+the same credential that authenticates API calls. Stripe issues a separate `whsec_…` and Razorpay
+lets you set one per webhook; Cashfree does neither, and this integration was written to the shape
+those two have rather than to the shape Cashfree has.
+
+**The bug that would have caused.** A correctly configured build — real app id, real secret key,
+`production` — would have refused every webhook, because the separate variable it was reading was
+still a placeholder. Cards charged, nothing activated. The boot guard added hours earlier in D-197
+was guarding a variable that should not exist.
+
+**Fixed by deleting it.** `verifyWebhook` uses `secretKey`. One secret, one place, and no second
+value that can silently be wrong. The boot guard now checks the app id and the secret key, which
+are the two things a gateway build actually needs.
+
+**Read the docs before writing the integration, not after.** The signature scheme was written from
+memory of two other gateways. It type-checked, it passed six tests, and it was wrong in the one way
+that only shows up when a real payment arrives — a test that signs with the same variable the code
+reads will pass whatever that variable is. The test that now matters signs with the API credential
+and asserts the webhook verifies against it.
+
+## D-199 — The coach's Clients tab names the person invited, against docs/09 §3
+
+**The gap.** A coach sent two invites and the Clients tab still read "Your clients will appear here
+once a client accepts". Nothing in the app or the API let a coach read back their OWN pending asks:
+`GET /coach/invites` is keyed on the CALLER's phone, so it answers the client's inbox, not the
+coach's outbox. The coach could not tell whether an invite had been sent, to whom, or when it ran
+out — so the only way to be sure was to send it again.
+
+**Added `GET /coach/invites/sent`,** the coach's own pending invites, and a real Clients tab that
+lists them with the number, the expiry, and an invite action.
+
+**The decision, taken knowingly.** The response also carries the invited person's `name` and
+`photo_url` when the number belongs to an account. That contradicts two things already written down:
+
+- **docs/09 §3 — "never return whether a number exists."** `POST /coach/clients/invite` returns 204
+  regardless, precisely so the endpoint cannot be used to enumerate who is on the app. A name that
+  appears only for registered numbers restores exactly that signal, one number at a time.
+- **docs/10 §1 — "the level does not grant access. The consent grant does."** Name sits in the
+  `basic` scope, which a client hands over by accepting. Showing it beforehand is `basic` data
+  released without the grant that is supposed to release it.
+
+The product owner asked for it twice, after the conflict was put plainly. Recorded here rather than
+argued again, because the specs and the code now disagree and a reader of either deserves to know.
+
+**What it is NOT.** No health field travels with an invite, an invite still grants nothing, and the
+roster is still driven by grants. The exposure is bounded: display name and photo, to one verified
+coach, for a number that coach already knew well enough to type.
+
+**What is still owed.** docs/09 §3 and docs/13 should be amended to match, or this reverted. Until
+one of those happens the enumeration property is real: a coach can learn whether any number they
+choose has an Eatzify account. A DPDP review should decide which way it goes.
+
+## D-200 — The client can see who is asking, because "Partner #25" is not consent
+
+**The screen.** "Who can see my data" showed an incoming request as `Partner #25`, with the scopes
+it wanted and Accept / Decline beneath. A person was being asked to hand over their weight, steps
+and adherence to an integer.
+
+**That is not informed consent.** docs/13 rests the whole model on the client's decision being a
+real one. A decision needs a subject: who they are, what they do, and whether anybody checked. With
+none of that, Accept is a coin toss and Decline is the only safe answer — which is worse for the
+coach too.
+
+**`GET /coach/invites` now carries the asking coach's public profile:** name, photo, self-declared
+discipline, whether a human verified them, and `verified_attributes` — what was actually checked.
+
+**Why this is NOT the same disclosure as D-199.** The direction matters:
+
+- D-199 shows a *private individual's* name and photo to somebody who typed their number, before
+  they agreed to anything. That is a disclosure, and an enumeration oracle.
+- This shows a *professional's* profile to the one person they solicited. The coach applied to be
+  listed, accepted the partner agreement and submitted the documents this very field describes.
+  Nothing here is learned about anybody who did not volunteer it.
+
+**The badge never stands alone.** doc 00 §8: Eatzify accredits nobody. So `coach_verified` travels
+with `what_verification_means`, server-authored and shown verbatim (rule 7, docs/12 §6), and with
+the list of what a human confirmed. `verified_attributes` is returned ONLY for an application whose
+status is `verified` — an unreviewed applicant publishes nothing, and the screen says "Not verified
+yet" rather than staying silent and letting the absence read as approval.
+
+Self-declared discipline sits visibly apart from the verified line, because the gap between what
+somebody says they are and what was checked is the thing a client most needs to see.
+
+## D-199 — The client a coach can see is now a client they can open
+
+**The report.** A client accepted the invite and the trainer still could not see their details.
+
+**What was wrong.** Nothing in the backend. `GET /coach/clients` and `GET /coach/clients/:id` were
+built and tested in D-195, and the app never called either. The Clients tab listed the invites the
+coach had SENT, and its own doc comment said so: "the accepted roster is E6 and is not wired here".
+A client who accepted disappeared from the invite list and appeared nowhere else.
+
+**Decision.** The tab loads both halves and keeps them apart — the people who accepted above, the
+invites still waiting below. Each roster row opens a detail page.
+
+**Why the roster row carries no health field.** Reading a client is an audited act (docs/10 §6). A
+list that showed weights would write an audit row every time a coach scrolled past somebody, and a
+trail where every row is noise is one where the rows that matter stop standing out.
+
+**Absent is an answer, and it is not the same as empty.** A field the grant did not cover has no
+key at all, so the page draws no row — not a dash, not "Not set". A weight that is missing because
+the client did not share it must not read as a gap in their profile. An empty LIST is the other
+answer and does read as "None": they were asked and declared none.
+
+**A near-empty page says why it is near-empty.** A `basic` grant returns a name and little else,
+which looks broken. The page names the limit instead, as the client's decision rather than a fault.
+
+**A 404 is shown as access ending, not as an error.** The server answers "no grant" and "no such
+person" identically so an id cannot be used to learn who exists; for a coach, the honest reading of
+that is that access has ended.
+
+**Built alongside another session working in the same repo.** The roster list arrived from that
+side while this one was writing the same controller; the shapes matched and the halves fit. What
+was missing either way was the tap target and the page behind it, which is this change.
+
+## D-200 — The coach dashboard: one metrics service, one serialiser, one audit row
+
+A trainer, nutritionist or doctor needs a working screen: who their clients are, who needs chasing,
+and what they earned. Built inside the Clients tab — `CLAUDE.md` rule 1 fixes the coach tabs and a
+Dashboard tab would be a sixth destination needing an ADR.
+
+**Adherence and streak already existed, in the admin module.** Extracted to
+`src/clients/client-metrics.service.ts`, shared by both. Two copies of "how well is this person
+doing" would eventually disagree, and the coach-facing copy is the one somebody makes decisions
+from.
+
+**A bug came with the extraction.** The admin version bucketed by calendar UTC rather than the
+04:00 IST `diaryDateFor()` that `api/CLAUDE.md` rule 4 requires. Between 18:30 and 24:00 UTC that
+is already tomorrow in diary terms, so for five hours every day the streak loop broke on its first
+iteration and reported **zero for everybody**. Not a rounding error — a daily five-hour outage of
+the number.
+
+**The streak may end yesterday.** At nine in the morning nobody has logged today, so counting from
+today would show every client a zero until lunch. docs/05 §6 forbids framing that implies failure,
+and a streak that collapses every morning is exactly that. A run is intact until a whole day passes
+unlogged, which is what a person means when they say they have kept it up.
+
+**One serialiser, keyed by (role, scopes).** docs/10 §6 asks for precisely this: "never by
+conditionals scattered through controllers. One place to audit, one place to test." Two masking
+implementations were already forming — the roster had its own and the detail page had another.
+`test/client-view.spec.ts` has a case per matrix row and is the compliance evidence the doc asks
+for.
+
+**One audit row per roster read, not one per client.** This reverses D-199's reasoning rather than
+ignoring it. That entry kept health fields off the roster because forty clients meant forty audit
+rows per screen open; the fix is the row, not the field. `subjectUserId` is null on a collection
+read, so the ids go in `meta` — docs/13 gives a person the right to ask who looked at their data
+and that has to stay answerable. Collapsed to one row per five minutes, because a polling dashboard
+would otherwise write a row per poll.
+
+**"Inactive" became "no recent logs".** docs/05 §6 — "Use a neutral 'not logged'" — is about
+wording. "Inactive" is a verdict on the person; "no recent logs" is a fact about the diary. The
+coach learns the same thing, and only one of them would be painful quoted back at the client.
+"Active" and "at risk" stay: docs/12 §9 asks for them by name.
+
+**The roster is never sorted by weight lost or by streak.** That is the leaderboard docs/05 §6
+bans. It sorts by longest since a log, which is what a coach opened the screen to find.
+
+## D-201 — Commission: attribution first, and a ledger that cannot be edited
+
+`docs/08 §7` already specified `attributions`, `commission_entries` and `payouts` as SQL, so this
+was transcription rather than design.
+
+**Attribution shipped in its own migration, ahead of the ledger.** It is first-touch and locked at
+signup, so every day it is not capturing is a day of signups that can never be attributed to
+anyone. Rate maths can be argued about afterwards; the capture cannot be backfilled.
+
+**The schema enforces "first one wins".** `attribution.userId` is the PRIMARY KEY, so a second code
+for the same person is refused by the database rather than by code that has to remember — including
+on a reinstall, which is the case docs/12 §3 calls out. A CHECK refuses self-referral.
+
+**Commission is on NET revenue.** Prices are GST-inclusive (docs/11 §2), so net is gross divided by
+1.18 — not gross minus 18 %, which understates it by about 2.7 % and would underpay every partner
+every month. Integer paise from end to end (rule 3); no float touches money.
+
+**A reversal is an insert.** docs/12 §3: "offsetting entry, never a delete." The original keeps its
+amount and gains a `reversed` status; the new row carries the negative and is booked in the month
+the refund happened. A refund in October is October's cost — restating September would rewrite a
+statement already sent.
+
+**Rates are a versioned table, and the entry stores the ones it used.** docs/12 §2 wants a
+historical entry recomputable, so a rate change next year cannot silently restate last year.
+
+**⚠ The seeded rates are docs/12 §2's RECOMMENDED structure and have nobody's sign-off.** They are
+what the doc proposes, not what has been agreed. Confirm before real money moves.
+
+**Accrued becomes payable on read, not on a sweep.** There is no scheduler in this codebase — BullMQ
+is a dependency nothing uses — and a status that needs a cron to be true is wrong every time the
+cron fails.
+
+**Not built:** payouts. A payout table with no payout run is a table you migrate twice, and docs/12
+§5 needs a human to approve one anyway. Per-client earnings are also absent by design — docs/12 §8
+keeps a partner's view aggregate, because a per-client line tells an affiliate what one person paid.
+
+## D-202 — The coach dashboard, in the Clients tab
+
+The app side of D-200 and D-201. A trainer, nutritionist or doctor opens the Clients tab onto
+counts, who needs chasing, their roster, their earnings and their referral code.
+
+**Inside the Clients tab, not a tab of its own.** `CLAUDE.md` rule 1 fixes the coach's five
+destinations and a Dashboard tab would be a sixth, which needs an ADR. It also happens to be where
+the work belongs: the tab is about clients, and this is what there is to know about them.
+
+**Nothing on this screen is computed.** Every count, percentage and status arrives decided by the
+server (rule 2), already filtered to what each client allowed. A widget that worked out who was at
+risk would be a second place that rule lived, and the two would drift.
+
+**Absent and zero are drawn differently, everywhere.** A client who shared only the basics gets no
+adherence ring, no streak and no weight — not three zeroes, which read as somebody doing badly when
+the truth is that they drew a boundary. A streak of zero is likewise absent: docs/05 §6 exists to
+prevent exactly the "0 day streak" banner.
+
+**The weight change carries no colour and no arrow.** docs/05 §6 and D-39: a gain is stated in the
+same voice as a loss. The trend line on the tiles is caption ink for the same reason — a green
+arrow above a client count reads as a score.
+
+**Earnings failing does not fail the screen.** A partner whose ledger is briefly unreachable still
+has a client list worth reading, so the card is dropped rather than the page. The three reads the
+tab is ABOUT — summary, roster, invites — do fail it, because rendering half would quietly say a
+coach has no clients when the roster call is what broke.
+
+**Two pieces of the old Clients tab were kept rather than replaced.** Naming the permissions a
+client granted instead of counting them, and showing an invited number as a person reads it. Both
+were deliberate and both were nearly lost in the rewrite; the tests that caught it were the other
+session's.
+
+Also fixed on the way: the invite de-duplication keyed on every digit, so `8433145573` and
+`+918433145573` were still two rows. It keys on the last ten now.
+
+## D-203 — A coach sees what the client actually logs, not five profile fields
+
+**The report.** A trainer opened a client and saw age, gender, goal, height and weight. "Each and
+every thing the client is logging" should be visible.
+
+**What was wrong.** Nothing in the permission model. That client had granted `progress`, which
+docs/10 §3 defines as "weight series, adherence %, steps, streaks" — all of it already allowed, and
+none of it read back. The screen was the minimum I built in D-199 and never widened.
+
+**Decision.** `GET /coach/clients/:id/progress` returns every measurement series the client keeps —
+weight, steps, water, waist, blood pressure, HbA1c — plus adherence, days logged, streak, last
+logged and the moving-average weight change. The client detail page renders one card per kind, with
+a sparkline and the latest reading.
+
+**A kind the client never recorded is absent, not empty.** An empty chart draws a flat line, which
+is a claim about somebody who simply never logged it.
+
+**Suspect readings stay out**, exactly as they do on the client's own Progress tab. A mistyped 7 kg
+is not a data point, and a coach acting on one would be acting on a typo.
+
+**The weight change is the moving-average trend**, the same figure the client sees. Neither side
+should be reading a different number for the same question.
+
+**The food diary is a separate endpoint and a stricter gate.** docs/10 §2 gives coach_l2
+`📊 adherence %` for food logs and coach_l3 the logs themselves. `GET /coach/clients/:id/diary` is
+built and enforces that line. The doc says why: a verified coach with no coaching relationship has
+no purpose a meal-by-meal diary serves.
+
+⚠ **Consequence worth knowing:** today's demo coach is `coach_l2`, so they get every series and
+every figure but not the meal-by-meal diary. Widening that is a docs/10 §2 change and needs a
+decision, not a code change.
+
+**Both gates on every read.** The grant must carry the scope and the level must reach it —
+docs/10 §1: "the level does not grant access. The consent grant does." A refusal is a 404, because
+"you lack the level" confirms the person exists and is somebody's client.
+
+**Audited per person.** Unlike the roster, this read IS about one client, so the row names them.
+
+## D-204 — The number that was lying, and the diary a nutritionist has to see
+
+Asked to read the coach screen as a nutritionist would, two things were wrong.
+
+**"Adherence" was counting attendance.** It is days with at least one food log over 28 — which is
+what docs/02 FR-4.2 defines, so the number was right and the LABEL was not. A coach reading 64 %
+concludes "follows the plan 64 % of the time". It means "opened the app on 64 % of days". Somebody
+can log a pizza every day and score 100 %.
+
+Fixed by saying so on screen, under the figure: "How often they log, not how closely they follow
+the plan." Renaming it would have diverged from the spec; qualifying it does not.
+
+**And by adding the number that was actually missing.** Average calories and average protein over
+the days they logged, each beside the plan's target. That pair is what a nutritionist reads, and
+neither half is useful alone — 2,400 kcal means nothing until you know the plan asked for 1,859.
+
+Averaged over LOGGED days, not all days. A day with nothing logged carries no information about
+what somebody ate, and folding it in as zero makes every irregular logger look like they are
+starving.
+
+**The food diary moved from coach_l3 to coach_l2.** docs/10 §2 put food logs at `📊 adherence %`
+for a verified coach and the logs themselves at a coaching partner. That line cannot hold: a
+nutritionist who cannot see what somebody ate cannot do the job they were engaged for, and level 3
+in docs/12 §6 is "level 2 + active coaching agreement + client grant" — a contract state, not a
+competence one.
+
+**The consent grant still decides everything.** The diary needs the client's `progress` grant; an
+affiliate reaches none of it at any level, and a revocation takes it back on the next read. What
+moved is the level cap, not the consent rule.
+
+⚠ **docs/10 §2 now disagrees with the code** on that one row. The doc is Edit-denied, so this entry
+is the record until somebody amends it — `api/CLAUDE.md` puts "widening what a coach or partner can
+see" on the ask-first list, and this was asked for and decided.
+
+**Still missing, and named so it is not forgotten:** a workout log. There is no exercise, set, rep
+or duration anywhere in the schema — only `steps` and `energy_burned_kcal` as manual measurements.
+A trainer tracking cardio and lifting has nowhere to read it. That needs its own table and is the
+next piece.
+
+## D-205 — A coach writing a diet can now see what the diet is written from
+
+**The ask.** "If you are my trainer and nutritionist and you have to build my diet plan through
+this app, you need my daily steps, calories, what I ate and when, calories burned, my medical
+history, and every answer I gave at registration — structured. Only then can you advise properly."
+
+That is correct, and none of it was reaching a coach.
+
+**Every onboarding answer now reaches them, under `progress`.** Meal count, lifestyle, food
+preference, activity, budget, food dislikes, and the full set of times — wake, each meal, sleep.
+None of it is medical, and all of it is what a diet is written from. Five meals a day on a night
+shift with ₹6,000 a month and a karela aversion is a different plan from three meals in an office,
+and a coach who cannot see that is guessing.
+
+Passed through as one bag rather than as named columns, so adding an onboarding question later
+reaches a coach without touching the access rules.
+
+**Medical history moved from coach_l3 to any verified coach**, behind the client's
+`health_conditions` grant. docs/10 §2 put it at ❌ for coach_l2, reasoning that "a verified coach
+with no coaching relationship has no need for a diabetes diagnosis". The premise fails the moment a
+client hands that coach the grant: they chose them precisely to act on it, and a diet written
+without seeing PCOS or a peanut allergy can hurt somebody. Conditions, allergies, medications,
+digestive symptoms and injuries all travel together — half a medical history is worse than none,
+because it reads as complete.
+
+**The eating-disorder screening answer is still beyond everyone.** docs/10 §5.5, and it is honoured
+by the query never selecting it rather than by a filter — a field that never enters the process
+cannot leave it.
+
+**The consent grant is still the entire gate.** An affiliate reaches none of this at any level; a
+client who shared only the basics shares none of it; a revocation takes it all back on the next
+read. What moved is the level cap, not the consent rule.
+
+⚠ **docs/10 §2 now disagrees with the code on two rows** — food logs (D-204) and medical conditions
+(this one). The doc is Edit-denied, so these entries are the record until somebody amends it.
+`api/CLAUDE.md` puts "widening what a coach or partner can see" on the ask-first list; it was asked
+for, repeatedly and explicitly, and decided.
+
+**Still missing:** the diary SCREEN. `GET /coach/clients/:id/diary` is built and tested and no app
+screen calls it, so "what I ate and when" is still the one thing on that list a coach cannot see.
+And a workout log still does not exist anywhere in the schema.
+
+## D-206 — The diary a coach can finally read
+
+`GET /coach/clients/:id/diary` was built in D-203 and tested, and no screen called it. "What I ate
+and when" was the one thing on the list a coach still could not see.
+
+**Its own screen, not a section.** A diary is one day at a time and a coach reads several in a row,
+so it takes the page and a back-and-forward day bar rather than a strip under the profile.
+
+**The date comes from the server.** `CLAUDE.md` rule 8 — the 04:00 IST boundary is never computed
+in the app — so the first read sends no date at all and asks what today is. Every step from there
+moves relative to the date that came back, never to the device clock. The forward arrow is dead on
+the newest day: a diary for tomorrow does not exist, and an arrow leading to an empty day teaches a
+coach the screen is broken.
+
+**Read in the order the day happened.** Rows arrive in whatever order the query returns; breakfast
+renders before dinner, because that is how somebody ate it.
+
+**Every total beside its target.** 1,740 kcal means nothing on its own; 1,740 of 1,859 is something
+a coach can act on. With no plan the figure stands alone and the screen says why, rather than
+comparing against zero (docs/04 §2).
+
+**The measure the client chose, not the grams a database stored.** "1.5 katori" is what they
+logged; 137 g is an implementation detail.
+
+**Steps and burned calories say "not recorded" rather than zero.** D-80's rule, on the coach's side
+of the glass: "they burned nothing" and "nobody measured" are different sentences and only one of
+them is ever true.
+
+Eleven tests, including that the first read sends no date and that stepping back derives from the
+server's date rather than the clock.
+
+**Still missing: the workout log.** No exercise, set, rep or duration exists anywhere in the schema
+— only `steps` and `energy_burned_kcal` as manual measurements. A trainer tracking lifting or cardio
+has nowhere to read it, and that needs its own table.
+
+## D-207 — `??` does not catch an empty string, and the diary never loaded because of it
+
+The diary screen showed "Something went wrong" on its first open, every time.
+
+**The bug was one character of my own making.** The controller passed `date ?? ''` to make the
+parameter a `string`. `LogsService.day` defaults with `const diaryDate = date ?? diaryDateFor(...)`
+— and `??` catches `null` and `undefined`, not `''`. So an empty string sailed past the default and
+reached Postgres as a `date`:
+
+```
+ERROR:  invalid input syntax for type date: ""
+```
+
+A 500 on every first load, which the app rendered as its generic failure — the screen was working
+exactly as designed, reporting a server that had fallen over.
+
+**Fixed in both places.** The controller passes `date` through as `string | undefined`, and the
+service treats an empty string as "today" regardless of what a caller hands it. Belt as well as
+braces: the first is the real fix, the second stops the next caller repeating it.
+
+**Two tests hold the line** — one that no date reads today, one that an empty date does the same
+rather than being passed on.
+
+**The lesson worth keeping:** `?? ''` to satisfy a type signature is how a nullable value becomes a
+value that is not null and not valid either. The type got quieter and the bug got louder.
+
+## D-208 — The coach screens borrow the client's charts instead of inventing their own
+
+The coach surface looked unfinished and had no graphs. It had grown its own visual vocabulary —
+tiny sparklines, plain text rows — while the client's Home and Progress tabs had real charts sitting
+right there.
+
+**The Progress tab's line chart is now public.** It was `_Chart` in `progress_page.dart`, private
+and bound to the `Measurement` entity, which is exactly why the coach screens could not reuse it and
+grew a sparkline instead. `TrendChart` takes plain numbers, so both sides of the relationship draw
+the same picture of the same data — curved line, soft fill beneath, no axes, and the flat-series
+padding that stops a steady month collapsing to a zero-height line.
+
+Every measurement a client keeps now gets a full-width chart with its latest reading as the
+headline and the window's dates under it, so a fortnight is never read as a quarter.
+
+**The diary borrows Home's macro bars**, in the same three colours the rings use, each figure beside
+the target it was meant to hit.
+
+**But NOT `CalorieGauge`.** That widget headlines what is LEFT — the number a person eats against —
+and a coach is asking the opposite question: what did they eat, against what were they asked to. The
+same ring is used with the honest framing rather than the convenient widget. A shared component is
+worth reusing only where the question it answers is the same one.
+
+**Deleted:** `Sparkline`, along with the row layout built around it. It existed for one screen for
+one afternoon because the real chart was out of reach, and leaving both would mean two chart
+languages for one kind of question.
+
+## D-209 — A screen saying two things at once, and the tiles that fixed the rest
+
+Comparing the coach's diary against Home side by side turned up one bug and one gap.
+
+**The bug: the footer read "No plan for this day, so there is nothing to compare against" under a
+ring saying 161 of 1516 and three bars each carrying a target.** It was rendered unconditionally.
+A screen telling a coach two contradictory things is worse than one telling them less, because now
+neither can be trusted. It appears only when `targets` is actually null.
+
+**The gap: the diary had grown its own flat vocabulary** while Home's macro tiles sat right there —
+solid coloured disc, the figure over its target, a ring, a percentage. `MacroTile` is that tile,
+lifted out of `home_page.dart` where it was private. The diary uses it now, laid out with Home's own
+row technique: an even share when three fit, a horizontal scroll when the text scale says they do
+not, one branch either way.
+
+The activity card gained the same tinted glyphs, and the calorie ring took the brand's warm coral
+instead of rendering in the default grey that made the whole card look unfinished.
+
+**Two vocabularies for one number is how a coach and a client end up describing the same day
+differently.** That is the reason to share the widget, not the saved lines.
+
+## D-210 — A home-screen widget, and the one action it is allowed to take alone
+
+Today's water, steps and calories on the launcher, with a glass loggable without opening the app.
+`home_widget: ^0.9.4`, an Android `AppWidgetProvider`, and the Flutter side that feeds it.
+
+**The app publishes, the widget renders.** Nothing is computed natively. A widget doing its own
+arithmetic would be a second place the diary day is decided, and the 04:00 IST boundary already has
+exactly one implementation (rule 8/rule 4). Home pushes the figures every time it loads, and only
+for TODAY — a widget showing last Tuesday because somebody browsed back to it would be lying about
+right now.
+
+**Only water writes from the widget, and that is a deliberate line.** A tap on a cold home screen
+wakes a background isolate where none of the app's dependency injection exists: no controllers, no
+registered repositories, no session. Water survives that because it is one integer with one
+meaning. Choosing a food needs a search, a portion and a meal slot — a screen, not a button — so
+the meal button opens the app. Steps are read-only from Health Connect and HealthKit (rule 10), so
+there is nothing there to write at all.
+
+**Water is the day's TOTAL, not an increment** (D-86), so the button adds a glass to the figure the
+widget was last told and sends the sum. Two taps in the same second race and one loses a glass,
+which is the cheaper failure than double-counting somebody's day.
+
+**The widget updates only after the server took it.** Showing the new figure first would be the
+widget telling somebody they drank something they did not.
+
+**A dash, never a zero.** SharedPreferences has no nullable int, so the provider reads through a
+sentinel and renders an em dash for anything unmeasured — D-80's rule, carried onto the launcher.
+
+**`updatePeriodMillis` is 0.** Android's own period is capped at half an hour and would redraw
+stale numbers on its own schedule; the app pushes when the diary actually changes.
+
+**The base URL became a top-level function.** The background isolate needs it too, and a second
+copy is a second thing to change when the host moves.
+
+⚠ **iOS is not done, and cannot be finished from here.** A WidgetKit extension needs a new target
+in the Xcode project plus an App Group — `project.pbxproj` surgery that is not safe to do by
+editing files. The Dart side is ready and `HomeScreenWidget.appGroupId` is the identifier to use.
+Android works today.
+
+## D-211 — The iOS widget, and the app group that was pointing at another product
+
+The Xcode extension target existed; what it contained was the template. Now it carries the app.
+
+**The shape is the media-player one**, because the questions match. A headline with today's
+calories and the plan's target, a progress bar under it the way a player puts one under a track,
+one filled button that acts, and a row of four tiles. A widget is glanced at, so the layout has to
+answer "how am I doing" before it is read.
+
+**The app group was wrong, and silently so.** Both `Runner.entitlements` and
+`HomeScreenWidgetExtension.entitlements` named `group.com.tarun.Influnexa.liveactivities` — another
+product's group, copied in with the target — while Dart published to `group.app.eatzify.widget`.
+Nothing errors on a mismatch: the extension opens an empty container and shows placeholders
+forever.
+
+Dart now points at the provisioned group rather than the other way round. Renaming it is not a code
+change — it means creating a group in the Apple Developer portal and regenerating every
+provisioning profile, which is worth doing before release and pointless mid-build. The constant
+says so.
+
+**`.integer(forKey:)` is never used.** It returns 0 for a key that was never written, which turns
+"nobody measured" into "they drank nothing". Every figure is read through `object(forKey:)` and
+renders as an em dash when absent — D-80's rule, carried onto the home screen.
+
+**The timeline policy is `.never`.** The app pushes an update when the diary changes, which is the
+only moment these numbers move. A refresh schedule would redraw stale figures on iOS's clock
+instead of on the data's.
+
+**One button writes, three navigate.** The plus logs a glass — one integer with one meaning. The
+tiles are links, because choosing a food needs a search, a portion and a slot.
+
+**Xcode's template Control Center "start timer" control is no longer published.** It belonged to
+the template, not to this app, and shipping it would have put a meaningless timer in somebody's
+Control Center.
+
+Also fixed on the way: a build cycle. `Embed Foundation Extensions` ran last, after `Thin Binary`,
+which declares `Runner.app/Info.plist` as an input — and that plist is not final until the `.appex`
+is inside `PlugIns`. Each phase waited for the other. The embed now runs before `Thin Binary`.
+
+## D-212 — Burned calories were missing from the widget, end to end
+
+The widget showed calories eaten, water and steps. Burned calories were absent — and not because
+the widget failed to render them: `publish()` never carried the field, so nothing on either
+platform had it to show.
+
+Added through the whole chain: the Dart payload, the Home controller that fills it, the background
+isolate that re-publishes after a water tap, the Android provider and layout, and the iOS widget.
+
+**Burned stands on its own and is never netted against what was eaten.** docs/05 §6 keeps "eaten
+minus burned" off every surface in this app, because a single combined number invites somebody to
+earn their dinner back — which is the arithmetic the tone rules exist to prevent. Four separate
+figures, four separate meanings.
+
+**Water shows its target; steps and burned do not.** A plan sets a hydration goal, so water reads
+`1200/2400`. Nothing in this system sets a step goal or a burn goal, and inventing one to fill the
+layout would be the app telling somebody they fell short of a number nobody set.
+
+## D-213 — The widget was reloading a widget that does not exist
+
+"It does not update instantly." It did not update at all on iOS.
+
+`updateWidget` was asking the system to reload a widget named `EatzifyWidget`. The Swift extension
+registers `StaticConfiguration(kind: "HomeScreenWidget")`. The system looked for a widget of that
+name, found none, and did nothing — no error, no log, no failure anywhere. Every publish wrote its
+data correctly into the shared container and then told the wrong widget to read it.
+
+**Dart follows the Swift, not the other way round.** A placed widget is bound to its `kind`, so
+renaming the Swift would orphan every widget already sitting on somebody's home screen.
+
+**Four contract tests now read the native files and compare.** Nothing in either type system can
+catch a string that has to match across Dart, Swift and Kotlin, and every failure in that family is
+silent — a renamed key shows a dash, a renamed kind shows a stale widget, a mismatched app group
+shows placeholders forever. So the tests assert: the Swift `kind` equals the Dart constant, the
+Kotlin provider class and package match the qualified Android name, both entitlements files carry
+the app group Dart publishes to, and every key Dart writes is read somewhere in the Swift.
+
+The publishing side was already correct: water, food, activity and plan all reload Home, and Home
+publishes — but only for today, because a widget showing last Tuesday because somebody browsed
+back to it would be lying about right now.
+
+## D-214 — Walking data from Health Connect and HealthKit, past the PRD's line
+
+The ask: pull walking and calories burned from Health Connect on Android and from Apple's API on
+iOS, and save them to the server. `docs/02-prd.md` FR-3.4 sanctions steps only, and its Out-of-v1
+list says *"wearable integrations beyond steps"*. **This goes past that line on the product owner's
+call**, and deliberately not far: three metrics, all the same walk, all at the sensitivity of a
+step count.
+
+| Metric | Kind | iOS | Android |
+|---|---|---|---|
+| Steps | `steps` | `STEPS` | `STEPS` |
+| Calories burned | `energy_burned_kcal` | `ACTIVE_ENERGY_BURNED` | `ACTIVE_ENERGY_BURNED` |
+| Distance | `distance_m` (new) | `DISTANCE_WALKING_RUNNING` | `DISTANCE_DELTA` |
+
+`docs/HEALTH-SYNC-TRACKER.md` is the running record: status per metric, and the longer list of what
+is deliberately not read and what each would cost.
+
+**Active energy only.** Total and basal energy both include resting metabolism, and the plan's TDEE
+already counts it — storing either would add a BMR to every day, 1,400–1,800 kcal too many.
+
+**Exercise minutes was planned and dropped, on evidence.** In `health` 13.3.1, `EXERCISE_TIME` is
+iOS-only and is not a quantity type there, so the interval API rejects it; Android has no aggregate
+for it at all. The only route is raw workout samples, which the plugin's Android code sums without
+de-duplicating — a phone and a watch logging one workout would count it twice.
+
+**The interval API, never the others.** Everything is read with
+`getHealthIntervalDataFromTypes(interval: 86400)`. `getHealthAggregateDataFromTypes` is broken on
+both platforms in this version (no iOS handler; an argument-name mismatch on Android).
+`getTotalStepsInInterval` — what the dead code used — answers `0` when nothing was recorded, so it
+cannot tell an idle day from an unmeasured one. The interval API can: no samples means no bucket.
+Android still sends an empty bucket valued 0; it is recognised by having no data origin, since a real
+reading always has one.
+
+**One new kind, no migration.** `kind` is `varchar`, so `distance_m` is a line in
+`MEASUREMENT_KINDS` and a row in `BOUNDS` (0–100 km, no daily-delta rule, like steps).
+
+**Coach visibility widened by one field — a code/doc divergence.** `GET /coach/clients/:id/progress`
+returns every kind under the `progress` scope with no allow-list, so `distance_m` reaches coach_l2
+and coach_l3 the moment it exists. That matches docs/10 §3's "steps" row in spirit; `docs/10` is
+Edit-denied, so it is recorded here. **The absence of an allow-list is the thing to watch:** any
+future kind — sleep, heart rate — would reach coaches the same way, without a decision. The tracker
+says so beside those rows.
+
+Also fixed on the way: the coach's series labels had no arm for `energy_burned_kcal` (only older
+spellings), so coaches were shown the raw wire string. Rule 4.
+
+## D-215 — CMPedometer deleted; the iOS permission that can never be read
+
+**CMPedometer is gone.** D-99 chose it over HealthKit to avoid the entitlement. With HealthKit now
+required for distance and energy anyway, it became a second path to the same number: 7 days of
+history instead of all of it, and a source label that lied — every Core Motion reading was sent as
+`apple_health`. `ios/Runner/StepCounter.swift`, its method channel, `PedometerRepositoryImpl` and
+`NSMotionUsageDescription` are removed. A refusal falls back to manual entry, which rule 10 requires
+anyway. Existing iOS users will see a HealthKit sheet the first time they choose to connect.
+
+**The bug the DI swap would have shipped.** The dormant `HealthRepositoryImpl` checked permission as
+`hasPermissions(...) ?? false`. HealthKit returns `null` for every read grant — Apple will not say,
+because the answer would reveal whether the user has the data. So that line is always `false` on
+iOS, the sync guard returns "not permitted" forever, and Home discards that result silently. Wiring
+the class in as it was would have switched iOS sync off entirely with nothing to show for it.
+Permission is now three states — granted, denied, unknown — and `unknown` means "read and see".
+Because iOS will not say, the app remembers the Connect tap itself (`health.connected` in
+`SecureStore`, cleared on sign-out with everything else).
+
+**Android permission is per type.** Health Connect lets someone untick distance and keep steps; a
+single all-or-nothing check would turn that into no sync at all. Each type is read separately and a
+refused one does not cost the others.
+
+**One screen asks.** "Health data" on the You tab is the only place a permission sheet appears, and
+only after a tap. Connecting fills in the last 30 days straight away. **Home offers the link** where
+the step count would be, once a sync has said "not permitted" — instead of the onboarding step the
+plan proposed, because existing users never see onboarding again and they are the ones who just lost
+CMPedometer.
+
+**Sync triggers:** Home's load (as before) and **app resume** (new — someone who walked all afternoon
+and comes back should see it). A write reloads Home without the skeleton. No background sync: the
+plugin has no background delivery on iOS, and Android would need another permission and a Play
+declaration.
+
+**Native setup.** `MainActivity` is now a `FlutterFragmentActivity` (the plugin's permission request
+fails at a cast otherwise). The manifest declares exactly three health read permissions — the merged
+manifest was checked, no plugin adds more — plus the `<queries>` entries Android 8–13 needs to see
+Health Connect, and the rationale links for both Android lines. iOS gains the
+`com.apple.developer.healthkit` entitlement and no write usage string.
+
+## D-216 — Many readings in one request, and windows for days already past
+
+**`POST /measurements/bulk`**, up to 200 readings. A daily sync is one request instead of three, and
+a 30-day backfill is 90 readings in one request instead of 90. Readings are written in order, one at
+a time, so two for the same day resolve as sent. A reading the rules refuse is reported in its own
+slot and the rest still land; an error that is not a refusal fails the request.
+
+**`GET /logs/windows?days=N`** (1–31) returns the last N diary windows, oldest first. A backfill has
+to ask the phone about each past day, and rule 8 forbids the phone working out where a day begins.
+`recentDiaryWindows()` only walks the calendar; every boundary still comes from `diaryDateFor()` and
+`diaryWindowFor()`.
+
+**The read-check-write race in `MeasurementsService.record`.** Two concurrent writes for the same
+user, kind and day could both find no row and both insert; the loser hit the unique index as a raw
+500. Syncing three metrics at once made that likelier. A `23505` is now retried once, and the retry
+finds the winner's row and applies the overwrite rule to it.
+
+**Client side, the sync remembers what it sent** — in memory, per diary day and metric. A write
+reloads Home, the reload syncs again, and distance is not on the diary day to compare against, so
+without that memory the two would loop. A failed write is not remembered, so it is retried.
+
+## D-217 — Checked on real stores, and what that turned up
+
+Run on the owner's iPhone 15 Pro with a paired Apple Watch, an Android 16 emulator running the real
+Health Connect service (seeded by two throwaway apps posing as a phone and a watch), an Android 13
+emulator without Health Connect, and the owner's Galaxy A06. Results, per check, are in
+`docs/HEALTH-SYNC-TRACKER.md` §6. The design held — de-duplication, active-only energy, absent-not-zero
+and manual-wins all behaved on real stores — and four things changed.
+
+**Samsung Health never writes active calories.** Its Health Connect permissions (7.00) include total
+calories and basal metabolic rate, and no active calories at all. Samsung users' burned calories will
+therefore not arrive from Health Connect. **Kept active-only, on the owner's call:** total includes
+resting metabolism, and a 1,500+ kcal "burned" on Home invites eating it back. The route to fix it —
+total minus Health Connect's basal aggregate, which the plugin does not expose — is in the tracker.
+
+**Android does send empty days as zeros, and the filter is load-bearing.** A 30-day read returned a
+bucket for every day, nearly all `0` with no source. Without D-214's no-origin filter, connecting
+would have written 90 false zeros.
+
+**The privacy link on Health Connect's permission screen opened the app, not a policy.** Both the
+Android 13 rationale action and the Android 14+ alias now point at `PrivacyPolicyActivity`, a
+translucent activity that opens the policy URL and closes — not `MainActivity`, which would boot,
+sign in and sync first. Google review follows this link. **The URL itself
+(`https://eatzify.app/privacy`) does not resolve yet**; publishing it is a release blocker.
+
+**Progress never said where a habit's figure came from.** Only the weight history carried a source
+label. Rule 10 says always; each habit card now reads "N days logged · <source>" for its headline
+figure.
+
+Also: both lifecycle-aware controllers now use GetX's `FullLifeCycleMixin` instead of importing
+Flutter's `WidgetsBindingObserver` (`.claude/rules/controllers.md` forbids Flutter imports there).
+HealthKit is now registered on App ID `app.eatzify`, but for a **personal** team (7-day profiles); an
+App Store build needs it on the paid team. And Progress hides everything, synced activity included,
+until a weight exists — an older decision (D-39/D-87), noted rather than changed here.
+
+**A test trap worth remembering:** an app given Health Connect write access with `adb pm grant` is
+left out of aggregates until the priority list is materialised, so every bucket reads 0. Real users
+grant through Health Connect's sheet, which does not have this problem — confirmed by revoking and
+reconnecting, when the first backfill wrote everything.
+
+## D-218 — A tap takes the watch's number; the app offers to connect
+
+Reported from the owner's iPhone: the Watch said 456 steps, the app kept showing the 200 typed that
+morning, "Fill in" said "Nothing new to add" and once "could not be read", and nothing ever asked to
+connect — it had to be found under You.
+
+**D-97 was doing its job, and was the wrong rule for a tap.** A background sync must not undo a
+typed figure. But a person tapping Connect or Sync is asking for the device's number — refusing it
+and saying "nothing new" contradicts the tap. So there are now two ways in:
+
+- `SyncHealth.call` — every foreground, never prompts, never replaces a typed figure (D-97 as was).
+- `SyncHealth.syncNow` — Connect or Sync only. Asks for access if it is not settled, fills in 30
+  days, and sends **today's** readings with `replace_manual: true`. Earlier days keep their typed
+  figures: the tap is about now, not about quietly undoing last week's corrections.
+
+The server honours `replace_manual` on bulk readings only (`BulkReadingDto`); `canOverwrite` gained
+the flag, and a background sync never sets it. A tap also bypasses the sync's in-memory "already
+sent" note, which would otherwise have silenced it after an earlier refused background write.
+
+**Asking on a tap covers the iOS reinstall case.** The Connect flag lives in the keychain, which
+survives deleting the app, while HealthKit's grant may not. `syncNow` asks whenever access is not
+positively granted — silent once settled, the sheet only when it is not — so "Connected" can no
+longer be a dead end.
+
+**The app now offers.** The first time a sync finds nothing connected, Home puts up a sheet once per
+account ("Fill in your activity automatically" · Connect · Not now). The system's own permission
+sheet still only follows the tap on Connect. Under the day's activity there is now always a button —
+Connect when not connected, Sync when connected — including when a figure is already there. The old
+link hid as soon as any step count existed, which is exactly the person who typed one.
+
+**"Could not be read" was two different failures.** `SyncHealthResult.failed` is now `readFailed`
+(the phone's health store would not answer — try again) and `sendFailed` (Eatzify could not be
+reached — check the connection). The report's 15:03 failure could not be traced — the API logs to a
+terminal — and the retry at 15:06 wrote 88 rows; next time the message says which side it was.
+
+Verified against the running API: a typed 200 stays 200 without the flag and becomes the device's
+456 with it.
+
+## D-219 — One widget design, three sizes, on both platforms — and the glass button that never worked
+
+The owner put the two widgets side by side: the iOS one a dark green card with a headline, a
+progress line, a "+" and four tiles; the Android one a pale box of four numbers and two buttons.
+The ask: Android at least as good, and all three sizes on both platforms laid out for their space.
+
+**One design.** Android now draws the iOS card — same palette (`widget_colors.xml` mirrors `Ink`,
+one set for light and dark: it is a brand surface), Material icons in place of SF Symbols, a
+rounded progress line. The night palette is gone.
+
+**Three sizes each.**
+
+| | Small (2×2) | Medium (4×2) | Large (4×4) |
+|---|---|---|---|
+| Headline | calories, "of N kcal", bar | calories, "of N calories", bar | the same, larger |
+| Also | water (iOS) or "+" (Android); steps and burned | "+", four tiles: water, steps, burned, meal | "+", four big tiles; water has its own target and bar |
+
+iOS: `supportedFamilies` gained `.systemSmall`; each family has its own view. A small iOS widget is
+one tap target — iOS ignores a `Link` inside it — so it shows the water figure instead of a "+".
+
+Android: three receivers so the picker offers three sizes, sharing one renderer. On Android 12+ the
+renderer hands the launcher all three layouts and the launcher picks by the space it has, on every
+resize; below 12 it picks from the reported size. The medium receiver keeps the class name
+`EatzifyWidgetProvider`, because widgets already on a home screen are bound to it. Dart now tells all
+three to redraw — an update names one provider.
+
+**The glass button never worked on Android (D-210).** The background callback was a static method
+on a class that was not annotated, so the VM refused to find it ("must be annotated") — and the
+handler it would have reached read a function from a static field, which is empty in the
+background isolate anyway. It is now a top-level `@pragma('vm:entry-point')` function that calls the
+write directly. Verified on an emulator: a tap logs 200 ml without opening the app.
+
+**Nor did any tap route anywhere.** `HomeWidgetActions.taps` and `launchAction` were never
+listened to, so Steps opened the app wherever it last was, and on iOS no widget URL was recognised
+at all — `home_widget` only treats URLs carrying a `homeWidget` query as widget taps. Both are wired
+now; iOS links carry the query; Steps opens Progress. An iOS "+" can only open the app, so the app
+adds the glass when it arrives. The water TILE now opens the day (`eatzify://today`) on both
+platforms — seeing water is not adding to it.
+
+**A launcher only inflates a short list of view classes.** A plain `View` used as a spacer made every
+Android preview "Can't load widget", and no build step catches it. The contract test now checks
+every widget layout against that list, that each layout carries every id its renderer binds, that
+all three receivers exist, and that every native link parses to an action Dart knows.
+
+Checked on an Android 16 emulator with real data (all three sizes, with and without a plan, the "+",
+the water and steps tiles) and the iOS views rendered at each family's size.
+
+## D-220 — Steps in the `+` sheet are a change to today, not a replacement
+
+The Steps tab asked for "number of steps" and sent it as the day's figure. With a phone already
+filling steps in, typing 500 wiped the 1,400 already there. The owner asked for it to show today's
+count, add what is typed, and allow taking steps off.
+
+The tab now reads TODAY's diary day (whichever day Home is showing — the sheet writes to today) and
+shows "So far today: 1,400 · Apple Health". An Add / Remove switch picks the direction, the field
+takes the amount, and the line under it gives the new total — or says why there is none ("You can
+remove at most 1,400 steps"). The server still stores one total per day, so the tab sends the new
+total, exactly as a glass of water does (D-86). The sum lives in `AdjustSteps`, not the widget.
+
+Remove is disabled on a day with no count. A day that failed to load offers a retry and never a
+total: a change to an unknown count has none. Changing a synced count makes it the person's own —
+the next background sync leaves it alone (D-97) — so the tab says so before saving, and points at
+Sync on Home (D-218) as the way back.
+
+Calories burned stays an absolute figure: nobody adds to a watch's calorie reading by hand.
+
+Checked on an Android 16 emulator: 456 from Health Connect + 500 saved as 956 (manual), Home shows it;
+Remove caps at the day's count.
+
+## D-221 — Steps someone adds are stored apart, and sit on top of the device's count
+
+After D-220 the owner found the other half: add 500 to a watch's 456, tap Sync, and the 956 went back
+to the watch's figure — D-218 lets a tap replace a typed total, and the addition was part of that
+total. Asked for: a sync should show the device's count PLUS what was entered by hand.
+
+Summing the two stored totals would count one walk twice (the watch already has the steps the
+person typed on top of it), so the change is kept as its own row instead:
+
+- A new kind, `steps_added` — signed (−100,000 … 100,000, negative is "remove"), manual only; a
+  device sending it gets 422 `SOURCE_NOT_ALLOWED`. No migration: kinds are a TS const.
+- `steps` stays the device's count, and a sync keeps replacing it as before (D-97/D-218 unchanged
+  for a typed total from before this change).
+- `foldStepsAdded()` in `measurement-rules.ts` adds the two per diary day, never below zero, and a
+  day with only an addition becomes a manual `steps` row. Every reader goes through it: `GET
+  /logs/day`, `GET /measurements/steps` (Progress, the streak) and the coach's series. `latest()` too.
+- `GET /logs/day` `activity` gains `steps_added`; `steps` already includes it.
+- The `+` sheet sends the day's new addition (`AdjustSteps.added`), not a total. It shows "So far
+  today: 956 — 456 from Apple Health, +500 by you" and says the change survives the next sync;
+  Home labels such a count "Steps · Apple Health + you". Background sync compares the device's
+  figure with `steps − steps_added`, and no longer defers when the only manual part is an addition.
+
+The picker default was the other report: with no value, a wheel opens at the middle of its range —
+50,000 steps, and 4,000 kcal burned. Both now set `opensAt` (1,000 steps, 200 kcal), kept on a notch.
+
+Checked against the running API with a synthetic user: device 456 → +500 = 956 → Sync with 600 = 1,100
+→ background 700 = 1,200; Progress history shows 1,200 as one `steps` point.
+
+## D-222 — Reminders are scheduled on the phone: water, meal logging, end of day
+
+The owner asked for water reminders **without the backend** (server-side scheduling costs money per
+user). Built from `docs/REMINDERS-PLAN.md`, with the owner's answers to its three questions:
+
+- **Time zone:** the phone's own zone, which the phone sets from where it is (`flutter_timezone`;
+  `Asia/Kolkata` if the name is unknown).
+- **Stopping:** reminders stop after a week without opening the app.
+- **First release:** water, meal logging and end of day.
+
+**One-time notifications, a week ahead, re-planned on every open and every log.**
+- A daily repeating notification cannot be skipped for one day, and one-time notifications can:
+  - today's water reminders are dropped once the target is met;
+  - a meal reminder is dropped once that meal is logged;
+  - the end-of-day reminder is dropped when the app was open in the last 2 hours.
+- `PlanReminders.plan` is pure.
+  - Its inputs are the settings, the profile routine, the time now, and the server's diary-day end
+    (rule 8). "Today" means before that end.
+  - It caps the list at 60, because iOS keeps 64 pending.
+- `RefreshReminders` stores what changed and re-schedules. It runs one refresh at a time.
+- It is called from:
+  - Home's load (every log reloads Home) and resume;
+  - Account's profile load (so routine edits carry over);
+  - the Reminders screen;
+  - background glasses: the widget's, and the reminder's own "Log a glass" button.
+
+**Where things live:**
+
+| Piece | Where |
+|---|---|
+| Settings, routine, and the last day seen | `SecureStore` (`reminders.state`). Cleared at sign-out, which also cancels everything scheduled. |
+| Screen | You → Reminders pill, plus a bell on Home's water card |
+| Notification permission | Asked only when a switch is turned on. A refused permission leaves the switches reading **off** with a note, so a switch never shows on while nothing will ring (the docs/15 defect). |
+| Times | The profile's wake, sleep and meal times. There are no pickers of their own. |
+
+**Android:**
+- Inexact alarms only (`inexactAllowWhileIdle`). No exact-alarm permission: Play grants that to alarm
+  clocks.
+- `RECEIVE_BOOT_COMPLETED`, plus the plugin's three receivers.
+- The widget's water and meal glyphs are reused as notification icons.
+
+**iOS:**
+- `UNUserNotificationCenter` delegate, and the plugin registrant callback for the action isolate.
+- A `water` category carries the "Log a glass" action.
+
+**Copy (en + hi):** never says what someone has not done (docs/05 §6).
+
+**Checked:**
+- 717 Flutter tests pass; APK and iOS debug both build.
+- On an Android 16 emulator:
+  - permission was asked on the switch;
+  - water and meal reminders fired at 22:55–22:56;
+  - "Log a glass" moved the server total from 200 to 400 ml with the launcher in front;
+  - 19 reminders were pending again after a reboot, which was exactly the plan.
+- iOS has not been run on a device.
+
+**Test data:** synthetic user 134's profile now has wake 21:55, sleep 23:59 and dinner 22:26, set for
+this check.
+
+## D-223 — Messages are rows the app lists, not pushes nobody keeps
+
+docs/11 §8 requires renewal notices, docs/14 §6 lists a "notifications list" screen, and docs/13 §5
+requires every notification to carry a `content_class`. None of it existed. Push was considered and
+left out: Firebase is declared in `pubspec.yaml` but has never been initialised, there are no config
+files, and a push needs a project, a server key and a per-user token before it delivers anything.
+
+Built instead: a `notification` table (kind, content_class, title, body, data, dedupe key, read_at),
+`GET /notifications`, `POST /notifications/:id/read`, `POST /notifications/read-all`, and a
+Notifications screen under You with an unread count on its row.
+
+- **`content_class` is a CHECK constraint**, not a convention: docs/13 §5 allows condition-based
+  targeting for `clinical` only, and a rule nobody can evaluate is a rule nobody can enforce.
+- **`dedupeKey` is a partial unique index.** The renewal sweep runs daily and must be safe to run
+  twice; "only once" that lives in application code is a race between two servers.
+- **Email rides along** when the account has an address (`alsoEmail`). Most accounts are phone-only,
+  so the list is the channel that has to work; a mail server that is down never costs the notice.
+
+## D-224 — The subscription lifecycle, end to end (docs/11 §5–§9)
+
+E5 held entitlements, prices and a first purchase. Everything after the purchase was missing. Built:
+
+**Schema** (asked and agreed before changing `subscriptions`):
+- `startsAt`, `paidPaise`, `priceKey`, `autoRenew`, `requiresAfa`, `cancelledAt`, `trialEndsAt`.
+- The unique index on `userId` becomes **partial** — docs/08 §6's `one_live_sub` — so an upgrade can
+  close a row and open another rather than mutating history (docs/11 §7).
+- A `trial_grant` table keyed on a **hashed phone number** (docs/11 §6: one trial per identity, "not
+  device — devices are shared"). Its own table, not a column on `user`: it outlives the account that
+  used it, which is the point.
+- Two dev rows predating the status list (`none`) became `expired` in the migration.
+
+**Behaviour:**
+- **Trial** — 7 days, one per number for life, converts unless cancelled, and cannot start while
+  something is running.
+- **Cancel** — stops the renewal, keeps the access to the period end, leaves a message saying until
+  when. Never a deletion (docs/09 §7).
+- **Upgrade** — the quote is server-computed and shown in full before anything is charged; the order
+  carries only the difference; a credit that covers the price settles without a gateway, because a
+  gateway cannot take ₹0.
+- **Refund** — seven days, self-serve, gateway first, then the order, then the plan ends, then the
+  partner's commission is reversed with an offsetting entry (docs/12 §3).
+- **Daily sweep** at 03:30 IST — T-7 and T-3 notices naming the exact amount and date, the mandatory
+  48-hour trial reminder (docs/11 §6), past_due after the period ends, grace after three days,
+  expired after seven more (docs/11 §5). It takes no money: a trial that should convert waits in
+  `past_due` rather than granting a paid tier nobody paid for.
+
+**A divergence recorded rather than followed:** docs/11 §7's worked example prints ₹3,679 of unused
+value where its own formula gives ₹3,629.41 — the example is that formula over a 360-day year. The
+formula is normative and the code follows it; `test/subscription-rules.spec.ts` says so at the
+assertion.
+
+**App:** "Your plan" under You — tier, renewal or end date, the AFA note where it applies, past_due
+and grace said plainly (docs/05 §6), the free week offered once, cancel behind a confirm, and the
+proration itemised before the upgrade is confirmed.
+
+**Not built:** Play Billing (docs/17 lists it under E5) — deferred with the owner; the web/Cashfree
+path is what exists.
+
+⚠ **`api/.env` on the development machine is pointing at CASHFREE_ENVIRONMENT=production.** Two real
+(unpaid) orders were created at the live gateway while verifying checkout before this was noticed;
+the money paths were then verified by unit test only. D-194's design assumes `stub` in development.
+
+## D-225 — Check-ins are a weekly row, generated as the queue is read
+
+docs/02 FR-5.2 asks for "clients with a due or overdue check-in, sorted by risk" and docs/09 §6 for
+`GET /coach/checkins` and `POST /coach/checkins/{id}/complete`. Neither says how often a check-in
+falls due, or what creates one.
+
+- **Weekly, on the Monday of that week.** A fixed weekday beats "seven days after the last one":
+  every client then falls due together, which is what makes a queue workable rather than a trickle.
+  The week is a DIARY date (rule 4), never an instant.
+- **Generated as the queue is read**, not by a cron. A weekly job that quietly stops leaves a coach
+  with an empty tab and no reason to suspect one; the unique index on (coach, client, week) is what
+  makes reading it twice safe. Anything still `due` from an earlier week becomes `missed` in the
+  same pass.
+- **Sorted by risk = missed first, then the oldest due date, then the longest without a log.** Never
+  by weight lost or by a streak: docs/05 §6 forbids ranking people against each other on weight, and
+  a queue sorted that way is that ranking.
+- **`GET /coach/alerts`** derives docs/02 FR-5.3's four signals from the roster the coach may
+  already see. A null is never a signal — "no weight reading" is not "off trend", so a grant that
+  hides weight produces no weight alert.
+- The queue reads through `CoachClientsService.roster`, so the grant and the coach's level are
+  enforced in one place; the audit row it writes is named `coach/checkins` rather than
+  `coach/clients`, because a trail that cannot tell two screens apart is not a trail.
+- Completing a review leaves the client a message saying it happened and what was agreed — never
+  how they are doing (docs/05 §6).
+
+The app's Check-ins tab renders the queue, the alerts above it, and a sheet that takes the note and
+the actions. `docs/17`'s E6 line is now clients + check-ins + alerts + chat.
+
+## D-226 — Coach chat: REST is the conversation, the socket only makes it live
+
+docs/02 FR-5.5 and docs/09 §6 (`POST /coach/messages`). Built with socket.io (the owner chose live
+delivery over polling), and built so that the socket is never load-bearing:
+
+- **The screen reads and sends over REST.** A phone behind a proxy that blocks upgrades still has a
+  full conversation; the socket only saves it a refresh.
+- **The pair IS the thread.** A coach and a client have one conversation, so there is no thread
+  table — only the two ids that would have been in it.
+- **Every call re-checks the `chat` grant** (docs/10 §3), including the socket's `join` and `send`.
+  A socket admitted to a room yesterday proves nothing today, and a revoked grant closes the thread
+  mid-conversation, which is exactly what revoking is for.
+- **`mine` is decided server-side on REST and absent from the broadcast.** The same message is mine
+  to one side and not the other, so the live payload carries `sender_user_id` and each end decides.
+- The notification that "you have a message" **never repeats what was said** — a lock screen is not
+  the place for somebody's diet conversation (docs/13 §5).
+- **A divergence, recorded:** docs/09 §6 writes the body as `{ client_id, body }`, from the coach's
+  side. The same endpoint carries the client's replies, so `other_user_id` is accepted and means the
+  same thing; `client_id` still works.
+
+The coach's Messages tab and the client's "Message my coach" under You are the same two screens.
+
+## D-227 — Admin: finding people, messaging a segment, and a food's review steps
+
+E8's first three gaps, all from docs/09 §9.
+
+**`POST /admin/users/search`** — a POST because a filter may name a health condition and api rule 6
+keeps health data out of query strings. Names, goals, a tier and a MASKED number (docs/13 §4); the
+full number stays behind the detail read's reason. Searching by condition is itself a health read
+(docs/10 §4), so that shape of the request requires `X-Reason` and writes an audit row — a search by
+name does not, because demanding a reason for every lookup is how reasons stop meaning anything.
+
+A bug the tests caught while writing it: a phone number typed into the box was also being read as a
+user id (`9000000002` matched "user 9000000002"), and the page carried a row for an account nobody
+has. Ids are int4 — nine digits at most — and a matched id now has to exist.
+
+**`POST /admin/notifications`** — docs/13 §5's rule lives in the service, not in a document:
+`segment.conditions` is allowed only when `content_class` is `clinical`. A commercial or service
+message aimed at people by health condition is refused with `CONDITION_TARGETING_FORBIDDEN`, and a
+send that used conditions is audited whatever it said. One dedupe key per send, so a retried request
+does not arrive twice. A segment over 5,000 people is refused rather than quietly queued.
+
+**A food's lifecycle** — docs/08 §4's `draft → reviewed → published → retired`, which the table did
+not have: it carried one `isVerified` boolean, which cannot tell "nobody has checked this" from
+"somebody checked it and it is not ready", and cannot say who checked it. A food's macros end up in
+somebody's plan.
+
+- `status` plus `reviewedBy/At` and `publishedBy/At`, added by **expand** and backfilled from the
+  flag; the service keeps the two in step (publish sets it, retire clears it) so every existing read
+  — plan generation, logging, search — is untouched. A later migration contracts.
+- Publishing is allowed only from `reviewed`: publishing straight from a draft is the review step
+  quietly not happening.
+- `POST /admin/foods` validates through the CSV importer's own rules, so "a valid food" has one
+  definition whether it arrives in a file or a form — and lands as a DRAFT whatever the body says.
+- Retire, never delete: the row is in somebody's diary.
+
+**Deliberately not done here:** four-eyes (a different person publishing from the one who reviewed)
+is recorded as an option rather than enforced — with one admin in the building it would block the
+queue, and it is a policy decision rather than a technical one.
+
+## D-228 — Support tickets: one conversation, read from two sides
+
+docs/09 §9 gives `GET /admin/tickets` and `POST /admin/tickets/{id}/reply`; docs/14 §6 puts
+"help/tickets" under You. Both are the same rows.
+
+- **Two tables**, `ticket` and `ticket_message`. Squashing them would mean either a first message
+  that is special or a status repeated on every line.
+- **docs/03 §5's states, unchanged:** `new → open → waiting_user → resolved → closed`, reopenable
+  within seven days. `waiting_user` is load-bearing — a queue that cannot tell "we owe them an
+  answer" from "they owe us one" is a queue where the first kind quietly ages. The support queue is
+  therefore `new` + `open`, oldest first: a queue sorted newest-first has a bottom nobody reaches.
+- **The reopen window is enforced, and a late reply is refused rather than swallowed.** Somebody
+  writing into a two-month-old thread is told to start a new one, instead of typing into a queue
+  nobody reads.
+- **`requestId` on the ticket** — docs/09 §1 says every response carries an `X-Request-Id` and
+  "support tickets quote it". The app sends the id of whatever went wrong, so the logs for that
+  moment can actually be found.
+- **Five open conversations per person.** Not a rate limit on writing, a limit on starting: reply on
+  one you already have. Resolved ones do not count.
+- **A support reply notifies the person** through D-223's notification rows, class `service`.
+- **Somebody else's ticket is 404, not 403** — a 403 confirms that a ticket with that id exists.
+- **Reading a ticket from the admin side writes a `read_pii` audit row** with reason
+  `support_ticket` (docs/10 §4's ticket-scoped access). No reason header: that requirement is about
+  health fields, and support that cannot read the ticket it is answering cannot answer it.
+
+`POST /admin/tickets/{id}/resolve` and `.../close` are not in docs/09 §9's list; without them the
+states in docs/03 §5 have no way to be reached. Recorded here as a spec addition, not a divergence.
+
+## D-229 — A second factor on the dangerous admin actions, and nothing else
+
+docs/09 §9 wants rule-pack activation behind `super_admin`. Asked whether TOTP should cover every
+admin login, the answer was: only the dangerous actions. That is the right instinct — a code demanded
+thirty times a day is a code typed without reading it.
+
+**Gated:** activating a rule pack, and revealing an applicant's full identity (the whole phone
+number). Everything else on the admin surface stays as it was, including the masked queue a reviewer
+works from all day.
+
+- **RFC 6238, written here** (`src/admin/totp.ts`): HMAC-SHA1, six digits, thirty-second steps, one
+  step of drift either side. Not a hand-rolled algorithm — the RFC publishes test vectors, and
+  `test/totp.spec.ts` runs this code against all ten of them plus RFC 4648's base32 examples. A
+  dependency for thirty lines is a dependency to keep patched forever.
+- **A code is good once.** The last accepted code is stored, so one read over somebody's shoulder is
+  not usable for the rest of its ninety-second window.
+- **Its own table**, `admin_totp`, not columns on `user`: it is read on a handful of admin requests
+  and never on the auth path. The secret is stored as the app needs it — TOTP cannot be hashed —
+  and docs/13 §7's encryption at rest is what protects that column.
+
+**Rule-pack activation** (`POST /admin/rule-packs/activate`):
+
+- **Its own controller**, `@Roles(super_admin)` at class level. `AdminController` is
+  `@Roles(admin, super_admin)` and `RolesGuard` resolves the CLASS decorator first, so a method-level
+  narrowing there would silently not apply. A route whose protection depends on decorator precedence
+  loses it the day somebody reorders an argument.
+- **`reviewed_by` is two people, in the database as well as the service** — a `CHECK` that the
+  reviewer is not the actor, and a service check that they are an admin. The numbers in a pack are
+  what docs/05 §2's safety floors are made of.
+- **Append-only `rule_pack_activation`.** The active version is the newest row, so the table is also
+  the history. A rollback is a new row naming the older version, never an edit.
+- **Activation chooses, it never edits.** api rule 1 keeps every constant in a versioned YAML file;
+  only a pack that was on disk and validated at boot can be activated, because a version this
+  process has never read is one nothing has checked.
+- **The database wins at start-up, not `RULE_PACK_VERSION`** — otherwise a restart would quietly roll
+  back what two people signed off. A pack named in the database but missing from the machine logs a
+  warning and keeps serving what it has, rather than refusing to start over an undeployed file.
+
+## D-230 — `is_demo` is one column on `user`, not one per table
+
+`.claude/rules/database.md` asks for `is_demo` on every table with user-visible content and says
+metrics exclude it; docs/08 §10 says the same about the rollup. D-180 noted the column did not exist
+and that the overview therefore counted seeded rows.
+
+One flag on `user`. Everything with user-visible content in this schema hangs off a person — diaries,
+plans, subscriptions, tickets, applications — so a flag on the account answers it for all of them,
+and there is no way for two tables to disagree about whether the same account is real.
+
+- `GET /admin/metrics/overview` reads the demo ids once and excludes those rows from every count,
+  including both ends of a coach grant. **With no demo accounts it adds no clause at all**, which is
+  every production box.
+- The seed marks the accounts it creates, so a seeded box stops inflating its own dashboard.
+- Defaults to false: every existing row is real until somebody says otherwise.
+
+## D-231 — The fill is a bounded beam search now, and the plan lands
+
+D-167 ended with "greedy cannot do this" and two honest routes. This is the first of them, plus the
+three things that turned out to matter more than the search itself.
+
+**The state before:** `assertFilledDayCoherent` threw for an ordinary profile. A day came back
+between 17 % and 48 % short of its energy target, with one food served 20.5 times. No automated test
+said so — every fixture in `fill.spec.ts` passed, because a five-food fixture cannot contain the
+better-scoring wrong answer that breaks a real pool. That is now `test/real-pool.spec.ts`, which
+builds four different people's days from the actual 281 rows of `docs/templates/foods-seed.csv`.
+
+**The search.** Beam width 8, depth 24 increments, per-food serving ceiling 6, patience 3. Each level
+adds one household increment to every state in the beam and keeps the cheapest distinct results;
+states that are the same multiset reached in a different order are collapsed, or the beam fills with
+permutations of itself. Bounded by construction, and deterministic: the pool arrives ordered, every
+tie breaks on food id, and the same pool yields the same day forever (rule 2).
+
+This diverges from docs/04 §7, which specifies greedy by protein density plus a repair pass. §7 says
+greedy because it is simple, not because it is sufficient; D-167 spent seven iterations proving the
+difference. A plan that misses the day by 48 % is not a plan, whatever the method section says.
+
+**Meals fill in order, each carrying what the last one left.** Four meals each 4 g short of protein
+is a day 16 g short against a ±5 g assertion. Filling against what REMAINS spends the shortfall
+where there is still food to spend it on, and it is why the day lands rather than each meal
+separately landing.
+
+**Three things the search alone did not fix.**
+
+1. **The fill ignored two targets the engine had computed all along.** `targets.fibreG` and
+   `targets.saturatedFatMaxG` were never passed to it. A day could satisfy energy, protein and every
+   ceiling on chole bhature, ghee and a cola — every number correct, the food indefensible. Fibre is
+   now aimed at (only a shortfall costs anything) and saturated fat is a ceiling. Likewise docs/04
+   §7's per-meal protein floor, which has sat on `MealTarget.minProteinG` since step 12 was written
+   and which nothing read.
+2. **A cap read as a budget.** Added sugar was priced only when it crossed the day's ceiling, so the
+   search spent 26 g of the allowed 34 g on a glass of cola, which closes an energy gap cheaply. It
+   is now priced below the ceiling too: a cap says "no more than this", and a person would add "and
+   less is better".
+3. **The food table holds ingredients as well as dishes.** The first working version answered a
+   2,700 kcal day with three cups of raw rava and half a cup of atta — nutritionally exact, and not
+   food. Four rows (raw suji, atta, maida, besan) are tagged `attr:ingredient` and the pool refuses
+   to serve them. They stay searchable and loggable, because people do log two tablespoons of besan.
+   `attr:ingredient` rather than docs/03's `prep:raw`: raw is not the question — raw onion and raw
+   tomato are salad — and the `attr:` namespace was already wider than docs/03 §4 lists.
+
+**A day also has a memory now.** Serving the same food again later costs something. A price, not a
+ban: roti at lunch and again at dinner is how most of India eats; chole bhature twice in one day is
+not, and the first version did exactly that.
+
+**A conflict inside the rule pack, surfaced rather than resolved.** For type 2 diabetes v1.0.0 caps
+an eating occasion at 55 g of carbohydrate and asks for at least four occasions — 220 g — against a
+394 g carbohydrate target from the same pack. No search satisfies both. The plan now comes back
+short, carries `carb_cap_limits_energy`, and says so to the person in words they can act on ("more
+meals closes the gap"). The alternatives were breaching a clinical cap or quietly serving the
+difference as fat, and the engine choosing between two clinical numbers by itself is the one thing it
+must not do. **This needs the dietitian**: either the diabetic macro split moves carbohydrate down,
+or the cap moves, or the plan asks for more occasions.
+
+**What is still open, and is a product decision rather than a bug.** The search optimises nutrients;
+it has no notion of what a meal looks like. A day that hits energy, protein, fibre, sodium and every
+ceiling can still read as sabudana khichdi, chole bhature, vada pav and sugarcane juice. Fixing that
+means composition rules — "a main meal is a cereal plus a protein plus a vegetable" — which docs/04
+§7 does not specify and which would need `group:` tags on all 281 rows (the vocabulary exists in
+docs/03 §4; the seed data does not use it). Recorded here rather than invented, for the same reason
+D-165 recorded cola and pickle: what a plan may contain is a nutrition decision, not an engineering
+one.
+
+## D-232 — The admin dashboard now reaches everything E8 built
+
+E8 left seven endpoints with no screen in front of them, and one of them was load-bearing: D-229 put
+a TOTP code in front of the applicant reveal, and the dashboard had no way to enrol an authenticator
+or to send a code. **The reveal was broken by that change until this landed** — worth recording,
+because it is the shape of mistake that hides: an API change that passes every test and disables a
+screen in another repo.
+
+Seven views added, one per thing the API can do: find someone, support tickets, food review, send a
+message, audit log, rule packs, security. Each is the API's own vocabulary rather than a new one —
+the queue filters are the ticket states, the food steps are docs/08 §4's, the reasons are docs/10
+§4's closed list.
+
+**The code prompt is inline, at the action.** Not a modal: the person already decided to reveal that
+applicant, and a dialog covering the screen makes them forget which one. The code lives in one
+component's state, is sent as `X-Totp`, and is never stored — the API refuses a second use of it.
+
+**The reveal no longer happens because a row was opened.** It used to load the moment the row
+expanded; now opening a row to check a submission date costs nothing, and seeing who somebody is
+takes a deliberate code. That is closer to what docs/13 §4 meant by an audited reveal than the
+previous behaviour was.
+
+**The reference design's five placeholder destinations are gone** — Calendar, Payroll, Inbox,
+Messages, Automations, all from the template this dashboard was cut from (D-182 kept them as inert
+icons). An operations tool whose navigation is half fiction teaches people to distrust the half that
+works. The rail is now ten real destinations in the order the work happens.
+
+**One thing this does not fix.** The dashboard signs in as a single service account, so the
+authenticator belongs to that account rather than to each admin, and the audit log records that
+account as the actor. Fine while the team fits in a room; per-admin sign-in is the upgrade, and it
+is the difference between "an admin read this" and "*this* admin read this".
+
+## D-233 — Consent you can take back, a copy you can keep, and a way out
+
+docs/13 §9 says to build the data-subject rights "as features, not tickets". E9's first half.
+
+**Consent is three toggles, not four.** docs/13 §3 names four: account & service, health processing,
+coach sharing, marketing. "Account & service" has no toggle because there is no version of this
+product that does not identify you, and offering one would be a lie. "Coach sharing" is docs/10 §3's
+grant — per coach, scoped, expiring — which a boolean cannot express and which already has its own
+screen. What is left is health storage, plan generation and marketing, marketing defaulting off.
+
+**A withdrawal is a new row.** `consent` was append-only already; the new endpoints keep it that way,
+so "what were they consenting to when we stored that field?" stays answerable. The notice version
+travels with the row for the same reason.
+
+**Withdrawing health processing actually stops plan generation.** `PlansService` asks before it
+reads anything — reading the health profile in order to decide would be the processing they
+withdrew from. Without this the toggle would have been decoration, which is the failure mode docs/13
+§3 is written against.
+
+**Export is synchronous.** docs/13 §9 says async with a 24-hour link; one person's diary is a few
+thousand rows, BullMQ is not wired, and a right that depends on a worker staying alive is a right
+that quietly stops being honoured. The 24-hour expiry is kept and enforced on read. If bundles grow,
+this is the thing to move.
+
+**Erasure is a promise with dates on it, so it is a row.** Seven days' cooling-off, a 48-hour warning,
+then it runs. `erasureDue` refuses to run until 48 hours after the warning ACTUALLY went out, not
+merely 48 hours after it was due — a person warned two hours before deletion was not warned.
+
+**Cancelling is an act, not a side effect.** docs/13 §6 offers "a chance to retain by logging in";
+signing in does not cancel here. Somebody who logs in to download their export has not changed their
+mind about leaving, and quietly keeping their account because they opened the app is the kind of
+helpfulness that ends in a complaint. The 48-hour notice names the button instead.
+
+**What erasure does.** docs/13 §6 is explicit: a real delete of the health rows plus a tombstone of
+the user record, never a `deleted_at` flag on everything. Food logs, measurements, plans, health
+profile and profile are deleted; the user row keeps its id and loses its name, number, email and
+credentials. What stays, stays for a reason that is written down: payments and invoices 8 years
+(Companies Act / GST), consent records 7 years as evidence of lawful basis, audit log 3 years and
+immutable. The `privacy_request` row survives the account it describes — with the person gone, it is
+the only evidence the right was honoured, and on time.
+
+**Still open in E9:** the retention sweep for the rest of docs/13 §6's table (meal photos at 90 days,
+screening answers at a year, tickets two years from closure, chat a year after an assignment ends,
+health data three years after last activity), the grievance form and a named Grievance Officer with a
+30-day SLA, the nominee field, versioned public Privacy Policy and Terms pages, and docs/13 §7's
+column-level encryption on conditions and screening.
+
+## D-234 — The admin dashboard had no login, and that is why logout did nothing
+
+Reported as "the admin is not able to logout". The button had no handler — but the reason it had no
+handler is that there was nothing to log out OF.
+
+**What was there.** `admin/.env.local` held `ADMIN_API_EMAIL` and `ADMIN_API_PASSWORD`; `lib/api.ts`
+signed in with them, cached the JWT in module scope, and used it for every request from anybody who
+could open the page. No login screen, no session, no middleware. Whoever reached the URL had client
+health data, applicant identities with full phone numbers, ticket contents and the ability to
+broadcast to every user — and D-232 had just added most of that. The audit log recorded every one of
+those reads as the service account, which is worse than useless: docs/09 §9 exists so that "who read
+this person's diary" has an answer, and that answer was the same string for everybody.
+
+**What it is now.** A login page, an httpOnly session cookie, middleware that redirects a page and
+401s an API route, and a logout that ends the session on the API as well as in the browser. The
+dashboard has no users of its own — it signs in with the same Eatzify account the API knows, because
+one more password to keep is one more password to leak. docs/10 §1's `admin` and `super_admin` get
+in; anybody else is told plainly at sign-in rather than shown a dashboard where every panel 403s.
+
+**Wrong password and unknown address get the same sentence.** Telling somebody which half they got
+right is how an address list gets enumerated.
+
+**Refresh happens in middleware, and that is not a preference.** The API rotates refresh tokens —
+using one invalidates it and hands back the next — so a renewal has to be written back to the
+cookie. Middleware is the only layer that sees every request and can set a cookie on the way out;
+doing it inside each of the sixteen route handlers would be sixteen chances to forget. The newly
+minted token also rides onto the request headers so the handler this request is already heading for
+uses it rather than the expired one it arrived with.
+
+**The race this accepts.** Two requests refreshing in the same moment would leave one of them signed
+out, because the token is single-use. With a fifteen-minute access token and a handful of people,
+that is rare enough to accept rather than build a lock for. Named here so the next person reading a
+mysterious logout knows where to look.
+
+**Two follow-ons this fixes for free.** The audit log now names a person rather than a service
+account — the weakness D-232 recorded and could not fix on its own. And "Settings" in the rail, which
+was also a button that did nothing, now opens the Security screen, which is the only setting this
+dashboard has.
+
+**Still open:** the dashboard has no rate limiting of its own in front of the login form, and relies
+on the API's. Worth revisiting in E10.
+
+## D-235 — Composition and alternates: the machinery is built; the values await the dietitian
+
+D-231 ended with "what a plan may contain is a nutrition decision, not an engineering one." This
+closes the engineering half of E3's last mile and leaves the nutrition half as a proposed diff.
+
+**All 281 seed rows now carry `group:` tags** — docs/03 §4's own vocabulary, applied by
+`api/scripts/tag-food-groups.py` (an explicit per-food mapping that errors on anything unmapped,
+idempotent, and emits the SQL for a live table). Judgement calls are recorded in the script and
+flagged for review: potato and other starchy roots stay `veg`; butter, ghee, cream and malai are
+`fat_oil`, not dairy; sweets are `sugar`; street food is `prepared` — the one group that
+deliberately satisfies NOTHING in a composition rule, so a samosa can never structure a main
+meal. Tagging also arms v1.0.0's own `group:egg/fish/meat` exclusions, which matched no row until
+now (the D-134 gap).
+
+**The fill prices composition** when the pack carries a `composition` block: each rule names its
+slots and a list of requirements, each requirement met by one food in the meal carrying any of
+its tags. Coverage is a bitmask on the beam state; the unmet fraction is priced at rule strength
+beside the protein floor. **Step 14 exists**: `pickAlternates` offers same-`group:` swaps fitted
+to household increments, inside the pack's `alternates` tolerances, deterministic, capped per
+item; `EngineOutput.alternates` carries them and the trace records the step. Both blocks are
+optional and absent from v1.0.0, so today's output is byte-identical — all goldens pass unchanged.
+
+**PROPOSED PACK DIFF — v1.1.0, requires `reviewed_by` before it may exist in `config/rule-packs/`:**
+
+```yaml
+alternates:
+  kcal_tolerance_pct: 0.10      # a swap may move a meal ±10 % of the item it replaces
+  protein_tolerance_g: 5        # and ±5 g protein — mirrors validation.protein_tolerance_g
+  max_per_item: 3
+composition:
+  rules:
+    - slots: [breakfast]        # poha + curd is a whole breakfast; no vegetable demanded
+      require_one_of:
+        - ["group:cereal"]
+        - ["group:pulse", "group:dairy", "group:meat", "group:fish", "group:egg"]
+    - slots: [lunch, dinner]    # the classic thali: staple + protein + vegetable
+      require_one_of:
+        - ["group:cereal"]
+        - ["group:pulse", "group:dairy", "group:meat", "group:fish", "group:egg"]
+        - ["group:veg"]
+    - slots: [mid_morning, snack, evening, bedtime]
+      require_one_of:
+        - ["group:fruit", "group:nut_seed", "group:dairy", "group:cereal"]
+```
+
+Questions the reviewer must answer, not us: whether breakfast should demand a vegetable; whether
+`veg` alone may satisfy a protein requirement for a jain profile whose pool has few pulses;
+whether starchy roots should count as `veg` in the lunch/dinner rule; and the D-231 diabetic
+carb-cap conflict, which is still theirs.
+
+## D-236 — Offers an admin can hand out, and a revenue page that says what actually sold
+
+**Coupons.** One kind of discount on purpose: a percentage, capped at 90 at creation — a flat
+amount can go below zero when prices change, and 100 % makes a zero-amount gateway order. The
+body still never names a price: checkout recomputes the list price, prices the code server-side,
+and refuses unknown/expired/exhausted/switched-off codes with ONE user_message — which check
+failed is the admin's business. The order stores `couponCode` and `discountPaise` so a later
+coupon change cannot rewrite what someone paid, and a use is spent only in `markPaid`, the one
+place a payment is known to be real — an abandoned checkout never burns one. Codes deactivate,
+never delete: usage stays visible. Creating or switching off an offer sits behind the TOTP second
+factor like the other actions that change what people pay (D-229).
+
+**Revenue.** `GET /admin/metrics/revenue`: rolling 7/30/365-day and all-time sums over `paidAt`,
+kept money only (refunds shown apart), demo accounts excluded like every rollup (docs/08 §10),
+and every plan cell ever sold, best-seller first. Paise cross the wire as strings — a bigint sum
+must never become a JS float. The dashboard's Metrics view carries the cards, the plans table
+and the offers panel; the app's paywall gains one optional "Offer code" field whose only logic
+is sending the string — the server prices it, rule 2 as ever.
+
+Not built, deliberately: coupons on UPGRADES (the proration quote is its own machine; an offer
+on it is a separate decision) and stacking (one code per order, by shape).

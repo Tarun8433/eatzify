@@ -41,10 +41,22 @@
   "progressCalorieTitle": "Calorie progress",
   "progressAvgConsumed": "avg consumed",
   "progressGoalKcal": "Goal: {kcal} kcal",
-  "@progressGoalKcal": { "placeholders": { "kcal": { "type": "int" } } },
+  "@progressGoalKcal": {
+    "placeholders": {
+      "kcal": {
+        "type": "int"
+      }
+    }
+  },
   "progressOfGoal": "of goal",
   "progressVsLastWeek": "{pct}% vs last week",
-  "@progressVsLastWeek": { "placeholders": { "pct": { "type": "int" } } },
+  "@progressVsLastWeek": {
+    "placeholders": {
+      "pct": {
+        "type": "int"
+      }
+    }
+  },
   "progressGoalLabel": "Goal",
   "progressMacroTitle": "Macronutrient balance",
   "progressMacroWindow": "7-day average",
@@ -53,18 +65,51 @@
   "progressCurrentWeight": "Current weight",
   "progressConsistencyTitle": "7 day consistency",
   "progressConsistencyCount": "{logged} / {days} days",
-  "@progressConsistencyCount": { "placeholders": { "logged": { "type": "int" }, "days": { "type": "int" } } },
+  "@progressConsistencyCount": {
+    "placeholders": {
+      "logged": {
+        "type": "int"
+      },
+      "days": {
+        "type": "int"
+      }
+    }
+  },
   "progressEmptyTitle": "Not enough data yet",
   "progressEmptyBody": "Log your weight for a few days and your trend appears here.",
   "accountSubtitle": "Manage your profile and goals",
   "accountTitle": "Profile",
   "accountHi": "Hi, {name}!",
-  "@accountHi": { "placeholders": { "name": { "type": "String" } } },
+  "@accountHi": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "accountHiThere": "Hi there!",
   "accountStepsToday": "{steps} steps today",
-  "@accountStepsToday": { "placeholders": { "steps": { "type": "String" } } },
+  "@accountStepsToday": {
+    "placeholders": {
+      "steps": {
+        "type": "String"
+      }
+    }
+  },
   "accountStepsCaption": "steps today",
   "accountBodyStats": "Body stats",
+  "accountGoalWeight": "Goal weight",
+  "accountMedications": "Medicines",
+  "accountDigestive": "Digestive symptoms",
+  "accountInjuries": "Injuries",
+  "accountYourDay": "Your day",
+  "accountWakeTime": "Wake up",
+  "accountSleepTime": "Bedtime",
+  "accountYourRoutine": "Your routine",
+  "accountMealCount": "Meals a day",
+  "accountLifestyle": "Daily routine",
+  "accountBudget": "Budget",
+  "accountDislikes": "Foods you avoid",
   "accountQuickActions": "Quick actions",
   "accountMyPlan": "My plan",
   "accountReports": "Reports",
@@ -256,18 +301,45 @@
   "sourceHealthConnect": "Health Connect",
   "homeStepsFrom": "Steps · {source}",
   "@homeStepsFrom": {
-    "placeholders": { "source": { "type": "String" } }
+    "placeholders": {
+      "source": {
+        "type": "String"
+      }
+    }
   },
   "onboardingResultLead": "You're aiming to",
   "onboardingResultLoseShort": "lose {kg} kg",
   "onboardingResultGainShort": "gain {kg} kg",
   "onboardingResultHoldShort": "hold your weight",
   "@onboardingResultLoseShort": {
-    "placeholders": { "kg": { "type": "String" } }
+    "placeholders": {
+      "kg": {
+        "type": "String"
+      }
+    }
   },
   "@onboardingResultGainShort": {
-    "placeholders": { "kg": { "type": "String" } }
+    "placeholders": {
+      "kg": {
+        "type": "String"
+      }
+    }
   },
+  "onboardingResultProgressTitle": "Your progress",
+  "onboardingResultProgressSub": "You're on your way to a healthier you!",
+  "onboardingResultGoalFlag": "Goal",
+  "onboardingResultRangeNote": "A healthy weight range for your height is {low} – {high} kg.",
+  "@onboardingResultRangeNote": {
+    "placeholders": {
+      "low": {
+        "type": "String"
+      },
+      "high": {
+        "type": "String"
+      }
+    }
+  },
+  "onboardingSummaryShapeSub": "This helps us personalize your plan",
   "onboardingResultJourney": "Your journey",
   "onboardingResultHealthyChip": "Healthy range",
   "onboardingResultHealthyNote": "Your target sits inside the healthy weight range for your height.",
@@ -283,18 +355,65 @@
   "onboardingResultFrom": "Now",
   "onboardingResultTo": "Target",
   "@onboardingResultTitle": {
-    "placeholders": { "kg": { "type": "String" } }
+    "placeholders": {
+      "kg": {
+        "type": "String"
+      }
+    }
   },
   "@onboardingResultGain": {
-    "placeholders": { "kg": { "type": "String" } }
+    "placeholders": {
+      "kg": {
+        "type": "String"
+      }
+    }
   },
   "fieldWeightShort": "Weight",
   "fieldGoalWeightShort": "Target",
   "pickerDone": "Done",
   "pickerOpen": "Choose {label}",
   "@pickerOpen": {
-    "placeholders": { "label": { "type": "String" } }
+    "placeholders": {
+      "label": {
+        "type": "String"
+      }
+    }
   },
+  "splashTagline": "Eat healthy. Live better. Every day.",
+  "splashPreparing": "Preparing your health journey…",
+  "pickerWhyTitle": "Why we need this?",
+  "pickerUsePrevious": "Use previous: {value}",
+  "@pickerUsePrevious": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
+  "pickerPrev": "Previous value",
+  "pickerNext": "Next value",
+  "pickerYearsOld": "Years old",
+  "pickerUnitKg": "kg",
+  "pickerUnitLb": "lb",
+  "pickerSelectedWeight": "Selected weight",
+  "pickerTrackTitle": "Track your progress",
+  "pickerHealthyHint": "A healthy weight for your height is {low}–{high} kg. Pick any target you like — this is only a guide.",
+  "@pickerHealthyHint": {
+    "placeholders": {
+      "low": {
+        "type": "String"
+      },
+      "high": {
+        "type": "String"
+      }
+    }
+  },
+  "onboardingAgeWhy": "Your age helps us personalize your calorie needs, health insights and recommendations.",
+  "onboardingWeightWhy": "Your weight helps us personalize your calorie needs, goals and progress.",
+  "onboardingWeightTrack": "You can update your weight anytime from your profile.",
+  "pickerUnitCm": "cm",
+  "pickerUnitFtIn": "ft & in",
+  "onboardingHeightWhy": "Your height helps us personalize your nutrition, goals and progress.",
   "welcomeSlide1Title": "Food you already eat",
   "welcomeSlide1Body": "Plans built from roti, dal, idli and rajma — not from a foreign diet with Indian names on it.",
   "welcomeSlide2Title": "Targets worked out, not guessed",
@@ -333,7 +452,14 @@
   "loginBack": "Back",
   "otpDigit": "Digit {position} of {total}",
   "@otpDigit": {
-    "placeholders": { "position": { "type": "int" }, "total": { "type": "int" } }
+    "placeholders": {
+      "position": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
   },
   "loginTitle": "Your phone number",
   "loginSubtitle": "We'll text you a 6-digit code. No password to forget.",
@@ -418,9 +544,21 @@
   "progressChangeDown": "{kg} kg down since you started tracking",
   "progressChangeFlat": "About the same since you started tracking",
   "progressChange30Up": "{kg} kg up vs last 30 days",
-  "@progressChange30Up": { "placeholders": { "kg": { "type": "String" } } },
+  "@progressChange30Up": {
+    "placeholders": {
+      "kg": {
+        "type": "String"
+      }
+    }
+  },
   "progressChange30Down": "{kg} kg down vs last 30 days",
-  "@progressChange30Down": { "placeholders": { "kg": { "type": "String" } } },
+  "@progressChange30Down": {
+    "placeholders": {
+      "kg": {
+        "type": "String"
+      }
+    }
+  },
   "progressChange30Flat": "About the same as 30 days ago",
   "progressHistoryTitle": "History",
   "progressHistoryExcluded": "Left out of the trend",
@@ -461,11 +599,15 @@
   "logFoodsCategory": "Food category",
   "logFoodsCategoryAll": "All categories",
   "logFoodsAll": "All foods",
-  "logFoodsMatching": "Matching \u201c{query}\u201d",
+  "logFoodsMatching": "Matching “{query}”",
   "@logFoodsMatching": {
-    "placeholders": { "query": { "type": "String" } }
+    "placeholders": {
+      "query": {
+        "type": "String"
+      }
+    }
   },
-  "logSearchHint": "Search for food, dish or ingredient\u2026",
+  "logSearchHint": "Search for food, dish or ingredient…",
   "logSearchEmpty": "No foods found.",
   "logSlot": "Meal",
   "logHowMuch": "How much?",
@@ -508,51 +650,487 @@
   "homeBurnedUnavailable": "Calories burned aren't counted unless you enter them. Tap + to add today's activity.",
   "planDailyTarget": "Daily target",
   "planKcalConsumed": "{kcal} kcal consumed",
-  "@planKcalConsumed": { "placeholders": { "kcal": { "type": "int", "format": "decimalPattern" } } },
+  "@planKcalConsumed": {
+    "placeholders": {
+      "kcal": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
   "planKcalLeft": "{kcal} kcal left",
-  "@planKcalLeft": { "placeholders": { "kcal": { "type": "int", "format": "decimalPattern" } } },
+  "@planKcalLeft": {
+    "placeholders": {
+      "kcal": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
   "planKcalOver": "{kcal} kcal over",
-  "@planKcalOver": { "placeholders": { "kcal": { "type": "int", "format": "decimalPattern" } } },
+  "@planKcalOver": {
+    "placeholders": {
+      "kcal": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
   "premiumGo": "Go Premium",
+  "premiumCouponLabel": "Offer code (optional)",
   "premiumTitle": "Unlock your best results",
   "premiumBody": "Go Premium and get more from your plan.",
   "premiumTrial": "7-day free trial",
   "premiumSheetTitle": "Premium plans",
-  "premiumComingSoon": "Payments are opening soon. These are the live plans and prices.",
-  "premiumMonths": "{months, plural, =1{1 month} other{{months} months}}",
-  "@premiumMonths": { "placeholders": { "months": { "type": "int" } } },
+  "premiumComingSoon": "Payments are opening soon.",
+  "premiumMonths": "{months, plural, =1{1 Month} other{{months} Months}}",
+  "@premiumMonths": {
+    "placeholders": {
+      "months": {
+        "type": "int"
+      }
+    }
+  },
   "premiumFeatRegen": "More plan regenerations",
   "premiumFeatAlternates": "Meal alternates",
   "premiumFeatExport": "PDF export",
   "premiumFeatSupport": "Priority support",
+  "onboardingProfessionLabel": "Do you work in fitness or nutrition?",
+  "onboardingProfessionNone": "No, just for myself",
+  "onboardingProfessionTrainer": "Trainer",
+  "onboardingProfessionNutritionist": "Nutritionist",
+  "onboardingProfessionDoctor": "Doctor (nutrition)",
+  "partnerInviteTitle": "Work with clients on Eatzify",
+  "partnerInviteSubtitle": "You told us you work in this field. Here is what partnering looks like.",
+  "partnerBenefitEarn": "Earn commission when someone you refer subscribes.",
+  "partnerBenefitClients": "Work with clients directly once they invite you and grant access.",
+  "partnerBenefitTrack": "Follow their progress — weight, steps and how closely they stick to the plan — once you are verified and they grant access.",
+  "partnerBenefitBadge": "Show a Verified Partner badge once we have seen your documents.",
+  "partnerBenefitDashboard": "Track referrals, earnings and payouts in one place.",
+  "partnerInviteContinue": "Got it",
+  "partnerInviteAfter": "Nothing happens yet. Finish setting up your own profile first, then open Become a partner from the You tab whenever you are ready.",
+  "partnerTitle": "Become a partner",
+  "partnerHeroTitle": "Become a partner",
+  "@partnerHeroTitle": {
+    "description": "Headline on Become a partner. The LAST word is tinted brand green, so translations should keep the emphasised noun last."
+  },
+  "partnerHeroBody": "Join our growing community of trusted trainers and professionals.",
+  "@partnerHeroBody": {
+    "description": "Sub-headline under partnerHeroTitle."
+  },
+  "partnerIntroTitle": "Coach on Eatzify",
+  "partnerIntroBody": "Refer clients and earn, or work with them directly once they invite you. You keep your own account either way.",
+  "partnerAgreementNote": "Accepting the agreement makes you an Affiliate Partner straight away. Sending documents is only needed if you want to work with clients directly.",
+  "partnerStepDiscipline": "What you do",
+  "partnerStepDisciplineBody": "Tell us which kind of partner you are.",
+  "partnerDisciplineTitle": "What kind of partner are you?",
+  "partnerDisciplineNote": "You can change this until you send your application in. After that it is part of what the reviewer checks your documents against.",
+  "partnerDisciplineOther": "Something else",
+  "partnerAcceptAgreement": "Accept agreement",
+  "partnerStepAgreement": "Partner agreement",
+  "partnerStepAgreementBody": "Accepted. You are an Affiliate Partner.",
+  "partnerStepId": "Photo ID",
+  "partnerStepIdBody": "A government photo ID, so we know who you are.",
+  "partnerStepQualification": "Qualification",
+  "partnerStepQualificationBody": "The qualification you want listed on your profile.",
+  "partnerDocumentOnFile": "On file. Tap to replace.",
+  "partnerDocumentCamera": "Take a photo",
+  "partnerDocumentGallery": "Choose from gallery",
+  "partnerWhatVerificationMeans": "What verification means",
+  "partnerSubmit": "Submit for review",
+  "partnerInReview": "Your application is with our team. We will let you know as soon as it has been reviewed.",
+  "partnerNotApproved": "Not approved",
+  "partnerVerified": "You are a verified partner. Tap a step above to replace a document.",
+  "accessTitle": "Who can see my data",
+  "accessExplainer": "You decide what each partner can see, and you can take it back at any time. Nobody sees anything you have not given.",
+  "accessNobodyTitle": "Nobody can see your data",
+  "accessNobodyBody": "You have not given any partner access. When you do, they will be listed here.",
+  "accessPartner": "Partner #{id}",
+  "@accessPartner": {
+    "placeholders": {
+      "id": {
+        "type": "int"
+      }
+    }
+  },
+  "accessEnded": "Access ended",
+  "coachInvitedTitle": "Waiting for a reply",
+  "coachClientsSubtitle": "Manage your clients and stay connected",
+  "coachInviteExpiresIn": "{days, plural, =0{Expires today} =1{Expires tomorrow} other{Expires in {days} days}}",
+  "@coachInviteExpiresIn": {
+    "placeholders": {
+      "days": {
+        "type": "num",
+        "format": "compact"
+      }
+    }
+  },
+  "coachInviteExpired": "Expired",
+  "coachInvitedCount": "{count, plural, =1{1 waiting} other{{count} waiting}}",
+  "@coachInvitedCount": {
+    "placeholders": {
+      "count": {
+        "type": "num",
+        "format": "compact"
+      }
+    }
+  },
+  "accessGrantedTitle": "Can see your data",
+  "coachInviteExpires": "Expires {date}",
+  "@coachInviteExpires": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "coachInviteNotOnApp": "Not on Eatzify yet",
+  "invitePhoneInvalid": "Enter the phone number they sign in with.",
+  "accessRequestsTitle": "Requests",
+  "accessRequestUnnamed": "A partner",
+  "accessVerifiedBadge": "Verified by Eatzify",
+  "accessNotVerifiedBadge": "Not verified yet",
+  "accessVerifiedChecked": "What was checked: {items}",
+  "@accessVerifiedChecked": {
+    "placeholders": {
+      "items": {
+        "type": "String"
+      }
+    }
+  },
+  "accessVerifiedIdentity": "identity",
+  "accessVerifiedQualification": "qualification document",
+  "accessRequestsBody": "They are asking to see the following. Nothing is shared until you accept.",
+  "accessAccept": "Accept",
+  "accessDecline": "Decline",
+  "accessAnswering": "Saving…",
+  "accessRevoke": "Stop sharing",
+  "accessRevoking": "Stopping…",
+  "accessScopeBasic": "Name and goal",
+  "accessScopeProgress": "Weight, steps and adherence",
+  "accessScopePlanView": "Can view your plan",
+  "accessScopePlanEdit": "Can change your plan",
+  "accessScopeChat": "Can message you",
+  "accessScopeConditions": "Conditions and allergies",
+  "accountWhoCanSee": "Who can see my data",
+  "accountCoachDashboard": "My clients",
+  "accountInviteFriends": "Invite friends",
+  "inviteFriendsSubject": "Try Eatzify",
+  "inviteFriendsMessage": "I'm using Eatzify to plan my meals. Have a look: {link}",
+  "@inviteFriendsMessage": {
+    "placeholders": {
+      "link": {
+        "type": "String"
+      }
+    }
+  },
+  "accountAccountSection": "Account",
+  "accountPhone": "Phone number",
+  "accountBecomePartner": "Become a partner",
+  "inviteTitle": "Invite a client",
+  "inviteSubtitle": "Send an invitation by phone number. They decide what you can see.",
+  "invitePhoneLabel": "Phone number",
+  "invitePhoneHint": "+91…",
+  "inviteScopesLabel": "What you are asking to see",
+  "inviteConsentNote": "This is a request. Nothing is shared until they accept, and they can stop sharing at any time.",
+  "inviteSend": "Send invitation",
+  "inviteSending": "Sending…",
+  "inviteSentTitle": "Invitation sent",
+  "inviteSentBody": "If they use Eatzify, it will be waiting for them. You will see them here once they accept.",
+  "coachInviteAction": "Invite a client",
+  "coachAccessEnded": "Access has ended",
+  "coachAccessEndedBody": "This client has stopped sharing, or the access period is over. They can share again from their profile.",
+  "coachWhatYouCanSee": "What you can see",
+  "coachScopeCount": "{count, plural, =1{This client has shared 1 kind of information with you.} other{This client has shared {count} kinds of information with you.}}",
+  "coachOnlyBasics": "Only the basics are shared",
+  "coachOnlyBasicsBody": "Weight, progress and health details need the client to share more, and some of them need a verified partner account.",
+  "coachClientsTitle": "Your clients",
+  "coachClientOpen": "Open",
+  "@coachScopeCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "coachDashTotalClients": "Total clients",
+  "coachDashActiveClients": "Active clients",
+  "coachDashNeedsAttention": "Needs attention",
+  "coachDashRenewalsDue": "Renewals due",
+  "coachDashEarningsThisMonth": "This month",
+  "coachDashTodaysWork": "Today's work",
+  "coachDashNoLogs": "No logs 3+ days",
+  "coachDashPendingInvites": "Waiting to accept",
+  "coachDashYourClients": "Your clients",
+  "coachDashViewAll": "View all",
+  "coachDashEarnings": "Earnings",
+  "coachDashClientPayments": "Client payments",
+  "coachDashBonus": "Bonus and incentives",
+  "coachDashOther": "Other",
+  "coachDashNoEarnings": "Nothing earned yet this month.",
+  "coachDashReferralTitle": "Your link and code",
+  "coachDashReferralBody": "Share either one to bring a client in. You earn when they subscribe.",
+  "coachDashReferralCopied": "Copied",
+  "coachDashCopy": "Copy",
+  "coachDashShare": "Share",
+  "coachDashAlerts": "Alerts",
+  "coachDashAlertNoLog": "{name} has not logged for {days} days",
+  "coachDashAlertNeverLogged": "{name} has not started logging yet",
+  "coachDashEmptyTitle": "No clients yet",
+  "coachDashEmptyBody": "Invite someone, or share your code. They choose what to share with you, and you see only that.",
+  "coachDashVsLastPeriod": "vs last 30 days",
+  "coachDashVsLastMonth": "vs last month",
+  "coachStatusActive": "Active",
+  "coachStatusAtRisk": "At risk",
+  "coachStatusNoRecentLogs": "No recent logs",
+  "coachAdherence": "Adherence",
+  "coachStreak": "Streak",
+  "coachStreakDays": "{days, plural, =1{1 day} other{{days} days}}",
+  "coachLastLogged": "Logged {days} days ago",
+  "coachNeverLogged": "Never logged",
+  "coachTierFree": "Free",
+  "coachTierBasic": "Basic",
+  "coachTierPro": "Pro",
+  "coachDashLocked": "Get verified to see more",
+  "coachDashLockedBody": "An affiliate partner can share a code and earn. Seeing a client’s progress needs a verified account and the client’s permission.",
+  "@coachDashAlertNoLog": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "@coachDashAlertNeverLogged": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "@coachStreakDays": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "@coachLastLogged": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "coachProgressTitle": "What they are logging",
+  "coachProgressNone": "Nothing logged yet.",
+  "coachProgressNotShared": "This client has not shared their logs with you.",
+  "coachDaysLogged": "{logged} of {total} days logged",
+  "coachWeightChange": "Weight change",
+  "coachSeriesWeight": "Weight",
+  "coachSeriesSteps": "Steps",
+  "coachSeriesWater": "Water",
+  "coachSeriesWaist": "Waist",
+  "coachSeriesHip": "Hip",
+  "coachSeriesThigh": "Thigh",
+  "coachSeriesChest": "Chest",
+  "coachSeriesBpSys": "Blood pressure (systolic)",
+  "coachSeriesBpDia": "Blood pressure (diastolic)",
+  "coachSeriesHba1c": "HbA1c",
+  "coachSeriesBurned": "Calories burned",
+  "coachLatestReading": "Latest",
+  "coachReadingCount": "{count, plural, =1{1 reading} other{{count} readings}}",
+  "@coachDaysLogged": {
+    "placeholders": {
+      "logged": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "@coachReadingCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "coachIntakeTitle": "Against the plan",
+  "coachAvgCalories": "Calories a day",
+  "coachAvgProtein": "Protein a day",
+  "coachOfTarget": "{eaten} of {target}",
+  "coachNoPlanYet": "No plan to compare against yet.",
+  "coachLoggedDaysNote": "How often they log, not how closely they follow the plan.",
+  "@coachOfTarget": {
+    "placeholders": {
+      "eaten": {
+        "type": "String"
+      },
+      "target": {
+        "type": "String"
+      }
+    }
+  },
+  "coachMedicalTitle": "Medical history",
+  "coachRoutineTitle": "How they eat and live",
+  "coachRoutineMealCount": "Meals a day",
+  "coachRoutineLifestyle": "Lifestyle",
+  "coachRoutineDiet": "Diet",
+  "coachRoutineActivity": "Activity",
+  "coachRoutineBudget": "Food budget",
+  "coachRoutineDislikes": "Will not eat",
+  "coachRoutineTimes": "Their day",
+  "coachMedications": "Medicines",
+  "coachDigestive": "Digestion",
+  "coachInjuries": "Injuries",
+  "coachDiaryTitle": "What they ate",
+  "coachDiaryOpen": "See what they ate",
+  "coachDiaryEmpty": "Nothing logged on this day.",
+  "coachDiaryToday": "Today",
+  "coachDiaryYesterday": "Yesterday",
+  "coachDiaryTotals": "Day total",
+  "coachDiaryNoTargets": "No plan for this day, so there is nothing to compare against.",
+  "coachDiaryMoved": "Moved",
+  "coachDiaryBurned": "Burned",
+  "coachDiaryWater": "Water",
+  "coachDiaryNotRecorded": "Not recorded",
+  "coachDiaryCalories": "Calories",
+  "coachDiaryKcal": "kcal",
+  "coachTabClients": "Clients",
+  "coachTabCheckins": "Check-ins",
+  "coachTabMessages": "Messages",
+  "coachTabYou": "You",
+  "coachClientsSoon": "Your clients will appear here once a client accepts your invite. Only they can grant you access.",
+  "coachCheckinsSoon": "Check-ins due from your clients will be listed here.",
+  "coachMessagesSoon": "Messaging opens once a client grants you the chat scope.",
+  "coachProfileSoon": "Your coach profile and verification will live here.",
+  "commonDone": "Done",
+  "commonLoading": "Loading",
+  "premiumSheetSubtitle": "Choose a plan that fits your health journey",
+  "premiumComingSoonBody": "These are the live plans and prices.",
+  "premiumTierBasicTagline": "Essential tools to get started",
+  "premiumTierProTagline": "Advanced features for better results",
+  "premiumMostPopular": "Most Popular",
+  "premiumPerMonth": "{price}/month",
+  "@premiumPerMonth": {
+    "placeholders": {
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "premiumPerYear": "{price}/year",
+  "@premiumPerYear": {
+    "placeholders": {
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "premiumCompare": "Compare Features",
+  "premiumViewMonthly": "Monthly View",
+  "premiumViewYearly": "Yearly View",
+  "premiumFeatureColumn": "Features",
+  "premiumPayNow": "Pay {amount}",
+  "premiumPayStub": "Unlock for testing ({amount})",
+  "premiumPayWorking": "Please wait…",
+  "premiumPayPick": "Choose a plan",
+  "@premiumPayNow": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "@premiumPayStub": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "premiumNotifyTitle": "Notify me when payments are live",
+  "premiumNotifyBody": "Be the first to get access to premium",
+  "premiumNotifyAck": "Nothing to sign up for yet — the plans open right here when payments do.",
+  "premiumClose": "Close",
+  "premiumPlansEmpty": "No plans are on sale right now.",
+  "premiumFeatHistory": "History",
+  "premiumFeatCoach": "Coach chat",
+  "premiumRegenPerDay": "{count} a day",
+  "@premiumRegenPerDay": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "premiumHistoryDays": "{days} days",
+  "@premiumHistoryDays": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
+  "premiumHistoryAll": "Unlimited",
   "tierBasic": "Basic",
   "tierPro": "Pro",
   "planRecommended": "Recommended for you",
   "planOfGoal": "of today's target",
   "planEatenOf": "{eaten} / {target} g",
   "@planEatenOf": {
-    "placeholders": { "eaten": { "type": "int" }, "target": { "type": "int" } }
+    "placeholders": {
+      "eaten": {
+        "type": "int"
+      },
+      "target": {
+        "type": "int"
+      }
+    }
   },
   "planTargetOnly": "{target} g a day",
   "@planTargetOnly": {
-    "placeholders": { "target": { "type": "int" } }
+    "placeholders": {
+      "target": {
+        "type": "int"
+      }
+    }
   },
   "planFibre": "Fibre",
   "planWater": "Water",
   "planWaterOf": "{logged} / {target} ml",
   "@planWaterOf": {
-    "placeholders": { "logged": { "type": "int" }, "target": { "type": "int" } }
+    "placeholders": {
+      "logged": {
+        "type": "int"
+      },
+      "target": {
+        "type": "int"
+      }
+    }
   },
   "planAdviceBody": "Miss a meal? The next one is the one that counts.",
   "planTodaysMeals": "Today's meals",
   "planViewFullDay": "View full day",
   "planShareOfDay": "{pct}% of your day",
   "@planShareOfDay": {
-    "placeholders": { "pct": { "type": "int" } }
+    "placeholders": {
+      "pct": {
+        "type": "int"
+      }
+    }
   },
   "planSuggestedCount": "{count, plural, =0{No suggestions yet} =1{1 suggested food} other{{count} suggested foods}}",
   "@planSuggestedCount": {
-    "placeholders": { "count": { "type": "int" } }
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
   },
   "planDayTotal": "For the day",
   "planShare": "{pct}% of the day",
@@ -610,10 +1188,27 @@
   "onboardingSleepAbout": "That's about",
   "onboardingSleepInBed": "{hours} hours in bed",
   "@onboardingSleepInBed": {
-    "placeholders": { "hours": { "type": "String" } }
+    "placeholders": {
+      "hours": {
+        "type": "String"
+      }
+    }
   },
   "onboardingSleepAdvice": "Most adults do best on 7-9 hours of sleep a night.",
   "copyImportant": "Important",
+  "disclaimerHeadlinePre": "Your health is unique, your ",
+  "disclaimerHeadlineWord": "journey",
+  "disclaimerHeadlinePost": " is too.",
+  "disclaimerPoint1Title": "Informative, not medical advice",
+  "disclaimerPoint1Body": "Eatzify provides general nutrition and wellness information.",
+  "disclaimerPoint2Title": "Not a diagnosis or treatment",
+  "disclaimerPoint2Body": "We do not diagnose or treat any medical condition.",
+  "disclaimerPoint3Title": "Talk to a professional",
+  "disclaimerPoint3Body": "Always consult a qualified healthcare professional about your health.",
+  "disclaimerPoint4Title": "Medication matters",
+  "disclaimerPoint4Body": "Especially important if you have a medical condition or take medication.",
+  "disclaimerFooterTitle": "Your health journey is important to us.",
+  "disclaimerFooterBody": "We're here to support you every step of the way!",
   "onboardingSleepHours": "Hours of sleep a night",
   "onboardingTimeNotSet": "Not set",
   "onboardingHealthTitle": "A few health details",
@@ -650,6 +1245,8 @@
   "onboardingMealTimingsSubtitle": "Your plan is built around these times, not a generic schedule.",
   "onboardingBreakfastTime": "Breakfast",
   "onboardingLunchTime": "Lunch",
+  "onboardingMidMorningTime": "Mid-morning",
+  "onboardingBedtimeSnackTime": "Bedtime (optional)",
   "onboardingEveningSnackTime": "Evening snack",
   "onboardingDinnerTime": "Dinner",
   "conditionHighCholesterol": "High cholesterol",
@@ -659,9 +1256,6 @@
   "measurementHip": "Hip",
   "measurementThigh": "Thigh",
   "measurementChest": "Chest",
-  "accountMealCount": "Meals a day",
-  "accountLifestyle": "Daily routine",
-  "accountBudget": "Budget",
   "onboardingPreparingTitle": "Building your plan",
   "onboardingPreparingBody": "We're putting together your first day of meals. This takes a moment.",
   "onboardingHealthyWeightTitle": "A healthy weight for your height",
@@ -716,13 +1310,23 @@
   "logActivitySubtitle": "Track your steps and calories burned to get better insights.",
   "logActivityStepsHint": "Enter number of steps",
   "logActivityBurnedHint": "Enter calories burned",
-  "logActivityStepsRange": "0 \u2013 {max} steps",
+  "logActivityStepsRange": "0 – {max} steps",
   "@logActivityStepsRange": {
-    "placeholders": { "max": { "type": "int", "format": "decimalPattern" } }
+    "placeholders": {
+      "max": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
   },
-  "logActivityBurnedRange": "0 \u2013 {max} kcal",
+  "logActivityBurnedRange": "0 – {max} kcal",
   "@logActivityBurnedRange": {
-    "placeholders": { "max": { "type": "int", "format": "decimalPattern" } }
+    "placeholders": {
+      "max": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
   },
   "logActivitySteps": "Steps today",
   "logActivityBurned": "Calories burned (if you know it)",
@@ -758,14 +1362,38 @@
   "homeMacros": "Macronutrients",
   "homeDetails": "Details",
   "homeSlotShare": "{pct}% of your day",
-  "@homeSlotShare": { "placeholders": { "pct": { "type": "int" } } },
+  "@homeSlotShare": {
+    "placeholders": {
+      "pct": {
+        "type": "int"
+      }
+    }
+  },
   "homeStreakTitle": "{days, plural, =1{1 day streak} other{{days} day streak}}",
-  "@homeStreakTitle": { "placeholders": { "days": { "type": "int" } } },
+  "@homeStreakTitle": {
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
+  },
   "homeStreakBody": "You're doing great — keep it up.",
   "homeStreakDayLogged": "{day} logged",
-  "@homeStreakDayLogged": { "placeholders": { "day": { "type": "String" } } },
+  "@homeStreakDayLogged": {
+    "placeholders": {
+      "day": {
+        "type": "String"
+      }
+    }
+  },
   "homeStreakDayNot": "{day} not logged",
-  "@homeStreakDayNot": { "placeholders": { "day": { "type": "String" } } },
+  "@homeStreakDayNot": {
+    "placeholders": {
+      "day": {
+        "type": "String"
+      }
+    }
+  },
   "homeTargetsHitTitle": "You hit today's targets",
   "homeTargetsHitBody": "Calories and macros are all at goal.",
   "homeSeeInsights": "See insights",
@@ -786,7 +1414,12 @@
   "logWaterNoneHint": "Start by adding a glass.",
   "logWaterLogged": "{total} ml logged today",
   "@logWaterLogged": {
-    "placeholders": { "total": { "type": "int", "format": "decimalPattern" } }
+    "placeholders": {
+      "total": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
   },
   "logWaterFactTitle": "Did you know?",
   "logWaterFactBody": "Thirst is easy to miss when you are busy. Little and often through the day is easier than catching up in the evening.",
@@ -830,7 +1463,11 @@
   "habitBurned": "Calories burned",
   "habitDaysLogged": "{days, plural, =1{1 day logged} other{{days} days logged}}",
   "@habitDaysLogged": {
-    "placeholders": { "days": { "type": "int" } }
+    "placeholders": {
+      "days": {
+        "type": "int"
+      }
+    }
   },
   "progressAddMeasurement": "Add",
   "progressMeasurementNone": "Not recorded yet",
@@ -845,5 +1482,499 @@
       }
     }
   },
-  "onboardingIncomplete": "Something above is still blank. Go back and check each step, then try again."
+  "onboardingIncomplete": "Something above is still blank. Go back and check each step, then try again.",
+  "accountHealthData": "Health data",
+  "healthTitle": "Health data",
+  "healthExplainer": "Eatzify can read your steps, walking distance and calories burned from {platform}. It never writes anything back, and you can always enter these yourself.",
+  "@healthExplainer": {
+    "placeholders": {
+      "platform": {
+        "type": "String",
+        "example": "Apple Health"
+      }
+    }
+  },
+  "healthReadsTitle": "What Eatzify reads",
+  "healthMetricSteps": "Steps",
+  "healthMetricDistance": "Walking distance",
+  "healthMetricEnergy": "Calories burned while active",
+  "healthNotRead": "Sleep, heart rate, weight and anything medical stay on your phone. Eatzify does not ask for them.",
+  "healthConnect": "Connect {platform}",
+  "@healthConnect": {
+    "placeholders": {
+      "platform": {
+        "type": "String",
+        "example": "Apple Health"
+      }
+    }
+  },
+  "healthDeniedBody": "Not connected. Connect now to fill in your activity automatically, or keep entering steps and calories yourself.",
+  "healthInstall": "Get Health Connect",
+  "healthNeedsInstall": "Health Connect needs to be installed or updated before Eatzify can read from it. You can keep entering steps and calories yourself meanwhile.",
+  "healthUnsupported": "This phone has no health app Eatzify can read from. You can still enter steps and calories yourself.",
+  "healthConnectedTitle": "Connected to {platform}",
+  "@healthConnectedTitle": {
+    "placeholders": {
+      "platform": {
+        "type": "String",
+        "example": "Apple Health"
+      }
+    }
+  },
+  "healthConnectedBody": "Today fills in whenever you open the app. To change what is shared, open Health Connect and choose Eatzify.",
+  "healthUnknownBody": "Apple Health decides what Eatzify may read. If nothing appears, open Settings › Health › Data Access & Devices › Eatzify.",
+  "homeConnectHealth": "Connect {platform} to fill in your steps",
+  "@homeConnectHealth": {
+    "placeholders": {
+      "platform": {
+        "type": "String",
+        "example": "Apple Health"
+      }
+    }
+  },
+  "habitDistance": "Distance walked",
+  "coachSeriesDistance": "Distance walked (m)",
+  "habitDaysFrom": "{days} · {source}",
+  "@habitDaysFrom": {
+    "description": "Under a habit on Progress: how many days were logged, and where the latest figure came from (rule 10).",
+    "placeholders": {
+      "days": {
+        "type": "String"
+      },
+      "source": {
+        "type": "String"
+      }
+    }
+  },
+  "healthSyncNow": "Sync from {platform}",
+  "@healthSyncNow": {
+    "placeholders": {
+      "platform": {
+        "type": "String"
+      }
+    }
+  },
+  "healthSyncing": "Syncing…",
+  "healthSyncDone": "Updated from {platform}.",
+  "@healthSyncDone": {
+    "placeholders": {
+      "platform": {
+        "type": "String"
+      }
+    }
+  },
+  "healthSyncNothing": "{platform} has no activity for these days yet.",
+  "@healthSyncNothing": {
+    "placeholders": {
+      "platform": {
+        "type": "String"
+      }
+    }
+  },
+  "healthSyncReadFailed": "{platform} could not be read just now. Try again in a moment.",
+  "@healthSyncReadFailed": {
+    "placeholders": {
+      "platform": {
+        "type": "String"
+      }
+    }
+  },
+  "healthSyncSendFailed": "Could not reach Eatzify just now. Check your connection and try again.",
+  "healthSyncNotPermitted": "Eatzify can't read {platform} yet. You can allow it in {platform}'s settings.",
+  "@healthSyncNotPermitted": {
+    "placeholders": {
+      "platform": {
+        "type": "String"
+      }
+    }
+  },
+  "healthSyncUnavailable": "Activity can't be synced on this phone. You can still enter it yourself.",
+  "healthPromptTitle": "Fill in your activity automatically",
+  "healthPromptLater": "Not now",
+  "logActivityStepsNow": "So far today: {steps} · {source}",
+  "@logActivityStepsNow": {
+    "placeholders": {
+      "steps": {
+        "type": "String"
+      },
+      "source": {
+        "type": "String"
+      }
+    }
+  },
+  "logActivityStepsNone": "No steps logged today yet",
+  "logActivityStepsLoading": "Checking today's steps…",
+  "logActivityAdd": "Add",
+  "logActivityRemove": "Remove",
+  "logActivityStepsAddHint": "Steps to add",
+  "logActivityStepsRemoveHint": "Steps to remove",
+  "logActivityStepsNewTotal": "New total: {steps}",
+  "@logActivityStepsNewTotal": {
+    "placeholders": {
+      "steps": {
+        "type": "String"
+      }
+    }
+  },
+  "logActivityStepsTooMany": "That would take today above {steps} steps.",
+  "@logActivityStepsTooMany": {
+    "placeholders": {
+      "steps": {
+        "type": "String"
+      }
+    }
+  },
+  "logActivityStepsTooFew": "You can remove at most {steps} steps.",
+  "@logActivityStepsTooFew": {
+    "placeholders": {
+      "steps": {
+        "type": "String"
+      }
+    }
+  },
+  "logActivityStepsKept": "Your change stays on top when {source} syncs again.",
+  "@logActivityStepsKept": {
+    "placeholders": {
+      "source": {
+        "type": "String"
+      }
+    }
+  },
+  "logActivityStepsNowSplit": "So far today: {steps} — {device} from {source}, {change} by you",
+  "@logActivityStepsNowSplit": {
+    "placeholders": {
+      "steps": {
+        "type": "String"
+      },
+      "device": {
+        "type": "String"
+      },
+      "source": {
+        "type": "String"
+      },
+      "change": {
+        "type": "String"
+      }
+    }
+  },
+  "homeStepsFromWithYou": "Steps · {source} + you",
+  "@homeStepsFromWithYou": {
+    "placeholders": {
+      "source": {
+        "type": "String"
+      }
+    }
+  },
+  "reminderChannel": "Reminders",
+  "reminderWaterTitle": "Time for some water",
+  "reminderWaterBody": "A glass now keeps the day on track.",
+  "reminderLogGlass": "Log a glass",
+  "reminderMealTitle": "Your food diary",
+  "reminderBreakfastBody": "Had breakfast? Log it when you're ready.",
+  "reminderLunchBody": "Had lunch? Log it when you're ready.",
+  "reminderDinnerBody": "Had dinner? Log it when you're ready.",
+  "reminderDayEndTitle": "Before you wind down",
+  "reminderDayEndBody": "Anything else to add for today?",
+  "remindersTitle": "Reminders",
+  "remindersIntro": "Reminders are set on this phone and work without internet. Nothing about them is sent to our servers.",
+  "remindersWater": "Water",
+  "remindersWaterDetail": "Every {every}, {from} – {until}",
+  "@remindersWaterDetail": {
+    "placeholders": {
+      "every": {
+        "type": "String"
+      },
+      "from": {
+        "type": "String"
+      },
+      "until": {
+        "type": "String"
+      }
+    }
+  },
+  "remindersEvery": "Remind me every",
+  "remindersHours": "{hours} h",
+  "@remindersHours": {
+    "placeholders": {
+      "hours": {
+        "type": "String"
+      }
+    }
+  },
+  "remindersStopWhenMet": "Stop for the day once I reach my water target",
+  "remindersMeals": "Logging meals",
+  "remindersMealsDetail": "Half an hour after {times}",
+  "@remindersMealsDetail": {
+    "placeholders": {
+      "times": {
+        "type": "String"
+      }
+    }
+  },
+  "remindersMealsNoTimes": "Add your meal times under Your day to use this.",
+  "remindersDayEnd": "End of the day",
+  "remindersDayEndDetail": "At {time}, an hour before bed",
+  "@remindersDayEndDetail": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "remindersTimesNote": "Times come from the wake-up, sleep and meal times under Your day. Edit them there and the reminders follow.",
+  "remindersWeekNote": "Reminders pause if Eatzify isn't opened for a week, and start again when it is.",
+  "remindersBlocked": "Notifications are off for Eatzify. Turn them on in your phone's Settings to get reminders.",
+  "remindersUnsupported": "Reminders aren't available on this device.",
+  "notificationsTitle": "Notifications",
+  "notificationsEmpty": "Nothing to read",
+  "notificationsEmptyBody": "Messages about your plan and your subscription will show up here.",
+  "notificationsMarkAllRead": "Mark all read",
+  "accountNotificationsUnread": "Notifications ({count})",
+  "@accountNotificationsUnread": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+  "subscriptionTitle": "Your plan",
+  "subscriptionFree": "Free plan",
+  "subscriptionFreeBody": "Logging, your diary and your plan are yours on the free plan. Bigger plans add more.",
+  "subscriptionRenewsOn": "Renews on {date}",
+  "@subscriptionRenewsOn": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "subscriptionEndsOn": "Runs until {date}, then stops",
+  "@subscriptionEndsOn": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "subscriptionTrialUntil": "Free trial until {date}",
+  "@subscriptionTrialUntil": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "subscriptionAfaNote": "Your bank will ask you to approve each renewal. We will send you the link before it is due.",
+  "subscriptionPastDue": "We could not take the last payment. Your plan is still on while we try again.",
+  "subscriptionGrace": "Your plan stays on for a few more days. Update your payment method to keep it.",
+  "subscriptionStartTrial": "Start your free week",
+  "subscriptionTrialBody": "Seven days of everything, once per number. Cancel any time before it ends.",
+  "subscriptionPickTrialTier": "Which plan would you like to try?",
+  "subscriptionCancelRenewal": "Cancel renewal",
+  "subscriptionCancelTitle": "Stop the renewal?",
+  "subscriptionCancelBody": "You keep everything until {date}. Nothing will be charged after that.",
+  "@subscriptionCancelBody": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "subscriptionCancelKeep": "Keep my plan",
+  "subscriptionCancelConfirm": "Stop renewing",
+  "subscriptionCancelled": "Renewal stopped. You keep your plan until {date}.",
+  "@subscriptionCancelled": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "subscriptionUpgrade": "Upgrade to {tier}",
+  "@subscriptionUpgrade": {
+    "placeholders": {
+      "tier": {
+        "type": "String"
+      }
+    }
+  },
+  "subscriptionUpgradeTitle": "Moving up to {tier}",
+  "@subscriptionUpgradeTitle": {
+    "placeholders": {
+      "tier": {
+        "type": "String"
+      }
+    }
+  },
+  "subscriptionUpgradePrice": "{tier} for {months} months",
+  "@subscriptionUpgradePrice": {
+    "placeholders": {
+      "tier": {
+        "type": "String"
+      },
+      "months": {
+        "type": "String"
+      }
+    }
+  },
+  "subscriptionUpgradeCredit": "Credit for the {days} days left on your plan",
+  "@subscriptionUpgradeCredit": {
+    "placeholders": {
+      "days": {
+        "type": "String"
+      }
+    }
+  },
+  "subscriptionUpgradeDue": "To pay now",
+  "subscriptionUpgradeConfirm": "Confirm upgrade",
+  "subscriptionUpgraded": "You are on {tier} now.",
+  "@subscriptionUpgraded": {
+    "placeholders": {
+      "tier": {
+        "type": "String"
+      }
+    }
+  },
+  "subscriptionSeePlans": "See all plans",
+  "subscriptionTrialUsed": "Your free week has been used.",
+  "checkinsTitle": "Check-ins",
+  "checkinsEmpty": "Nothing to review yet",
+  "checkinsEmptyBody": "Reviews appear here once a client shares their progress with you.",
+  "checkinsThisWeek": "To review",
+  "checkinsDone": "Reviewed",
+  "checkinsDueOn": "Due {date}",
+  "@checkinsDueOn": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "checkinsMissed": "Missed",
+  "checkinsNoLogsFor": "No logs for {days} days",
+  "@checkinsNoLogsFor": {
+    "placeholders": {
+      "days": {
+        "type": "String"
+      }
+    }
+  },
+  "checkinsLoggedToday": "Logging regularly",
+  "checkinsAdherence": "{percent}% of days logged",
+  "@checkinsAdherence": {
+    "placeholders": {
+      "percent": {
+        "type": "String"
+      }
+    }
+  },
+  "checkinsReview": "Review",
+  "checkinsReviewTitle": "Review {name}",
+  "@checkinsReviewTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "checkinsNotes": "What did you notice?",
+  "checkinsNotesHint": "For your own record. The client sees only what you agree to do next.",
+  "checkinsAction": "What will they do next?",
+  "checkinsActionAdd": "Add",
+  "checkinsSave": "Save review",
+  "checkinsSaved": "Review saved.",
+  "checkinsAlerts": "Needs attention",
+  "alertNoLogs": "Has not logged for {days} days",
+  "@alertNoLogs": {
+    "placeholders": {
+      "days": {
+        "type": "String"
+      }
+    }
+  },
+  "alertOffTrend": "Weight is moving away from their goal",
+  "alertPlanExpiring": "Plan ends in {days} days",
+  "@alertPlanExpiring": {
+    "placeholders": {
+      "days": {
+        "type": "String"
+      }
+    }
+  },
+  "alertCheckinMissed": "A review was missed",
+  "messagesTitle": "Messages",
+  "messagesEmpty": "No conversations yet",
+  "messagesEmptyCoach": "When a client shares chat with you, your conversation appears here.",
+  "messagesEmptyClient": "When you share chat with a coach, your conversation appears here.",
+  "messagesThreadEmpty": "No messages yet",
+  "messagesThreadEmptyBody": "Say hello — your coach will see it in the app.",
+  "messagesHint": "Write a message",
+  "messagesSend": "Send",
+  "messagesUnread": "{count} new",
+  "@messagesUnread": {
+    "placeholders": {
+      "count": {
+        "type": "String"
+      }
+    }
+  },
+  "accountMessages": "Message my coach",
+  "coachYouVerified": "Verified partner",
+  "coachYouPending": "Verification in progress",
+  "coachYouNotYet": "Not a partner yet",
+  "coachYouLevel": "Level {level}",
+  "@coachYouLevel": {
+    "placeholders": {
+      "level": {
+        "type": "String"
+      }
+    }
+  },
+  "coachYouManage": "My partner profile",
+  "coachYouBack": "Back to my own account",
+  "coachYouBackBody": "You are a client of Eatzify too — your own diary, plan and progress are where they always were.",
+  "helpTitle": "Help",
+  "helpNew": "Ask for help",
+  "helpEmpty": "Nothing open",
+  "helpEmptyBody": "If something is wrong or you are stuck, write to us and a person will answer.",
+  "helpSubject": "What is it about?",
+  "helpMessage": "Tell us what happened",
+  "helpSend": "Send",
+  "helpReplyHint": "Write a reply",
+  "helpStatusOpen": "With support",
+  "helpStatusWaitingYou": "Waiting for you",
+  "helpStatusResolved": "Resolved",
+  "helpStatusClosed": "Closed",
+  "helpClosedNote": "This conversation is closed. Start a new one and we will pick it up.",
+  "helpFromSupport": "Support",
+  "helpFromYou": "You",
+  "accountHelp": "Help",
+  "privacyTitle": "Privacy & data",
+  "privacyRetry": "Try again",
+  "privacyConsentsTitle": "What we may do with your data",
+  "privacyConsentHealth": "Store my health data",
+  "privacyConsentHealthBody": "Height, weight, conditions and allergies. Turning this off stops new plans — what we already hold stays until you ask us to delete it.",
+  "privacyConsentPlan": "Use it to build my plan",
+  "privacyConsentPlanBody": "Your targets and daily meals are worked out from what you have told us.",
+  "privacyConsentMarketing": "Offers and updates",
+  "privacyConsentMarketingBody": "Occasional messages about new features and prices. Off unless you turn it on.",
+  "privacyConsentOther": "Another permission",
+  "privacyExportTitle": "Get a copy of your data",
+  "privacyExportBody": "Everything your account holds — profile, diary, measurements and plans.",
+  "privacyExportAction": "Build my copy",
+  "privacyExportReady": "Your copy is ready.",
+  "privacyExportRows": "{table}: {count} rows",
+  "@privacyExportRows": {"placeholders": {"table": {"type": "String"}, "count": {"type": "String"}}},
+  "privacyDeleteTitle": "Closing your account",
+  "privacyDeleteBody": "Your health data is deleted for good after seven days. Payment records are kept as long as the law requires.",
+  "privacyDeletePendingBody": "Your account is scheduled for deletion. You can stop it any time before it runs.",
+  "privacyDeleteOn": "Scheduled for {date}",
+  "@privacyDeleteOn": {"placeholders": {"date": {"type": "String"}}},
+  "privacyDeleteAction": "Delete my account",
+  "privacyDeleteKeep": "Keep my account",
+  "privacyDeleteConfirmTitle": "Delete your account?",
+  "privacyDeleteConfirmBody": "We will delete your health data seven days from now. You can stop it before then.",
+  "privacyDeleteConfirmNo": "Not now",
+  "privacyDeleteConfirmYes": "Delete",
+  "accountPrivacy": "Privacy & data"
 }
