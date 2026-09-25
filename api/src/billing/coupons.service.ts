@@ -1,4 +1,8 @@
-import { Injectable, UnprocessableEntityException, HttpStatus } from '@nestjs/common';
+import {
+  Injectable,
+  UnprocessableEntityException,
+  HttpStatus,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { CouponEntity } from './entities/coupon.entity';
@@ -37,9 +41,12 @@ export class CouponsService {
     amountPaise: bigint,
     now: Date,
   ): Promise<{ code: string; discountPaise: bigint } | null> {
-    const row = await this.coupons.findOne({ where: { code: normalize(code) } });
+    const row = await this.coupons.findOne({
+      where: { code: normalize(code) },
+    });
     if (!row || !row.active) return null;
-    if (row.expiresAt !== null && row.expiresAt.getTime() < now.getTime()) return null;
+    if (row.expiresAt !== null && row.expiresAt.getTime() < now.getTime())
+      return null;
     if (row.usedCount >= row.maxUses) return null;
 
     // Integer paise all the way (api rule 3); floor by construction.
@@ -69,11 +76,13 @@ export class CouponsService {
     const uses = Number(input.max_uses);
     const expiresAt = input.expires_at ? new Date(input.expires_at) : null;
 
-    if (!CODE_SHAPE.test(code)) this.reject('Code must be 3–24 letters, digits, - or _.');
+    if (!CODE_SHAPE.test(code))
+      this.reject('Code must be 3–24 letters, digits, - or _.');
     if (!Number.isInteger(pct) || pct < 1 || pct > 90) {
       this.reject('Percent off must be a whole number between 1 and 90.');
     }
-    if (!Number.isInteger(uses) || uses < 1) this.reject('Max uses must be at least 1.');
+    if (!Number.isInteger(uses) || uses < 1)
+      this.reject('Max uses must be at least 1.');
     if (expiresAt !== null && Number.isNaN(expiresAt.getTime())) {
       this.reject('Expiry must be a valid date.');
     }
@@ -89,7 +98,9 @@ export class CouponsService {
 
   /// Deactivation, never deletion: a code that was ever live stays visible with its usage.
   async deactivate(code: string): Promise<CouponView> {
-    const row = await this.coupons.findOne({ where: { code: normalize(code) } });
+    const row = await this.coupons.findOne({
+      where: { code: normalize(code) },
+    });
     if (!row) this.reject('No such code.');
     row!.active = false;
     return this.toView(await this.coupons.save(row!));

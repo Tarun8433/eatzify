@@ -44,6 +44,11 @@ import { NotificationsModule } from '../notifications/notifications.module';
     RefundService,
     CashfreeClient,
   ],
-  exports: [BillingService, SubscriptionService, SubscriptionSweepService, CouponsService],
+  exports: [
+    BillingService,
+    SubscriptionService,
+    SubscriptionSweepService,
+    CouponsService,
+  ],
 })
 export class BillingModule {}

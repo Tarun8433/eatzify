@@ -8,6 +8,11 @@ export const MIN_AGE = 18;
 export const MAX_AGE = 99;
 export const CLINICIAN_GATE_AGE = 70;
 export const MIN_BMI = 16;
+
+/// docs/05 §2's healthy floor, used to refuse a GOAL weight rather than to gate a current one:
+/// [MIN_BMI] is where a present body blocks a plan, this is where a target stops being one we
+/// will aim at.
+export const MIN_HEALTHY_BMI = 18.5;
 export const CLINICIAN_GATE_BMI = 40;
 
 /// docs/05 §3 BLOCK list — mirrors `Condition.isBlockingGate`.
@@ -57,7 +62,7 @@ export function evaluateGates(input: ScreeningInput): GateOutcome {
   // Q1 is a clinician gate, not a block — a declared special diet needs a human to sign off.
   if (input.screenedSpecialDiet === true) clinicianGated.push('special_diet');
 
-  if (input.ageYears < MIN_AGE) blocked.push('age_below_minimum');
+  if (input.ageYears < MIN_AGE) blocked.push('age_ineligible');
   if (input.ageYears >= CLINICIAN_GATE_AGE) clinicianGated.push('age_70_plus');
 
   const bmi = bmiOf(input.weightKg, input.heightCm);

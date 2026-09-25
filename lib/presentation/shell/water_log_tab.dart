@@ -241,7 +241,11 @@ class _WaterHero extends StatelessWidget {
             Column(
               children: [
                 ExcludeSemantics(
-                  child: Image.asset(AppAssets.waterHero, width: art, fit: BoxFit.contain),
+                  child: Image.asset(
+                    AppAssets.themed(AppAssets.waterHero, Theme.of(context).brightness),
+                    width: art,
+                    fit: BoxFit.contain,
+                  ),
                 ),
                 if (target != null) ...[
                   const SizedBox(height: AppSpacing.sm),

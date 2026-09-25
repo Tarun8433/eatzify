@@ -71,8 +71,24 @@ void main() {
     test('an unanswered optional field is omitted, not sent as an empty string', () {
       final profile = filled().buildSubmission()!.toJson()['profile']! as Map<String, dynamic>;
 
-      expect(profile.containsKey('wake_time'), isFalse);
       expect(profile.containsKey('food_dislikes'), isFalse, reason: 'blank is not an answer');
+    });
+
+    /// D-170: wake, bedtime and the meal hours open PREFILLED, so they are always answered. The
+    /// step is a confirmation rather than five questions, and a default the user can see and
+    /// correct beats an empty field they must fill to get past.
+    test('the clock fields are always sent, because they start with a sensible default', () {
+      final profile = filled().buildSubmission()!.toJson()['profile']! as Map<String, dynamic>;
+
+      for (final key in [
+        'wake_time',
+        'sleep_time',
+        'breakfast_time',
+        'lunch_time',
+        'dinner_time',
+      ]) {
+        expect(profile.containsKey(key), isTrue, reason: key);
+      }
     });
   });
 

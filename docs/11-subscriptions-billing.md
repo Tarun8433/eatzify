@@ -4,7 +4,7 @@
 
 | Tier | Price | What it is |
 |---|---|---|
-| **FREE** | ₹0 | One template plan, basic calorie/protein view, 7-day history, ads-free. Acquisition. |
+| **FREE** | ₹0 | One template plan, basic calorie/protein view, 7-day history. Meal-photo scans in the first days after signup, each behind a non-personalised rewarded ad (D-238; the window, cap and ad are admin-set in `scan_policy`). Acquisition. |
 | **BASIC** | see matrix | Personalised engine plan, full logging, weekly progress, 2 regenerations/day |
 | **PRO** | see matrix | + alternates, PDF export, unlimited history, advanced analytics, priority support, coach-ready |
 | **Coaching** | partner-priced | Sold by the partner. Eatzify charges the partner a platform fee, not the client. |

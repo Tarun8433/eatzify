@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 import 'package:health_pro/core/errors/failures.dart';
 import 'package:health_pro/core/storage/secure_store.dart';
 import 'package:health_pro/domain/entities/session.dart';
+import 'package:health_pro/domain/entities/session_role.dart';
 import 'package:health_pro/domain/repositories/auth_repository.dart';
 import 'package:health_pro/domain/repositories/profile_repository.dart';
 
@@ -43,6 +44,11 @@ class SessionController extends GetxController {
   final Duration splashFloor;
 
   final status = AuthStatus.restoring.obs;
+
+  /// Which shell to draw (CLAUDE.md rule 1). Defaults to CLIENT and only ever moves off it when
+  /// the SERVER says so — a failed or slow `/auth/me` leaves somebody on their own data, which is
+  /// the safe way to be wrong. docs/10 §1: this decides navigation and nothing else.
+  final role = SessionRole.client.obs;
   final _session = Rxn<Session>();
 
   /// Whether the intro carousel has already been shown, on this install, to anyone. Read once on
@@ -68,6 +74,10 @@ class SessionController extends GetxController {
 
   Session? get session => _session.value;
   String? get accessToken => _session.value?.accessToken;
+
+  /// The signed-in account's own id, as the server spells it. Used where the app has to tell this
+  /// person's rows from somebody else's — a chat bubble, for one (docs/02 FR-5.5).
+  String? get userId => _session.value?.userId;
   bool get isCoach => _session.value?.isCoach ?? false;
 
   @override
@@ -111,6 +121,7 @@ class SessionController extends GetxController {
       return;
     }
     status.value = stored.onboardingRequired ? AuthStatus.onboardingRequired : AuthStatus.signedIn;
+    if (status.value == AuthStatus.signedIn) unawaited(loadRole());
   }
 
   /// Whether the SERVER thinks onboarding is done, for a session cached as needing it.
@@ -151,6 +162,7 @@ class SessionController extends GetxController {
     _session.value = session;
     await store.save(session);
     status.value = session.onboardingRequired ? AuthStatus.onboardingRequired : AuthStatus.signedIn;
+    if (status.value == AuthStatus.signedIn) unawaited(loadRole());
   }
 
   /// Called once onboarding completes, and by [restore] when the server contradicts a stale cached
@@ -163,6 +175,20 @@ class SessionController extends GetxController {
     _session.value = updated;
     await store.save(updated);
     status.value = AuthStatus.signedIn;
+    await loadRole();
+  }
+
+  /// Asks the server which shell this account gets.
+  ///
+  /// Never throws and never blocks sign-in: the client shell is a correct answer for a client and
+  /// a merely incomplete one for a coach, so a network failure costs a coach their tabs until the
+  /// next launch rather than costing anyone their account.
+  Future<void> loadRole() async {
+    final result = await profile.roles();
+    result.fold(
+      (_) => role.value = SessionRole.client,
+      (wire) => role.value = SessionRole.fromWire(wire),
+    );
   }
 
   /// Wired into the dio interceptor. Returns a fresh access token, or null when the refresh failed.

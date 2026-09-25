@@ -60,6 +60,18 @@ and API clients. The team is also newer to React/TypeScript on the frontend.
 **Reversal trigger:** admin surface past 15 screens, or a need for heavy data-grid interactions
 (bulk food import editing is the likely trigger).
 
+**REVISED 2026-09-14 (D-181) — superseded by AdminJS.** The reversal trigger was met before a line of
+admin Flutter was written: the first admin screens needed are a review queue, a metrics table and an
+audit log, which are data grids. doc 20 §3 recommended AdminJS and asked for this ADR to be revised
+rather than quietly diverged from; this is that revision. AdminJS is live at `/admin-panel`, generated
+from the TypeORM entities, with writes turned off on `users`, `coach_grant` and `audit_log`.
+
+Flutter web is not ruled out for a future partner-facing surface — this decision is about the
+INTERNAL admin only. What actually changed the answer is that the admin never was a customer-facing
+product, so "one language" bought less than a day-one data grid did. The costs are recorded in D-181:
+an ESM/CommonJS bridge, six entities extended to satisfy an Active Record adapter, and a React
+dependency tree carrying its own advisories.
+
 ---
 
 ### ADR-007 — Health Connect / HealthKit, never Google Fit
@@ -110,3 +122,23 @@ revenue and tax are derived, stored explicitly on the transaction, never recompu
 would reach your server source.
 **Decision:** import from the published IFCT 2017 tables and the open-access INDB, through your own
 loader, with `source`/`source_code` recorded per row. Legal review of INDB reuse terms before launch.
+
+---
+
+### ADR-013 — Workout tracking is built in-house, as a Gym section
+**Status:** accepted (2026-09-19) · supersedes docs/02 §Out "workout plans" and docs/17:61 "Never, in-house"
+**Context:** The product owner asked for a complete gym feature (routines, a guided workout log,
+progression, stats) and for the calories a workout burns to be shown. D-204 had already named the
+missing workout log as "the next piece". The reference is openGym, which is AGPL-3.0.
+**Decision:** Build it. It is a Gym hub screen pushed from Home and You. It is **not** a sixth tab,
+so CLAUDE.md rule 1 and the shell stay as they are.
+- The data lives in Postgres behind `api/src/gym`. The server resolves the diary day, the
+  progression, the records and the energy estimate. The app renders them.
+- openGym is a behavioural reference only. No code is copied (ADR-012).
+- The exercise metadata (MIT) and the body-map outlines (MIT) are imported with their notices.
+**Consequences:** The safety surface grows, which docs/17 warned about. Progression advice stays
+arithmetic on the user's own logged numbers (weight steps, deloads) and never prescribes intensity
+from health data. Workout energy is an estimate shown as its own figure (D-242). It never feeds the
+plan's targets.
+**Reversal trigger:** A clinical or legal review that says in-app training advice needs sign-off we
+cannot get. If that happens, turn off progression and keep the log.

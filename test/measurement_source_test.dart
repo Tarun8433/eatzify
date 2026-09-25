@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
 import 'package:health_pro/core/theme/app_theme.dart';
 import 'package:health_pro/domain/entities/measurement.dart';
+import 'package:health_pro/domain/repositories/diary_repository.dart';
 import 'package:health_pro/domain/repositories/measurements_repository.dart';
 import 'package:health_pro/presentation/l10n/app_localizations.dart';
 import 'package:health_pro/presentation/shell/activity_log_tab.dart';
@@ -21,7 +22,8 @@ Widget activityUnderTest() {
   measurements = FakeMeasurementsRepository();
   Get
     ..reset()
-    ..put<MeasurementsRepository>(measurements, permanent: true);
+    ..put<MeasurementsRepository>(measurements, permanent: true)
+    ..put<DiaryRepository>(FakeDiaryRepository(), permanent: true);
   return GetMaterialApp(
     theme: AppTheme.light,
     localizationsDelegates: const [

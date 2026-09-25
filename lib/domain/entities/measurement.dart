@@ -37,6 +37,17 @@ class Measurement {
   final MeasurementSource source;
 }
 
+/// A reading to send (D-216). `at` is when it was taken; the SERVER turns that into a diary day.
+/// `replaceManual` is a person asking for this device figure over one they typed (D-218).
+typedef NewMeasurement = ({
+  String kind,
+  double value,
+  String unit,
+  MeasurementSource source,
+  DateTime at,
+  bool replaceManual,
+});
+
 /// The sources the server recognises. A closed set, so an unknown string from a newer server
 /// degrades to [manual] rather than crashing a screen — and `manual` is the safe wrong answer,
 /// because it is the one that says "a person stands behind this" the least loudly.
@@ -59,12 +70,7 @@ enum MeasurementSource {
 
 /// A kind's history plus the server-computed change.
 class MeasurementHistory {
-  const MeasurementHistory({
-    required this.kind,
-    required this.points,
-    this.change,
-    this.change30d,
-  });
+  const MeasurementHistory({required this.kind, required this.points, this.change, this.change30d});
 
   MeasurementHistory.fromJson(Map<String, dynamic> json)
     : this(

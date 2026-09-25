@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:health_pro/domain/entities/coach_discipline.dart';
 import 'package:health_pro/domain/entities/measurement.dart';
 import 'package:health_pro/domain/entities/onboarding_enums.dart';
 import 'package:health_pro/domain/usecases/validate_onboarding.dart';
@@ -358,5 +359,24 @@ extension LifestyleIcon on Lifestyle {
     Lifestyle.nightShift => l.lifestyleNightShiftDesc,
     Lifestyle.flexible => l.lifestyleFlexibleDesc,
     Lifestyle.home => l.lifestyleHomeDesc,
+  };
+}
+
+/// The same three words onboarding uses, so the answer a partner gives on their application reads
+/// as the answer to the question they were already asked — plus the escape hatch that question
+/// does not need.
+extension CoachDisciplineLabel on CoachDiscipline {
+  String label(AppLocalizations l) => switch (this) {
+    CoachDiscipline.trainer => l.onboardingProfessionTrainer,
+    CoachDiscipline.nutritionist => l.onboardingProfessionNutritionist,
+    CoachDiscipline.doctor => l.onboardingProfessionDoctor,
+    CoachDiscipline.other => l.partnerDisciplineOther,
+  };
+
+  IconData get icon => switch (this) {
+    CoachDiscipline.trainer => Icons.fitness_center_outlined,
+    CoachDiscipline.nutritionist => Icons.restaurant_outlined,
+    CoachDiscipline.doctor => Icons.medical_services_outlined,
+    CoachDiscipline.other => Icons.more_horiz,
   };
 }

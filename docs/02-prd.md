@@ -34,10 +34,14 @@ handling, payout runs, and a metrics view that isn't polluted with demo data.
 | Compliance | Consent ledger, data export, deletion request flow, retention jobs |
 
 ### Out (v1) — deliberately
-Photo meal detection · AI auto-adjustment · behaviour analysis · progress prediction · workout plans ·
+AI auto-adjustment · behaviour analysis · progress prediction · workout plans ·
 transformation programme storefront · community/groups · COACHING plan as a first-party service ·
 web app · iOS launch (Android first) · Hindi UI (ship the i18n *scaffolding*, not the translation) ·
 gamification/challenges · wearable integrations beyond steps.
+
+Meal-photo **scanning** moved into v1 by D-238, in the shape `docs/04` §11 specifies: the photo is matched to
+foods in our own table, the user confirms dish and portion, nothing is auto-logged, and nutrition always
+comes from the food row — never from the model.
 
 Each of these is in doc 17 with a trigger condition for revisiting it.
 

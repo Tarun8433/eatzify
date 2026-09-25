@@ -15,6 +15,7 @@ class ProfileView {
     required this.allergies,
     required this.healthProfileVersion,
     this.photoUrl,
+    this.phone,
     this.name,
     this.goalDeclared,
     this.goalWeightKg,
@@ -26,6 +27,8 @@ class ProfileView {
     this.sleepHours,
     this.breakfastTime,
     this.lunchTime,
+    this.midMorningTime,
+    this.bedtimeSnackTime,
     this.eveningSnackTime,
     this.dinnerTime,
     this.foodDislikes,
@@ -53,6 +56,10 @@ class ProfileView {
   /// Absolute URL, or null when the user has not set one.
   final String? photoUrl;
 
+  /// The number this account signs in with, E.164. Null for an email or social signup, where the
+  /// column was never filled — shown as absent rather than as an empty row.
+  final String? phone;
+
   // Everything else `GET /profile` returns. These were dropped on the floor by the parser until
   // D-72: the server had them, the account screen could not show them, and the edit sheets could
   // not offer them — which is why "change the number of meals in your profile" was a dead end.
@@ -69,6 +76,12 @@ class ProfileView {
   final double? sleepHours;
   final String? breakfastTime;
   final String? lunchTime;
+
+  /// docs/04 §7's five-to-six pattern only (D-171). Null for the three and four-meal patterns,
+  /// which have no such occasion.
+  final String? midMorningTime;
+  final String? bedtimeSnackTime;
+
   final String? eveningSnackTime;
   final String? dinnerTime;
   final String? foodDislikes;
@@ -102,6 +115,7 @@ class ProfileView {
       allergies: (h?['allergies'] as List?)?.map((a) => a.toString()).toList() ?? const [],
       healthProfileVersion: (h?['version'] as num?)?.toInt() ?? 0,
       photoUrl: json['photo_url']?.toString(),
+      phone: json['phone']?.toString(),
       name: p['name']?.toString(),
       goalDeclared: p['goal_declared']?.toString(),
       goalWeightKg: (p['goal_weight_kg'] as num?)?.toDouble(),
@@ -113,6 +127,8 @@ class ProfileView {
       sleepHours: (p['sleep_hours'] as num?)?.toDouble(),
       breakfastTime: p['breakfast_time']?.toString(),
       lunchTime: p['lunch_time']?.toString(),
+      midMorningTime: p['mid_morning_time']?.toString(),
+      bedtimeSnackTime: p['bedtime_snack_time']?.toString(),
       eveningSnackTime: p['evening_snack_time']?.toString(),
       dinnerTime: p['dinner_time']?.toString(),
       foodDislikes: p['food_dislikes']?.toString(),

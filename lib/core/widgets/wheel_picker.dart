@@ -43,8 +43,20 @@ class WheelPicker extends StatefulWidget {
 
   /// Row height at the default text size. Scaled with the text below — a fixed extent means the
   /// numbers overflow their own row at 200 %, which is rule 12's whole point (D-90).
-  static const _itemExtent = 44.0;
+  /// 52, up from 44: the reference draws the chosen value at display size, and it needs the room.
+  static const _itemExtent = 52.0;
   static const _visibleRows = 5;
+
+  /// The scroll affordances the reference draws on the lane: a dot pinned to its top edge, an
+  /// open ring to its bottom edge — the "handle" that says this row slides — and the ruler ticks
+  /// at its trailing edge. All decoration: none of it is announced, none of it takes a tap.
+  static const _laneDot = 8.0;
+  static const _laneRing = 18.0;
+  static const _laneRingStroke = 3.0;
+  static const _tickCount = 7;
+  static const _tickLong = 16.0;
+  static const _tickShort = 10.0;
+  static const _tickStroke = 1.5;
 
   /// How a value is written, here and in the `NumberField` the wheel now fills (D-95). Shared so
   /// the two cannot disagree — a wheel reading 70.5 above a field reading 70.50 is one value
@@ -80,11 +92,20 @@ class _WheelPickerState extends State<WheelPicker> {
     final selected = widget.value;
     final extent = MediaQuery.textScalerOf(context).scale(WheelPicker._itemExtent);
 
+    final scheme = theme.colorScheme;
+    // Where the lane's edges sit inside the five-row stack: rows 0-1 above it, 2 is it.
+    final laneTop = extent * (WheelPicker._visibleRows ~/ 2);
+    final laneBottom = laneTop + extent;
+
     return SizedBox(
       height: extent * WheelPicker._visibleRows,
       child: Stack(
         alignment: Alignment.center,
         children: [
+          // The reference's vertical guide, running the wheel's full height behind the lane.
+          ExcludeSemantics(
+            child: Container(width: 1, color: scheme.outline.withValues(alpha: 0.4)),
+          ),
           // The lane the chosen value sits in. Drawn under the wheel so the number rides over it.
           Container(
             height: extent,
@@ -92,8 +113,38 @@ class _WheelPickerState extends State<WheelPicker> {
             // column, which is where this now lives (D-90).
             margin: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
             decoration: BoxDecoration(
-              color: theme.colorScheme.surfaceContainerHighest,
+              // The brand tint, not `surfaceContainerHighest`: the beige read as a warning strip
+              // next to the green sheet, and the reference draws the lane in the green wash.
+              color: scheme.secondaryContainer,
               borderRadius: BorderRadius.circular(AppRadius.card),
+            ),
+            // The ruler ticks at the lane's trailing edge — the measuring-tape motif.
+            child: Align(
+              alignment: Alignment.centerRight,
+              child: ExcludeSemantics(
+                child: Padding(
+                  padding: const EdgeInsets.only(right: AppSpacing.md),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      for (var i = 0; i < WheelPicker._tickCount; i++)
+                        Padding(
+                          padding: EdgeInsets.only(top: i == 0 ? 0 : AppSpacing.xs),
+                          child: Container(
+                            height: WheelPicker._tickStroke,
+                            width: i == WheelPicker._tickCount ~/ 2
+                                ? WheelPicker._tickLong
+                                : WheelPicker._tickShort,
+                            color: i == WheelPicker._tickCount ~/ 2
+                                ? scheme.primary
+                                : scheme.onSurfaceVariant.withValues(alpha: 0.5),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
             ),
           ),
           ListWheelScrollView.useDelegate(
@@ -102,6 +153,9 @@ class _WheelPickerState extends State<WheelPicker> {
             // Flat enough to read as a list rather than a fairground wheel; enough curve that the
             // neighbours read as "there is more here".
             diameterRatio: 2.2,
+            // The reference fades the neighbours towards the edges; the colour below separates
+            // chosen from not, this separates near from far.
+            overAndUnderCenterOpacity: 0.65,
             physics: const FixedExtentScrollPhysics(),
             onSelectedItemChanged: (index) {
               // The click a physical dial would make. Without it the wheel feels like it is
@@ -124,9 +178,11 @@ class _WheelPickerState extends State<WheelPicker> {
                       Text(
                         _label(value),
                         style:
-                            (isSelected
-                                    ? theme.textTheme.headlineSmall
-                                    : theme.textTheme.titleMedium)
+                            // Display size: the chosen number is the sheet's whole answer, and
+                            // the reference draws it at several times its neighbours. Inside the
+                            // row at every text scale, because the extent scales with the text
+                            // (D-90).
+                            (isSelected ? theme.textTheme.displaySmall : theme.textTheme.titleLarge)
                                 ?.copyWith(
                                   color: isSelected
                                       ? theme.colorScheme.primary
@@ -142,6 +198,37 @@ class _WheelPickerState extends State<WheelPicker> {
                   ),
                 );
               },
+            ),
+          ),
+          // The dot on the lane's top edge and the open-ring handle on its bottom edge — the
+          // reference's way of saying the lane is a slider thumb. Over the wheel, so they sit on
+          // the numbers' surface; ignoring pointers, so the wheel still takes every drag.
+          Positioned(
+            top: laneTop - WheelPicker._laneDot / 2,
+            child: IgnorePointer(
+              child: ExcludeSemantics(
+                child: Container(
+                  height: WheelPicker._laneDot,
+                  width: WheelPicker._laneDot,
+                  decoration: BoxDecoration(color: scheme.primary, shape: BoxShape.circle),
+                ),
+              ),
+            ),
+          ),
+          Positioned(
+            top: laneBottom - WheelPicker._laneRing / 2,
+            child: IgnorePointer(
+              child: ExcludeSemantics(
+                child: Container(
+                  height: WheelPicker._laneRing,
+                  width: WheelPicker._laneRing,
+                  decoration: BoxDecoration(
+                    color: scheme.surface,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: scheme.primary, width: WheelPicker._laneRingStroke),
+                  ),
+                ),
+              ),
             ),
           ),
         ],

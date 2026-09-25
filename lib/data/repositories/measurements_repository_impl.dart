@@ -19,5 +19,9 @@ class MeasurementsRepositoryImpl implements MeasurementsRepository {
   }) => _remote.record(kind: kind, value: value, unit: unit, source: source, at: at);
 
   @override
+  Future<Either<Failure, Unit>> recordMany(List<NewMeasurement> readings) =>
+      _remote.recordMany(readings);
+
+  @override
   Future<Either<Failure, MeasurementHistory>> history(String kind) => _remote.history(kind);
 }

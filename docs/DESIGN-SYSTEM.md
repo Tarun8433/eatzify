@@ -65,7 +65,9 @@ data is a fabricated fact — the same rule as D-38 (null trend) and D-43 (null 
 
 ## Layout rhythm
 
-- Screen padding: `AppSpacing.xl` horizontal.
+- Screen padding: `AppSpacing.screenH` horizontal (`md`, 12 — D-177). Use the NAME, never the
+  step it happens to equal: a header and the body under it picking separately off the scale is
+  what D-175 was.
 - Between cards: `AppSpacing.lg`. Inside a card: `AppSpacing.lg`.
 - Card radius: `AppRadius.cardLarge` (20). Tile radius: `AppRadius.tile` (16).
 - Rows of tiles scroll **horizontally** rather than shrinking, so 200 % font scale does not crush

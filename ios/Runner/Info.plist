@@ -39,18 +39,20 @@
 	     (D-94). Connecting OUT to a .local host needs this description, not a browse allowlist. -->
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>Eatzify connects to a development server on your local network. This is only used when running a debug build.</string>
-	<!-- CMPedometer (D-99). Chosen over HealthKit: it answers "steps between two instants"
-	     directly, needs no HealthKit entitlement, and draws less App Review scrutiny. No
-	     UIBackgroundModes entry accompanies it — the counting happens in hardware and the app only
-	     ever reads on the foreground, so a background mode would be unjustified. -->
-	<key>NSMotionUsageDescription</key>
-	<string>Eatzify reads your step count so your daily activity shows up alongside your plan. You can turn this off at any time and enter steps yourself instead.</string>
 	<key>NSCameraUsageDescription</key>
-	<string>Eatzify uses the camera to scan a food barcode, and to take a profile photo if you choose to add one.</string>
+	<string>Eatzify uses the camera to photograph a meal so you can log it, and to take a profile photo if you choose to add one.</string>
+	<!-- HealthKit, read-only. There is deliberately NO NSHealthUpdateUsageDescription: the app never
+	     writes to a health record, and asking for write access is how a permission sheet starts
+	     looking alarming. No UIBackgroundModes entry either — reads happen on the foreground. -->
 	<key>NSHealthShareUsageDescription</key>
-	<string>Eatzify reads your step count so your daily activity is reflected in your plan. You can turn this off at any time and enter steps yourself instead.</string>
+	<string>Eatzify reads your steps, walking distance and calories burned so your daily activity is reflected in your plan. You can turn this off at any time and enter these yourself instead.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>Eatzify needs access to your photos so you can add a profile photo. Photos are private to you and are never shown to other users.</string>
+	<string>Eatzify needs access to your photos so you can add a profile photo, or pick a photo of a meal to log it. Meal photos are only used to recognise the food and are not stored.</string>
+	<!-- AdMob (D-238): rewarded ads before a FREE meal scan. Google's TEST app id — replace with the
+	     real one before release. No NSUserTrackingUsageDescription: ads are non-personalised, so the
+	     app never asks for tracking. -->
+	<key>GADApplicationIdentifier</key>
+	<string>ca-app-pub-3940256099942544~1458002511</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
@@ -81,15 +83,10 @@
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>
-		<string>UIInterfaceOrientationLandscapeLeft</string>
-		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
 	<key>UISupportedInterfaceOrientations~ipad</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>
-		<string>UIInterfaceOrientationPortraitUpsideDown</string>
-		<string>UIInterfaceOrientationLandscapeLeft</string>
-		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
 </dict>
 </plist>

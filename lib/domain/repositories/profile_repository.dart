@@ -23,4 +23,7 @@ abstract class ProfileRepository {
 
   /// Removes the profile photo.
   Future<Either<Failure, Unit>> removePhoto();
+
+  /// The roles this account holds (docs/09 §3). Shell selection only — see the data source.
+  Future<Either<Failure, List<String>>> roles();
 }

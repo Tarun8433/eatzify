@@ -159,7 +159,18 @@ void main() {
       find.descendant(of: find.byType(SplashPage), matching: find.byType(Image)),
       findsWidgets,
     );
-    expect(find.text('Eatzify'), findsOneWidget);
+    // `textContaining`: the wordmark carries its decorative leaf as an inline WidgetSpan (D-102),
+    // which puts an object-replacement character in the plain text.
+    expect(find.textContaining('Eatzify', findRichText: true), findsOneWidget);
+
+    // The mock's frame: tagline under the wordmark, a bar that says the wait is being worked on.
+    final l = AppLocalizations.of(tester.element(find.byType(SplashPage)));
+    expect(find.text(l.splashTagline), findsOneWidget);
+    expect(find.text(l.splashPreparing), findsOneWidget);
+    expect(
+      find.descendant(of: find.byType(SplashPage), matching: find.byType(LinearProgressIndicator)),
+      findsOneWidget,
+    );
 
     await settle(tester);
   });

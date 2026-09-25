@@ -15,6 +15,32 @@ export class MailService {
     private readonly configService: ConfigService<AllConfigType>,
   ) {}
 
+  /// One in-app notification, also sent by email when the account has an address (docs/11 §8's
+  /// renewal notices). Plain: the title and the body the app already shows, nothing added.
+  async notification(
+    mailData: MailData<{ title: string; body: string }>,
+  ): Promise<void> {
+    await this.mailerService.sendMail({
+      to: mailData.to,
+      subject: mailData.data.title,
+      text: `${mailData.data.title}\n\n${mailData.data.body}`,
+      templatePath: path.join(
+        this.configService.getOrThrow('app.workingDirectory', {
+          infer: true,
+        }),
+        'src',
+        'mail',
+        'mail-templates',
+        'notification.hbs',
+      ),
+      context: {
+        title: mailData.data.title,
+        body: mailData.data.body,
+        app_name: this.configService.get('app.name', { infer: true }),
+      },
+    });
+  }
+
   async userSignUp(mailData: MailData<{ hash: string }>): Promise<void> {
     const i18n = I18nContext.current();
     let emailConfirmTitle: MaybeType<string>;

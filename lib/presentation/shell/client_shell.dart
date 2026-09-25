@@ -107,21 +107,21 @@ class _ClientShellState extends State<ClientShell> with SingleTickerProviderStat
     return LayoutBuilder(
       builder: (context, constraints) {
         final man = WalkingMan.boundsAt(constraints.biggest, tab);
-        final width = man.height * _stageWidthFactor;
-        final height = width * _stageAspect;
+        final width = man.height * AppSizes.stageWidthFactor;
+        final height = width * AppSizes.stageAspect;
 
         return Stack(
           children: [
             Positioned(
               left: man.center.dx - width / 2,
-              top: man.bottom - height * _stagePodiumLine,
+              top: man.bottom - height * AppSizes.stagePodiumLine,
               width: width,
               height: height,
               child: ExcludeSemantics(
                 child: Opacity(
                   opacity: opacity.clamp(0.0, 1.0),
                   child: Image.asset(
-                    AppAssets.dashboardStage,
+                    AppAssets.themed(AppAssets.dashboardStage, Theme.of(context).brightness),
                     width: width,
                     // Explicit, never decode-derived: an Image with only a width is 0 pt tall
                     // until the asset loads, and the podium line jumps a frame later (D-138).
@@ -137,12 +137,6 @@ class _ClientShellState extends State<ClientShell> with SingleTickerProviderStat
       },
     );
   }
-
-  /// The stage against the WALKER's height, so shrinking him shrinks his setting with him; the
-  /// aspect is the file's own, and the podium surface is measured off the art.
-  static const _stageWidthFactor = 1.45;
-  static const _stageAspect = 763 / 640;
-  static const _stagePodiumLine = 0.86;
 
   void _animateTo(ClientTab tab) {
     if (tab == _toTab) return;

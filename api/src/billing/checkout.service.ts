@@ -194,7 +194,11 @@ export class CheckoutService {
     let discountPaise = 0n;
     let appliedCoupon: string | null = null;
     if (couponCode) {
-      const offer = await this.coupons_.discountFor(couponCode, amountPaise, now);
+      const offer = await this.coupons_.discountFor(
+        couponCode,
+        amountPaise,
+        now,
+      );
       if (offer === null) throw this.refuse('COUPON_INVALID', COUPON_INVALID);
       discountPaise = offer.discountPaise;
       amountPaise -= discountPaise;

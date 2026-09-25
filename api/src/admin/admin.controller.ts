@@ -10,6 +10,7 @@ import {
   Res,
   Param,
   ParseIntPipe,
+  Patch,
   Post,
   Query,
   Request,
@@ -20,6 +21,7 @@ import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import {
   ArrayNotEmpty,
   IsArray,
+  IsBoolean,
   IsIn,
   IsInt,
   IsObject,
@@ -27,6 +29,7 @@ import {
   IsString,
   Max,
   Min,
+  ValidateIf,
   ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
@@ -68,6 +71,10 @@ import {
   type ContentClass,
 } from '../notifications/entities/notification.entity';
 import { FoodsService } from '../foods/foods.service';
+import {
+  ScanPolicyService,
+  type ScanPolicyView,
+} from '../foods/scan/scan-policy.service';
 import {
   FOOD_STATUSES,
   type FoodEntity,
@@ -231,18 +238,29 @@ class AuditQueryDto {
   limit?: number;
 }
 
-/**
- * docs/09 §9. Admin and super_admin only, enforced by the guard on the class rather than per method
- * — a new route added here is protected by default, which is the opposite of how admin surfaces
- * usually leak.
- *
- * What is deliberately NOT here yet: `/admin/users/{id}` (the search returns what it would) and
- * rule-pack activation, which is super_admin's alone and lives with the rule packs rather than here.
- */
-@ApiTags('Admin')
-@ApiBearerAuth()
-@Roles(RoleEnum.admin, RoleEnum.super_admin)
-@UseGuards(AuthGuard('jwt'), RolesGuard)
+/// D-238. Any subset of a tier's scan rules. `trial_days: null` removes the window.
+class UpdateScanPolicyDto {
+  @IsOptional()
+  @IsBoolean()
+  enabled?: boolean;
+
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  @Max(100)
+  daily_limit?: number;
+
+  @IsOptional()
+  @IsBoolean()
+  requires_ad?: boolean;
+
+  @ValidateIf((_, v) => v !== null && v !== undefined)
+  @IsInt()
+  @Min(1)
+  @Max(365)
+  trial_days?: number | null;
+}
+
 class CreateCouponDto {
   @IsString()
   code: string;
@@ -261,6 +279,18 @@ class CreateCouponDto {
   expires_at?: string | null;
 }
 
+/**
+ * docs/09 §9. Admin and super_admin only, enforced by the guard on the class rather than per method
+ * — a new route added here is protected by default, which is the opposite of how admin surfaces
+ * usually leak.
+ *
+ * What is deliberately NOT here yet: `/admin/users/{id}` (the search returns what it would) and
+ * rule-pack activation, which is super_admin's alone and lives with the rule packs rather than here.
+ */
+@ApiTags('Admin')
+@ApiBearerAuth()
+@Roles(RoleEnum.admin, RoleEnum.super_admin)
+@UseGuards(AuthGuard('jwt'), RolesGuard)
 @Controller({ path: 'admin', version: '1' })
 export class AdminController {
   constructor(
@@ -273,6 +303,7 @@ export class AdminController {
     private readonly totp: TotpService,
     private readonly audit: AuditService,
     private readonly couponsService: CouponsService,
+    private readonly scanPolicy: ScanPolicyService,
   ) {}
 
   /**
@@ -544,6 +575,24 @@ export class AdminController {
   @Get('coupons')
   coupons(): Promise<CouponView[]> {
     return this.couponsService.list();
+  }
+
+  /// D-238 — who may scan a meal photo, per tier. Changing it changes what the scans cost and
+  /// what a plan includes, so a write takes the second factor like an offer does.
+  @Get('scan-policy')
+  scanPolicies(): Promise<ScanPolicyView[]> {
+    return this.scanPolicy.list();
+  }
+
+  @Patch('scan-policy/:tier')
+  async updateScanPolicy(
+    @Headers('x-totp') code: string | undefined,
+    @Request() request: { user: JwtPayloadType },
+    @Param('tier') tier: string,
+    @Body() body: UpdateScanPolicyDto,
+  ): Promise<ScanPolicyView> {
+    await this.totp.require(Number(request.user.id), code ?? '');
+    return this.scanPolicy.update(tier, body);
   }
 
   @Post('coupons')

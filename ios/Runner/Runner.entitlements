@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>com.apple.security.application-groups</key>
+	<array>
+		<string>group.com.tarun.Influnexa.liveactivities</string>
+	</array>
+	<!--
+	  HealthKit, read-only (CLAUDE.md rule 10). One key is the whole capability; there is no
+	  separate read entitlement, and `healthkit.access` is for clinical records the app never asks
+	  for. Background delivery is deliberately absent — the plugin does not implement it on iOS.
+	-->
+	<key>com.apple.developer.healthkit</key>
+	<true/>
+</dict>
+</plist>

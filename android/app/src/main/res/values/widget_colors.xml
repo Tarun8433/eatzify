@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The widget's palette — the same deep green card the iOS widget draws (HomeScreenWidget.swift,
+  `Ink`), in light mode and dark alike. It is a brand surface, not a system surface: the same
+  card on every home screen. If either platform's values move, both have to.
+-->
+<resources>
+    <color name="widget_surface_top">#FF1E4637</color>
+    <color name="widget_surface">#FF12362A</color>
+    <color name="widget_ink">#FFFFFFFF</color>
+    <color name="widget_ink_muted">#9EFFFFFF</color>
+    <color name="widget_tile">#1AFFFFFF</color>
+    <color name="widget_track">#38FFFFFF</color>
+    <color name="widget_accent">#FF7AC480</color>
+    <color name="widget_on_accent">#FF12362A</color>
+</resources>

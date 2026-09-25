@@ -40,3 +40,22 @@ export function diaryWindowFor(diaryDate: string): { start: Date; end: Date } {
     end: new Date(startMillis + 24 * 60 * 60 * 1000),
   };
 }
+
+/// The last [days] diary days ending with the one [now] falls in, oldest first (D-216).
+///
+/// For a health-platform backfill, which has to ask the phone about each past day by its window.
+/// Only the calendar is walked here — every boundary still comes from [diaryDateFor] and
+/// [diaryWindowFor], so this is not a second implementation of rule 4.
+export function recentDiaryWindows(
+  now: Date,
+  days: number,
+): { diary_date: string; start: Date; end: Date }[] {
+  const today = new Date(`${diaryDateFor(now)}T00:00:00.000Z`);
+
+  return Array.from({ length: days }, (_, i) => {
+    const date = new Date(today);
+    date.setUTCDate(today.getUTCDate() - (days - 1 - i));
+    const diaryDate = date.toISOString().slice(0, 10);
+    return { diary_date: diaryDate, ...diaryWindowFor(diaryDate) };
+  });
+}

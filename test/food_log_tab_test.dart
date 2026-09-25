@@ -67,7 +67,13 @@ void main() {
     await tester.pumpAndSettle();
 
     // Someone who opened "add food" has already decided to add food. Twenty rows, unasked.
-    expect(repo.searchCalls.single, (query: '', limit: 20, offset: 0, suitableFor: null));
+    expect(repo.searchCalls.single, (
+      query: '',
+      limit: 20,
+      offset: 0,
+      suitableFor: null,
+      groups: null,
+    ));
     expect(find.text('Food 00'), findsOneWidget);
     expect(find.text('Food 19'), findsNothing, reason: 'below the fold, but built');
   });
@@ -110,7 +116,13 @@ void main() {
 
     // The wire value, not the label — and from offset zero, because a different category is a
     // different list rather than more of this one.
-    expect(repo.searchCalls.last, (query: '', limit: 20, offset: 0, suitableFor: 'veg'));
+    expect(repo.searchCalls.last, (
+      query: '',
+      limit: 20,
+      offset: 0,
+      suitableFor: 'veg',
+      groups: null,
+    ));
     // And the pill says what is showing, so the user can tell a filtered list from the table.
     expect(find.text('Vegetarian'), findsOneWidget);
   });
@@ -179,7 +191,13 @@ void main() {
 
     // The query goes to the server — the app does not filter rows it happens to be holding, which
     // would only ever search the pages already fetched.
-    expect(repo.searchCalls.last, (query: 'Food 07', limit: 20, offset: 0, suitableFor: null));
+    expect(repo.searchCalls.last, (
+      query: 'Food 07',
+      limit: 20,
+      offset: 0,
+      suitableFor: null,
+      groups: null,
+    ));
     // The row, by its energy line — the name itself also appears in the search box the user just
     // typed it into.
     expect(find.text('107 kcal / 100 g'), findsOneWidget);
@@ -233,5 +251,143 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Search is unavailable right now.'), findsOneWidget);
+  });
+
+  /// D-238. The add sheet shows what the portion gives — the server's figures — and sends exactly
+  /// the portion the user picked.
+  group('the add sheet (D-238)', () {
+    const dal = Food(
+      id: 'dal',
+      name: 'Dal tadka',
+      kcalPer100g: 116,
+      proteinPer100g: 6.8,
+      carbPer100g: 16.2,
+      fatPer100g: 2.9,
+      measures: [HouseholdMeasure(label: 'katori', grams: 150, isDefault: true)],
+    );
+    const salt = Food(id: 'salt', name: 'Rock salt', kcalPer100g: 0, measures: []);
+
+    /// The food is opened from the quick-add shelf: with one food it is the only tile there is.
+    Future<FakeDiaryRepository> openSheetFor(WidgetTester tester, Food food) async {
+      final repo = FakeDiaryRepository(foods: [food]);
+      await tester.pumpWidget(tabUnderTest(repo));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(food.name));
+      await tester.pumpAndSettle();
+      return repo;
+    }
+
+    testWidgets(
+      "should show each row's carbs, protein and fat per 100 g when the server sent them",
+      (tester) async {
+        await tester.pumpWidget(tabUnderTest(FakeDiaryRepository(foods: [...fixture(4), dal])));
+        await tester.pumpAndSettle();
+
+        expect(find.text('C 16g'), findsOneWidget);
+        expect(find.text('P 7g'), findsOneWidget);
+        expect(find.text('F 3g'), findsOneWidget);
+      },
+    );
+
+    testWidgets('should filter by food group on the server when a chip is tapped', (tester) async {
+      final repo = FakeDiaryRepository(foods: fixture(50));
+      await tester.pumpWidget(tabUnderTest(repo));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Protein'));
+      await tester.pumpAndSettle();
+
+      expect(repo.searchCalls.last.groups, ['pulse', 'meat', 'fish', 'egg']);
+      expect(repo.searchCalls.last.offset, 0);
+      // A filtered list is a list of answers; the shelf of unrelated foods goes.
+      expect(find.text('Quick adds'), findsNothing);
+    });
+
+    testWidgets("should show the server's nutrients for the portion when the sheet opens", (
+      tester,
+    ) async {
+      final repo = await openSheetFor(tester, dal);
+
+      expect(repo.previewCalls.single, (
+        foodId: 'dal',
+        measure: 'katori',
+        measureCount: 1.0,
+        quantityG: null,
+      ));
+      expect(find.text('483'), findsOneWidget, reason: 'kcal, rounded to a whole number');
+      expect(find.text('Fibre'), findsOneWidget);
+      expect(find.text('6.2 g'), findsOneWidget);
+      expect(find.text('Sodium'), findsOneWidget);
+      expect(find.text('656 mg'), findsOneWidget);
+      expect(find.text('Saturated fat'), findsOneWidget);
+    });
+
+    testWidgets('should ask the server again when the portion changes', (tester) async {
+      final repo = await openSheetFor(tester, dal);
+
+      await tester.tap(find.byTooltip('More'));
+      await tester.pump(const Duration(milliseconds: 300));
+      await tester.pumpAndSettle();
+
+      // Never scaled on the phone (rule 2): one more half-katori is a new question to the server.
+      expect(repo.previewCalls.last.measureCount, 1.5);
+      expect(find.text('1.5 × katori'), findsOneWidget);
+    });
+
+    testWidgets('should log the meal and portion the user picked', (tester) async {
+      final repo = await openSheetFor(tester, dal);
+
+      await tester.tap(find.text('Dinner'));
+      await tester.tap(find.byTooltip('More'));
+      await tester.pumpAndSettle();
+      final add = find.widgetWithText(FilledButton, 'Add to Dinner');
+      await tester.ensureVisible(add);
+      await tester.tap(add);
+      await tester.pumpAndSettle();
+
+      expect(repo.loggedCalls.single, (
+        slot: 'dinner',
+        foodId: 'dal',
+        measure: 'katori',
+        measureCount: 1.5,
+        quantityG: null,
+        source: null,
+      ));
+      expect(find.text('Added to Dinner'), findsOneWidget);
+    });
+
+    testWidgets('should undo the entry it just logged', (tester) async {
+      final repo = await openSheetFor(tester, dal);
+
+      // The meal is picked, not left to the clock-based default, so the test runs the same at noon
+      // and at midnight.
+      await tester.tap(find.text('Dinner'));
+      await tester.pumpAndSettle();
+      final add = find.widgetWithText(FilledButton, 'Add to Dinner');
+      await tester.ensureVisible(add);
+      await tester.tap(add);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Undo'));
+      await tester.pumpAndSettle();
+
+      expect(repo.removedIds, ['1']);
+    });
+
+    testWidgets('should start a food with no household measure at 100 g, not 1 g', (tester) async {
+      final repo = await openSheetFor(tester, salt);
+
+      expect(find.text('100 g'), findsOneWidget);
+      expect(repo.previewCalls.single.quantityG, 100);
+      expect(repo.previewCalls.single.measure, isNull);
+    });
+
+    testWidgets('should survive 200 % font scale (rule 12)', (tester) async {
+      tester.platformDispatcher.textScaleFactorTestValue = 2;
+      addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+
+      await openSheetFor(tester, dal);
+
+      expect(tester.takeException(), isNull);
+    });
   });
 }

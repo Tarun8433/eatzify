@@ -18,7 +18,13 @@ export const MEASUREMENT_KINDS = [
   // per DIARY day is exactly what a day's steps is, and the 04:00 IST boundary and the overwrite
   // rule already live here.
   'steps',
+  // What the person added to, or took off, the day's step count (D-221). Signed, manual only, and
+  // never shown on its own: every reader sees it folded into `steps` by `foldStepsAdded`.
+  'steps_added',
   'energy_burned_kcal',
+  // Read from Health Connect / HealthKit alongside steps (D-214). The rest of the same walk, at
+  // the same sensitivity as a step count.
+  'distance_m',
   // Hydration (D-86). A kind, for the same reason activity is: one row per user per DIARY day, and
   // logging twice corrects the figure rather than doubling it.
   'water_ml',
@@ -45,14 +51,51 @@ export type MeasurementSource = (typeof MEASUREMENT_SOURCES)[number];
 /// the sync leaves no trace of what it replaced. The reverse is not a problem: a manual entry
 /// after a sync is the user disagreeing with the device on purpose, which is exactly what the
 /// field is for.
+///
+/// [replaceManual] is the same person changing their mind the other way (D-218): they tapped
+/// "Sync" or "Connect" and asked for the device's figure. A background sync never sends it.
 export function canOverwrite(
   existing: MeasurementSource | null,
   incoming: MeasurementSource,
+  replaceManual = false,
 ): boolean {
   if (existing === null) return true;
   // A person always wins, including over their own earlier entry.
   if (incoming === 'manual') return true;
+  if (replaceManual) return true;
   return existing !== 'manual';
+}
+
+/// A day's steps are what the device counted plus what the person added or took off (D-221).
+///
+/// Kept as two rows so a sync can keep replacing the device's figure without wiping out the
+/// person's change, and folded back into one `steps` row here — the single place every reader
+/// (the day, the history, the coach's chart) goes through, so none of them sums it differently.
+/// Order is kept; a day with only an addition becomes a manual `steps` row. Never below zero.
+export function foldStepsAdded<
+  T extends { kind: string; diaryDate: string; value: string },
+>(rows: readonly T[]): T[] {
+  const added = new Map<string, number>();
+  const counted = new Set<string>();
+  for (const row of rows) {
+    if (row.kind === 'steps_added') added.set(row.diaryDate, Number(row.value));
+    if (row.kind === 'steps') counted.add(row.diaryDate);
+  }
+
+  const total = (value: number) => Math.max(0, value).toFixed(2);
+  return rows.flatMap((row): T[] => {
+    if (row.kind === 'steps') {
+      const extra = added.get(row.diaryDate);
+      return extra === undefined
+        ? [row]
+        : [{ ...row, value: total(Number(row.value) + extra) }];
+    }
+    if (row.kind !== 'steps_added') return [row];
+    // Only a day nobody's device counted keeps the addition as a row of its own.
+    return counted.has(row.diaryDate)
+      ? []
+      : [{ ...row, kind: 'steps', value: total(Number(row.value)) }];
+  });
 }
 
 /// Hard bounds. Outside these a value is refused outright, not merely flagged.
@@ -70,8 +113,12 @@ export const BOUNDS: Record<
   hba1c: { min: 3, max: 20, unit: '%' },
   // A step count, not a distance. 100k is past any real day and well past a plausible typo.
   steps: { min: 0, max: 100000, unit: 'steps' },
+  // Negative is taking steps off: the watch counted a bus ride.
+  steps_added: { min: -100000, max: 100000, unit: 'steps' },
   // The upper bound is a hard day's endurance work, not a ceiling on anyone's ambition.
   energy_burned_kcal: { min: 0, max: 8000, unit: 'kcal' },
+  // 100 km: past an ultramarathon, and the same ceiling steps uses for the same reason.
+  distance_m: { min: 0, max: 100000, unit: 'm' },
   // 10 litres is past what anyone drinks in a day and well past hyponatraemia risk; the rule pack's
   // own ceiling is 4 litres, and this is only the "that cannot be a real number" bound.
   water_ml: { min: 0, max: 10000, unit: 'ml' },

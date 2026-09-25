@@ -33,6 +33,8 @@ export class UserSeedService {
           lastName: 'Admin',
           email: 'admin@example.com',
           password,
+          // Seeded, so the metrics rollup leaves it out (D-230).
+          isDemo: true,
           role: {
             id: RoleEnum.admin,
             name: 'Admin',
@@ -63,6 +65,7 @@ export class UserSeedService {
           lastName: 'Doe',
           email: 'john.doe@example.com',
           password,
+          isDemo: true,
           role: {
             id: RoleEnum.user,
             name: 'Admin',

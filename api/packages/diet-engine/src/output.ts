@@ -62,6 +62,56 @@ export function assertTargetsCoherent(targets: Targets, pack: RulePack): void {
   }
 }
 
+/**
+ * docs/04 §8, against the FILLED day: "|Σ meal_kcal − target| ≤ 3 %" and "|Σ protein −
+ * protein_target| ≤ 5 g". A failed assertion is a bug, not a warning.
+ *
+ * [assertMealsCoherent] checks the SPLIT, which is arithmetic and was always right. This checks
+ * the food chosen under it, which is a search and can be very wrong while every slot sits inside
+ * its energy tolerance.
+ *
+ * Skipped entirely when no pool was supplied — there is nothing to assert about a plan that
+ * deliberately carries no meals.
+ *
+ * **Also skipped when the fill already said it could not get there.** docs/04 §7 gives the filler
+ * an explicit fallback — "fall back to the closest solution and record the residual in the trace"
+ * — and a meal that took it comes back `approximated`. Asserting over that turned the documented
+ * outcome into a 500: a pool that could not reach one slot's target cost the user their whole
+ * plan, with `Internal server error` as the explanation.
+ *
+ * The assertion keeps its actual job. Its purpose, above, is a search that went wrong WHILE every
+ * slot looked fine — and in that case nothing is approximated, so this still throws. The two
+ * cases are different failures and only one of them is a bug:
+ *
+ * - every slot inside tolerance but the day is not — arithmetic contradiction, a bug, throw;
+ * - a slot that announced it could not be filled — the pool's limit, recorded, return the plan.
+ */
+export function assertFilledDayCoherent(
+  meals: readonly { kcal: number; proteinG: number; approximated?: boolean }[],
+  targets: { kcal: number; proteinG: number },
+  pack: RulePack,
+): void {
+  // The filler has already recorded why, per meal, in `residualKcal`. Re-deciding it here would
+  // be a second opinion about a search this function did not run.
+  if (meals.some((m) => m.approximated === true)) return;
+
+  const kcal = meals.reduce((acc, m) => acc + m.kcal, 0);
+  const drift = Math.abs(kcal - targets.kcal) / targets.kcal;
+  if (drift > pack.validation.kcal_tolerance_pct) {
+    throw new EngineAssertionError(
+      `filled day kcal ${kcal.toFixed(0)} drifts ${(drift * 100).toFixed(1)}% from target ${targets.kcal}`,
+    );
+  }
+
+  const protein = meals.reduce((acc, m) => acc + m.proteinG, 0);
+  const gap = Math.abs(protein - targets.proteinG);
+  if (gap > pack.validation.protein_tolerance_g) {
+    throw new EngineAssertionError(
+      `filled day protein ${protein.toFixed(0)} g is ${gap.toFixed(0)} g from target ${targets.proteinG} g`,
+    );
+  }
+}
+
 export function assertMealsCoherent(
   meals: readonly MealTarget[],
   targetKcal: number,
