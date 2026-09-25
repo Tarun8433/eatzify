@@ -4,15 +4,22 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
 import 'package:health_pro/core/errors/failures.dart';
+import 'package:health_pro/core/theme/app_spacing.dart';
 import 'package:health_pro/core/theme/app_theme.dart';
 import 'package:health_pro/core/widgets/app_card.dart';
+import 'package:health_pro/core/widgets/food_image.dart';
 import 'package:health_pro/core/widgets/frame_sequence.dart';
 import 'package:health_pro/core/widgets/progress_ring.dart';
 import 'package:health_pro/domain/entities/food.dart';
 import 'package:health_pro/domain/entities/measurement.dart';
 import 'package:health_pro/domain/repositories/diary_repository.dart';
 import 'package:health_pro/domain/repositories/plan_repository.dart';
+import 'package:health_pro/domain/repositories/profile_repository.dart';
+import 'package:health_pro/domain/repositories/reminder_repository.dart';
+import 'package:health_pro/domain/usecases/plan_reminders.dart';
+import 'package:health_pro/presentation/features/account/reminders_page.dart';
 import 'package:health_pro/presentation/features/home/home_page.dart';
+import 'package:health_pro/presentation/features/home/home_skeleton.dart';
 import 'package:health_pro/presentation/l10n/app_localizations.dart';
 
 import 'fakes.dart';
@@ -54,23 +61,42 @@ DiaryDay dayWith({
   Macros? targets,
   List<LogEntry> entries = const [],
   int? steps,
+  int? stepsAdded,
   MeasurementSource stepsSource = MeasurementSource.manual,
   int? energyBurnedKcal,
   int? waterLoggedMl,
   int? waterTargetMl,
+  int? workoutKcal,
 }) => DiaryDay(
   diaryDate: '2026-08-25',
   entries: entries,
   totals: totals ?? const Macros(kcal: 0, proteinG: 0, carbG: 0, fatG: 0),
   targets: targets,
   steps: steps,
+  stepsAdded: stepsAdded,
   stepsSource: stepsSource,
   energyBurnedKcal: energyBurnedKcal,
   waterLoggedMl: waterLoggedMl,
   waterTargetMl: waterTargetMl,
+  workoutKcal: workoutKcal,
 );
 
 void main() {
+  /// D-162: Home had the generic three-bar skeleton, so the day landing turned three bars into a
+  /// hero, a tile row and a list — a jump rather than a fill-in.
+  testWidgets('waits behind a skeleton shaped like the dashboard', (tester) async {
+    await tester.pumpWidget(
+      homeUnderTest(FakeDiaryRepository(delay: const Duration(milliseconds: 50))),
+    );
+    await tester.pump();
+
+    expect(find.byType(HomeSkeleton), findsOneWidget);
+
+    // Let the day land, or the pending timer fails the test after the expectation passes.
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(find.byType(HomeSkeleton), findsNothing);
+  });
+
   testWidgets('shows eaten against target when a plan exists', (tester) async {
     await tester.pumpWidget(
       homeUnderTest(
@@ -94,6 +120,61 @@ void main() {
     expect(find.text('20 / 125 g'), findsOneWidget);
     expect(find.text('48 / 223 g'), findsOneWidget);
   });
+
+  // Both scales: rule 12 asks the screen to survive 200 %, and the old layout's answer to a
+  // narrow column — divide it two-up — is the branch this row replaced.
+  for (final scale in [1.0, 2.0]) {
+    testWidgets('a fourth nutrient scrolls rather than overflowing at ${scale}x text', (
+      tester,
+    ) async {
+      // The screenshot case: a plan that carries fibre puts FOUR tiles on a phone's width, where
+      // dividing the column four ways left each tile 79 pt — a disc, a label, a figure and a ring
+      // stacked in a column too narrow to read. They hold AppSizes.nutrientTile and the row
+      // scrolls instead. An overflow here fails the test by painting the yellow stripes.
+      tester.view.physicalSize = const Size(390, 800);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+
+      await tester.pumpWidget(
+        MediaQuery(
+          data: MediaQueryData(textScaler: TextScaler.linear(scale)),
+          child: homeUnderTest(
+            FakeDiaryRepository(
+              dayResult: Right(
+                dayWith(
+                  totals: const Macros(kcal: 348, proteinG: 20, carbG: 48, fatG: 8, fibreG: 6),
+                  targets: const Macros(
+                    kcal: 1859,
+                    proteinG: 125,
+                    carbG: 223,
+                    fatG: 52,
+                    fibreG: 25,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await settle(tester);
+
+      await scrollTo(tester, find.text('20 / 125 g'));
+      expect(tester.takeException(), isNull);
+
+      // No tile is narrower than the readable minimum; the row carries the overflow sideways.
+      final tiles = tester
+          .widgetList<SizedBox>(
+            find.descendant(
+              of: find.byType(SingleChildScrollView),
+              matching: find.byType(SizedBox),
+            ),
+          )
+          .where((b) => b.width != null && b.width! >= AppSizes.nutrientTile);
+      expect(tiles, isNotEmpty);
+
+      expect(find.text('Fibre'), findsOneWidget);
+    });
+  }
 
   testWidgets('no plan means no comparison, not a comparison against zero', (tester) async {
     await tester.pumpWidget(
@@ -199,6 +280,89 @@ void main() {
     // the card's figure.)
     expect(find.text('348 kcal'), findsNWidgets(2));
     expect(find.text('Lunch'), findsOneWidget);
+  });
+
+  /// docs/21 §6: a logged food shows its photograph, with its credit (D-83); a custom entry keeps
+  /// the same-sized placeholder so the rows stay aligned.
+  testWidgets('should show the food photo on a logged entry, and a placeholder on a custom one', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      homeUnderTest(
+        FakeDiaryRepository(
+          dayResult: Right(
+            dayWith(
+              totals: const Macros(kcal: 553, proteinG: 8, carbG: 42, fatG: 30),
+              targets: const Macros(kcal: 1859, proteinG: 125, carbG: 223, fatG: 52),
+              entries: [
+                const LogEntry(
+                  id: '1',
+                  slot: 'breakfast',
+                  name: 'Aloo gobhi',
+                  quantityG: 150,
+                  measureLabel: 'katori',
+                  kcal: 161,
+                  locked: false,
+                  imageUrl: 'http://api.test/food-images/aloo-gobhi.jpg',
+                  imageAttribution: 'A. Cook / CC BY-SA 4.0',
+                ),
+                const LogEntry(
+                  id: '2',
+                  slot: 'breakfast',
+                  name: 'Aunty ka halwa',
+                  quantityG: 100,
+                  kcal: 392,
+                  locked: false,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+    await settle(tester);
+    await scrollTo(tester, find.text('Aunty ka halwa'));
+
+    FoodImage imageIn(String name) => tester.widget<FoodImage>(
+      find.descendant(
+        of: find.ancestor(of: find.text(name), matching: find.byType(AppCard)).first,
+        matching: find.byType(FoodImage),
+      ),
+    );
+    expect(imageIn('Aloo gobhi').url, 'http://api.test/food-images/aloo-gobhi.jpg');
+    expect(imageIn('Aloo gobhi').attribution, 'A. Cook / CC BY-SA 4.0');
+    expect(imageIn('Aunty ka halwa').url, isNull);
+  });
+
+  /// D-240: a scanned plate's numbers are a model's estimate, and its row says so.
+  testWidgets('should label a scanned entry as an AI estimate', (tester) async {
+    await tester.pumpWidget(
+      homeUnderTest(
+        FakeDiaryRepository(
+          dayResult: Right(
+            dayWith(
+              totals: const Macros(kcal: 355, proteinG: 7, carbG: 51, fatG: 14),
+              targets: const Macros(kcal: 1859, proteinG: 125, carbG: 223, fatG: 52),
+              entries: [
+                const LogEntry(
+                  id: '1',
+                  slot: 'lunch',
+                  name: 'Aloo paratha with ghee',
+                  quantityG: 125,
+                  kcal: 355,
+                  locked: false,
+                  estimated: true,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+    await settle(tester);
+    await scrollTo(tester, find.text('Aloo paratha with ghee'));
+
+    expect(find.text('125 g · AI estimate'), findsOneWidget);
   });
 
   testWidgets('with no plan, Home offers to create one', (tester) async {
@@ -506,6 +670,53 @@ void main() {
       expect(find.text('0 / 2640 ml'), findsOneWidget);
     });
 
+    /// D-222. "Remind me" sits beside the water it is about.
+    testWidgets('the water card opens Reminders when they are set up', (tester) async {
+      final app = homeUnderTest(
+        FakeDiaryRepository(dayResult: Right(dayWith(waterTargetMl: 2640))),
+      );
+      final reminders = FakeReminderRepository();
+      Get
+        ..put<ProfileRepository>(FakeProfileRepository(), permanent: true)
+        ..put<ReminderRepository>(reminders, permanent: true)
+        ..put(RefreshReminders(reminders), permanent: true);
+      await tester.pumpWidget(app);
+      await settle(tester);
+
+      await tester.tap(find.byTooltip('Reminders'));
+      await settle(tester);
+
+      expect(find.byType(RemindersPage), findsOneWidget);
+      expect(find.text('Water'), findsOneWidget);
+    });
+
+    /// The card sits beside the walker, about 168 dp wide on a phone; a four-digit figure and the
+    /// bell must both fit, and the bell stays a 48 dp target (rule 12).
+    testWidgets('the water card fits a four-digit figure and the bell on a phone', (tester) async {
+      tester.view
+        ..physicalSize = const Size(1080, 2424)
+        ..devicePixelRatio = 2.625;
+      addTearDown(tester.view.reset);
+
+      final app = homeUnderTest(
+        FakeDiaryRepository(dayResult: Right(dayWith(waterLoggedMl: 1250, waterTargetMl: 2640))),
+      );
+      final reminders = FakeReminderRepository();
+      Get
+        ..put<ReminderRepository>(reminders, permanent: true)
+        ..put(RefreshReminders(reminders), permanent: true);
+      await tester.pumpWidget(app);
+      await settle(tester);
+
+      expect(tester.takeException(), isNull);
+      expect(find.text('1250 / 2640 ml'), findsOneWidget);
+      final bell = tester.getSize(
+        find.widgetWithIcon(IconButton, Icons.notifications_none_outlined),
+      );
+      expect(bell.width, greaterThanOrEqualTo(48));
+      expect(bell.height, greaterThanOrEqualTo(48));
+    });
+
     testWidgets('with no plan there is no goal, so the row stays away', (tester) async {
       await tester.pumpWidget(homeUnderTest(FakeDiaryRepository(dayResult: Right(dayWith()))));
       await settle(tester);
@@ -530,6 +741,50 @@ void main() {
 
       expect(find.text('9500'), findsOneWidget);
       expect(find.textContaining('Apple Health'), findsOneWidget);
+    });
+
+    /// D-221. A phone's count with steps the person added on top is both of theirs.
+    testWidgets('a synced count with added steps says the person added some', (tester) async {
+      await tester.pumpWidget(
+        homeUnderTest(
+          FakeDiaryRepository(
+            dayResult: Right(
+              dayWith(steps: 956, stepsAdded: 500, stepsSource: MeasurementSource.appleHealth),
+            ),
+          ),
+        ),
+      );
+      await settle(tester);
+
+      expect(find.textContaining('Apple Health + you'), findsOneWidget);
+    });
+
+    testWidgets('a logged workout is counted in burned, with the estimate named (D-246)', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        homeUnderTest(
+          FakeDiaryRepository(
+            dayResult: Right(dayWith(energyBurnedKcal: 300, workoutKcal: 240)),
+          ),
+        ),
+      );
+      await settle(tester);
+
+      // D-246: one figure for energy out — 300 measured + 240 estimated — with the estimated
+      // share named underneath rather than buried in the total.
+      expect(find.text('540'), findsOneWidget);
+      expect(find.textContaining('Includes workouts · ~240 kcal'), findsOneWidget);
+    });
+
+    test('the day reads the added steps the server sends', () {
+      final day = DiaryDay.fromJson(const {
+        'diary_date': '2026-09-17',
+        'activity': {'steps': 956, 'steps_source': 'apple_health', 'steps_added': -44},
+      });
+      expect(day.steps, 956);
+      expect(day.stepsAdded, -44);
+      expect(DiaryDay.fromJson(const {'diary_date': '2026-09-17'}).stepsAdded, isNull);
     });
 
     testWidgets('a typed count says so instead of implying a device', (tester) async {

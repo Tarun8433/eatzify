@@ -50,7 +50,8 @@ dependencies:
 
   # Billing — see doc 20 §9 for the entitlement-ownership caveat
   purchases_flutter: ^8.0.0    # RevenueCat
-  razorpay_flutter: ^1.4.0     # web/UPI checkout
+  # Cashfree is the payment provider (api/src/billing/cashfree.*). Razorpay was never wired into
+  # any Dart file and is gone; its Flutter SDK goes in here when checkout stops being a stub.
 
   # UI
   flutter_screenutil: ^5.9.3
@@ -72,16 +73,30 @@ dependencies:
   firebase_messaging: ^15.1.0
   flutter_local_notifications: ^18.0.0
   timezone: ^0.10.0            # required for correct IST reminder scheduling
+  flutter_timezone: ^5.1.0     # the phone's own zone for reminders, set by the phone from where it is
 
   # Platform
   intl: ^0.20.2                # doc 20 §7 says ^0.19.0; Flutter SDK flutter_localizations pins 0.20.2
   package_info_plus: ^8.1.0    # fixes the hardcoded "Version 1.0.0" (doc 15 D-07)
+  socket_io_client: ^3.1.6     # live coach chat (docs/02 FR-5.5); REST stays the fallback
+  home_widget: ^0.9.4          # home-screen widgets: today's figures, and a glass of water logged
+                               # without opening the app
+  share_plus: ^10.1.4          # the OS share sheet, so inviting a friend never reads the address book
   google_sign_in: ^7.2.0
   intl_phone_field: ^3.2.0
   google_fonts: ^8.2.1
+  google_mobile_ads: ^9.1.0
+
+  # Gym (ADR-013)
+  wakelock_plus: ^1.3.3        # the screen stays on while a workout runs, released when it ends
+  path_drawing: ^1.0.1         # parses the body-map outlines (MuscleMap, MIT) — SVG arcs included
+  path_provider: ^2.1.6        # where Hive keeps its boxes; already in the lock through other plugins
 
 dev_dependencies:
   flutter_test:
+    sdk: flutter
+  # The on-device journey through the Gym (ADR-013), run with `flutter drive` against a local API.
+  integration_test:
     sdk: flutter
   build_runner: ^2.4.13
   json_serializable: ^6.8.0
@@ -104,16 +119,24 @@ flutter:
 
   assets:
     # D-55: the Home walker. 38 palette PNGs, 492 KB total.
+    - assets/gym/
     - assets/walking/
     - assets/activity/
+    # D-161: the dark-mode grade of every hero that has one. A directory entry is NOT recursive,
+    # so these subfolders ship only because they are named here.
+    - assets/activity/dark/
     # D-75: played while the first plan is generated. Quoted for the space in the filename.
     - "assets/Preparing Food.json"
     # D-102: the welcome carousel's full-bleed art, and the meal-slot headers. Supplied as ~30 MB
     # of PNG and re-encoded to 1.7 MB of JPG at display resolution — a photo stored as PNG is
     # lossless data nobody can see, and in this app's market bundle size is install conversion.
     - assets/onboarding/
+    - assets/onboarding/dark/
     - assets/welcome/
     - assets/meal_slots/
+    # D-185: the partner hero. Supplied at 1536 px / 1.4 MB and re-encoded to 760 px / 412 KB —
+    # four times the ~190 pt it is drawn at, which is past 3x and still a third of the bytes.
+    - assets/requirement_screens_img/
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

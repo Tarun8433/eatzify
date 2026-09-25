@@ -5865,3 +5865,200 @@ is sending the string — the server prices it, rule 2 as ever.
 
 Not built, deliberately: coupons on UPGRADES (the proration quote is its own machine; an offer
 on it is a separate decision) and stacking (one code per order, by shape).
+
+## D-235 — Chat was built and unreachable; level 3 now exists
+
+Reported as "how does a user start a conversation?", looking at a coach's empty Messages tab. The
+honest answer was: nobody could, ever.
+
+**The chain.** `chat` is a level-3 scope (docs/12 §6, docs/10 §1), and `SCOPES_BY_ROLE` enforced
+that. Level 3 is "level 2 + active coaching agreement + client grant". Nothing in the codebase ever
+promoted anybody to `coach_l3`, and the coaching agreement did not exist — D-169 left level 3 unbuilt
+on purpose, correctly, because "a client grant is not something an application can grant itself".
+But D-226 then built chat on top of it, and PROJECT-STATE called E6 "nothing is a placeholder any
+more". Chat worked in every test and could not be reached by any person. Recorded because it is the
+kind of gap unit tests cannot see: every piece was right, and the path between them did not exist.
+
+**What was built — the spec, not a shortcut.** Asked whether to give chat to level 2 instead (an
+hour's work, and a widening of what a coach can see) or build level 3 properly, the answer was level 3.
+
+- **The coaching agreement** — two columns on `coach_application`, versioned like the partner
+  agreement, offered only to a verified partner. A second promise, not a flag on the first: the
+  partner agreement is about referrals and commission, this one is about being responsible for another
+  person's diet. ⚠ Its TEXT does not exist yet; the version (`c1`) is recorded now so every acceptance
+  can be matched to the words shown once legal writes them.
+- **Promotion runs from both ends.** The partner supplies two of the three conditions; only a client
+  supplies the third. `promoteToCoachingIfEligible` is called when the agreement is accepted AND when a
+  client accepts an invite, and promotes on whichever completes the set. Neither end can do it alone.
+- **Promotion only.** A coach whose last grant lapses stays level 3; coming back down is an admin
+  decision with a reason attached (D-169), not a side effect of a client's subscription ending.
+- **Asking for chat is the existing invite.** Re-inviting a client replaces the grant's scopes when
+  accepted, so a Coaching Partner's second invite with "Can message you" ticked is the whole flow. The
+  invite sheet offers chat only to level 3, unticked, because a scope that comes back refused teaches
+  people to distrust the form.
+- **The coach's empty inbox now names the path** — Coaching Partner, agreement under You, then an
+  invite that asks for chat — and offers the invite as its one action. It used to say "when a client
+  shares chat with you", which described something no client could do.
+
+Verified against the live database, not only in tests: a verified coach with one active client grant
+accepted the agreement and went from role 4 to role 5 in the same call.
+
+## D-237 — You tab: profile sections move into an Explore sheet; quick actions become a settings list
+**When** 2026-09-19 · **Decision** The You tab stops at the hero, Today and Daily goals, then the
+quick actions. Body stats, Account (phone), Your details, Health, Your day and Your routine live in
+`ProfileDetailsSheet` (`account/profile_details_sheet.dart`), opened by the first quick action,
+"Explore your profile". The quick actions are no longer a wrap of pills: each is a `ListTile` row
+with a tinted glyph, its title, one line saying what is behind it, and a chevron — one `AppCard`.
+**Why** Asked for by the product owner, with a settings-list reference. Fifteen pills after six
+cards of read-only facts made the page a long scroll to reach the things a person comes to do. The
+sheet reads the controller rather than a profile captured at open time, so an edit made inside it
+(quiet reload) shows what the server stored. "See all" on body stats closes the sheet before
+switching tab, or the tab changes out of sight.
+**Reverses if** research shows people look for their details on the page itself rather than
+behind a tap.
+
+## D-238 — Meal-photo scanning, nutrient preview, and the open admin API
+**When** 2026-09-19 · **Decision**
+- **Admin guard (security fix).** `AdminController`'s `@Roles`/`@UseGuards` had ended up on
+  `CreateCouponDto`, which had been inserted between them and `@Controller` — every route on it
+  (coupons, metrics, audit, user search) answered without a login. Moved back; `test/admin-guard.spec.ts`
+  checks the metadata on the class itself. Any deployed build before this fix exposed those routes.
+- **Nutrient preview.** `POST /logs/food/preview` scales a portion with `nutritionFor`, the one helper
+  `logFood` now also uses — so the add sheet shows exactly what the diary records: kcal, P/C/F, fibre,
+  sodium, added sugar, saturated fat. Iron, calcium and vitamins are not in the food table; they wait
+  for an IFCT import (Q16), not for an estimate.
+- **Food-group chips.** `GET /foods?group=` filters on the docs/03 §4 `group:` tags (any-of).
+- **Scanning, in the docs/04 §11 shape.** Claude (`claude-opus-5`, low effort, structured output,
+  `fallbacks: "default"`) picks which of OUR foods are in the photo and suggests one of the food's own
+  measures; the server re-checks every index and measure against the table; the app asks "Are you
+  having this?" and logs the food row with `source: 'photo'`. The model never supplies a nutrient.
+  The photo is never stored. Behind `FoodVisionProvider`; `FOOD_VISION_PROVIDER=none` → 503.
+- **Who may scan is admin-edited data**, not code: `scan_policy` per tier (enabled, daily limit,
+  requires ad, trial days), `PATCH /admin/scan-policy/{tier}` behind TOTP. Starting values from the
+  product owner: FREE 3/day for the first 3 days behind a rewarded ad; BASIC 10/day; PRO 15/day.
+- **Rewarded ads on FREE** reverse docs/11's "ads-free" (amended). Non-personalised only, no AD_ID.
+  The server trusts the app's `ad_watched` — the ceiling is a modified client skipping ads within the
+  FREE cap; AdMob server-side verification is the upgrade path.
+**Why** The product owner asked for scanning, micronutrients in the add sheet, and per-tier admin
+control. Matching to our own table keeps ADR-001 (an LLM for food matching, never for targets or
+nutrition) and D-42 (the server scales, the client never multiplies).
+**Reverses if** scans rarely match (watch `food_scan.matched`), or legal review of the processor
+notice or of ads in a health app says otherwise.
+
+## D-239 — DeepSeek as the meal-scan vision provider
+**When** 2026-09-19 · **Decision** `FOOD_VISION_PROVIDER=deepseek` selects `DeepSeekFoodVisionProvider`
+(`deepseek-flash`, Chat Completions over plain `fetch`, JSON mode). Claude stays selectable with
+`anthropic`. Both share one prompt and one answer check (`visionPrompt`, `parseVisionAnswer`), so the
+vendor changes who looks at the photo, never what it may answer: indexes into our food table, checked
+again by `FoodScanService`. DeepSeek's documented "occasionally empty" JSON answers read as no match.
+**Why** Cost, chosen by the product owner: roughly ₹0.06 a scan against ~₹2 on Claude Opus 5.
+**Open** DeepSeek's terms have placed processing in China — a cross-border transfer of health-app
+photos needing legal sign-off before release (docs/13 §4 updated). Match quality on Indian home food
+is unmeasured; compare `food_scan.matched` rates on a sample of real photos before trusting it.
+**Reverses if** legal refuses the transfer, or the match rate is clearly worse than Claude's.
+
+## D-240 — A scanned plate is logged as the model's estimate, with the user's photo
+**When** 2026-09-19 · **Decision** Supersedes D-238's "the model never supplies a nutrient" and, for
+scanning only, ADR-001 / docs/04 §11's match-to-our-foods shape. Chosen by the product owner:
+- The vision model (DeepSeek or Claude, D-239) estimates each item on the plate — name, grams, and
+  kcal, protein, carbs, fat, fibre, sodium, added sugar, saturated fat for that weight. Every answer
+  must pass `parseEstimate`: schema plus sanity bounds; an absurd number refuses the whole answer.
+- The user sees the items, unticks any the model got wrong, picks the meal, and says yes. The server
+  sums the kept items from ITS stored copy (`sumItems`) — the app sends indexes, never numbers — and
+  logs ONE entry: `source: photo`, `estimated: true`, the plate's name, the user's photo.
+- Every screen labels an estimated entry "AI estimate"; nothing passes it off as verified data.
+- The photo is kept privately (docs/13 §4 amended): outside `./files`, served only by an HMAC-signed
+  link that names the entry and expires within the hour, deleted after 90 days, at once on "no",
+  within a day if never confirmed, and by the nightly sweep when nothing references it (undo, erased
+  account). `food_log` also gains sodium, added sugar and saturated fat — manual entries copy them too.
+**Why** The product owner wants a photo to become calories and nutrients, saved with the photo.
+**Open** Estimates vary between scans of the same plate and are unmeasured against weighed meals;
+production storage must move to a private R2 bucket (D-22) before release; legal review of storing
+meal photos and sending them to the vision provider (docs/13).
+**Reverses if** estimates prove unreliable against weighed meals, or legal refuses photo retention.
+
+## D-241 — The Gym section is a pushed hub, not a tab
+**When** 2026-09-19 · **Decision** ADR-013 puts workout tracking in-house.
+- The section is `GymPage.open()`, reached from a "Today's workout" card on Home and a Gym tile on
+  You. It has inner tabs: Today · Routines · Exercises · Stats.
+- The bottom bar stays Home · Plan · [+] · Progress · You.
+- The `+` sheet is unchanged (docs/14 §1 "Nothing else").
+
+**Why**
+- D-45 refused a Workout tab under CLAUDE.md rule 1.
+- A sixth slot touches the cube transition, the walker anchors and the "You is last" maths.
+- A bottom sheet sized around the keyboard is a poor home for a guided session.
+
+**Reverses if** usage shows people cannot find it. That would need an ADR for a tab.
+
+## D-242 — Workout kcal: a server estimate, shown as its own figure (partial reversal of D-80)
+**When** 2026-09-19 · **Decision**
+- `POST /gym/workouts` stores `energyKcal`.
+- The formula is `(MET − 1) × kg × hours`:
+  - cardio sets use the MET for their activity and speed;
+  - the remaining session time uses the strength MET, capped at `strength_set_cap` minutes per done set.
+- The METs are `energy_reference` rows with their Compendium codes. They are data, not code (API rule 1).
+- Weight comes from, in order:
+  1. the workout's weigh-in;
+  2. the latest non-suspect weight measurement;
+  3. `profile.weightKg`;
+  4. none, in which case nothing is estimated.
+- `energyBasis` records which source was used.
+- `GET /logs/day` returns it as `activity.workout_kcal`.
+
+It is shown as "Workouts · ~N kcal", beside burned. It is **never** added to `energy_burned_kcal`,
+and **never** subtracted from "kcal left".
+
+**Why**
+- The product owner wants workout calories shown.
+- The "− 1" leaves out resting burn, which the plan's TDEE already counts.
+- Keeping the figure separate avoids double counting against a watch's active energy, which already
+  includes a session it recorded. D-80's real objection was a figure the user eats against, and
+  that still holds.
+
+**Reverses if** the app gains a de-duplicated source for workout energy (for example, reading
+`WORKOUT` samples with source priority).
+
+## D-243 — No exercise animations are shipped
+**When** 2026-09-19 · **Decision**
+- The exercise dataset's GIFs and stills are © Gym visual, so their reuse needs our own licence.
+- An exercise instead shows a body-part glyph, a front/back muscle map with its primary and
+  secondary muscles, tags, and numbered steps.
+- `exercise.mediaKey` keeps the upstream media id, and `GYM_MEDIA_BASE_URL` (empty by default) turns
+  on `media_url` in the API once a licence exists.
+
+**Why** Chosen by the product owner. It is legally clean at launch. Adding the media later is a
+config change, not a migration.
+
+## D-244 — Clean-room port of openGym; the dataset and outlines are imported with notices
+**When** 2026-09-19 · **Decision**
+- **openGym (AGPL-3.0):** used as a behavioural specification only: the rules, thresholds and flows
+  were written down, then implemented fresh in TypeScript and Dart. No file, JSON conversion or path
+  data is taken from it.
+- **Exercise metadata:** `hasaneyldrm/exercises-dataset` (MIT). `api/scripts/build-exercise-library.ts`
+  fetches it at a pinned commit and writes `api/config/exercises/library-v1.json` plus a NOTICE.
+- **Body-map outlines:** `melihcolpan/MuscleMap` (MIT). Converted by our own script, with the notice kept.
+
+**Why** ADR-012: an AGPL network clause would reach this server.
+
+## D-245 — Gym features are free on every tier
+**When** 2026-09-19 · **Decision** No entitlement key for now. Every gym route is open to any signed-in user.
+**Why** Tracking your own training is a core habit feature, not a convenience worth a paywall, and
+no pricing decision was made. The `BillingService.require()` path is ready if one is.
+**Reverses if** the product owner prices it.
+
+## D-246 — Home shows one energy-out figure; workouts are counted in it (amends D-242)
+**When** 2026-09-20 · **Decision** Home's calorie card adds the day's workout estimate to the
+device's burned figure and shows the total in the ring, with a line beneath naming the workout
+share ("Includes workouts · ~N kcal"). The server is unchanged: `activity.energy_burned_kcal` is
+still device-only and `activity.workout_kcal` is still its own field; the sum is made in the app,
+for display.
+**Why** The product owner: two numbers for "energy out" on one card read as a contradiction, not a
+breakdown. D-242 kept them apart to avoid double counting, and that risk is real — a watch worn in
+the gym already counts some of the same movement — so the split stays visible in the caption rather
+than being hidden inside the total.
+**Cost** A user wearing a tracker during a logged workout sees some of that energy twice.
+**Unchanged** The Gym's own "Workout energy" card, `/logs/day`, the Progress tab, and the calorie
+target: nothing computes "kcal left" from this figure.
+**Reverses if** the double counting misleads in practice — then the app subtracts overlapping
+device energy, or returns to two figures.

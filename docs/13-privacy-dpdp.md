@@ -57,7 +57,8 @@ Rules:
 | Full phone + email visible in admin list views | **Mask by default**, reveal on audited action |
 | Gender as free text | Replace with `sex_at_birth` (needed by the BMR equation) + optional gender identity, never required |
 | "BMI Status: Obese" as a stored status | Derive at render time; don't store a judgemental label |
-| Photos of meals | Store with the shortest useful retention (90 days) and never in a public bucket |
+| Photos of meals | Store with the shortest useful retention (90 days) and never in a public bucket. **Scan photos (D-240)**: a photo of food is kept privately (outside the public file store, served only by a signed link that expires within the hour), attached to the diary entry it became, and deleted after 90 days (`MEAL_PHOTO_RETENTION_DAYS`); a scan the user declines or never confirms is deleted at once or within a day, and the nightly sweep removes any file no row points at. The photo is sent to the configured vision provider (DeepSeek by default since D-239; Anthropic selectable) only to identify which foods are on the plate. The privacy notice must name that provider as the processor. ⚠ DeepSeek's terms have placed data processing in China — a cross-border transfer of a health-app photo; legal review required before release. |
+| Rewarded ads (FREE scans, D-238) | Non-personalised requests only, the Android `AD_ID` permission removed, no ATT prompt — so no health data or advertising ID ever reaches an ad network |
 | Coach uploaded documents (qualifications) | Private bucket, signed URLs ≤ 5 min, never in the app DB |
 
 ## 5. Notification targeting — the one you need to change now
@@ -87,12 +88,18 @@ Sending a commercial offer to a segment defined by a medical condition is:
 | Measurements & food logs | 3 years after last activity | Same |
 | Diet plans & traces | 3 years (needed to explain a past plan) | Same |
 | Meal photos | 90 days | Rolling |
+| Gym: workouts, routines, gym profile, own exercises (ADR-013) | 3 years after last activity, like logs; erased and exported with the account (`privacy.service.ts`) | Same as measurements |
 | Chat with coach | 1 year after assignment ends | Assignment end |
 | Consent records | 7 years (evidence of lawful basis) | — |
 | Audit log | 3 years, immutable | — |
 | Payments & invoices | 8 years (Companies Act / GST) | — |
 | Support tickets | 2 years | Closure |
 | Screening answers (doc 05 §4) | 1 year | Rolling |
+
+Gym data on the phone (ADR-013): the workout in progress and unsent workouts sit in an AES-encrypted
+Hive box whose key is in the keychain / keystore; both the box and the key are deleted at sign-out.
+The gym tables do not have RLS enabled — no table in this schema does yet — which is the same gap
+database.md already names for the rest.
 
 Erasure mechanics: **notify the user 48 hours before erasure** (Rules requirement) with a chance to
 retain by logging in. Erasure is a real delete of health rows plus tombstoning of the user record for

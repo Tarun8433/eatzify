@@ -48,70 +48,68 @@ class SectionChips extends StatelessWidget {
       final active = controller.section.value;
 
       return Container(
-      padding: const EdgeInsets.all(AppSpacing.xs),
-      decoration: BoxDecoration(
-        color: scheme.surface,
-        borderRadius: BorderRadius.circular(AppRadius.tile),
-        boxShadow: AppElevation.card(theme.brightness),
-      ),
-      // Scrolls sideways rather than clipping: five labels at 200 % text are wider than any
-      // phone (rule 12).
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Row(
-          children: [
-            for (final section in ProgressController.sections)
-              Semantics(
-                button: true,
-                selected: section == active,
-                child: InkWell(
-                  onTap: () => controller.section.value = section,
-                  borderRadius: BorderRadius.circular(AppRadius.card),
-                  child: Container(
-                    constraints: const BoxConstraints(
-                      minHeight: AppSpacing.minTouchTarget,
-                      minWidth: AppSpacing.minTouchTarget + AppSpacing.lg,
-                    ),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: AppSpacing.md,
-                      vertical: AppSpacing.xs,
-                    ),
-                    decoration: BoxDecoration(
-                      color: section == active
-                          ? scheme.secondaryContainer
-                          : Colors.transparent,
-                      borderRadius: BorderRadius.circular(AppRadius.card),
-                    ),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        ExcludeSemantics(
-                          child: Icon(
-                            _icon(section),
-                            size: AppSpacing.lg,
-                            color: section == active
-                                ? scheme.onSecondaryContainer
-                                : scheme.onSurfaceVariant,
+        padding: const EdgeInsets.all(AppSpacing.xs),
+        decoration: BoxDecoration(
+          color: scheme.surface,
+          borderRadius: BorderRadius.circular(AppRadius.tile),
+          boxShadow: AppElevation.card(theme.brightness),
+        ),
+        // Scrolls sideways rather than clipping: five labels at 200 % text are wider than any
+        // phone (rule 12).
+        child: SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: [
+              for (final section in ProgressController.sections)
+                Semantics(
+                  button: true,
+                  selected: section == active,
+                  child: InkWell(
+                    onTap: () => controller.section.value = section,
+                    borderRadius: BorderRadius.circular(AppRadius.card),
+                    child: Container(
+                      constraints: const BoxConstraints(
+                        minHeight: AppSpacing.minTouchTarget,
+                        minWidth: AppSpacing.minTouchTarget + AppSpacing.lg,
+                      ),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.md,
+                        vertical: AppSpacing.xs,
+                      ),
+                      decoration: BoxDecoration(
+                        color: section == active ? scheme.secondaryContainer : Colors.transparent,
+                        borderRadius: BorderRadius.circular(AppRadius.card),
+                      ),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          ExcludeSemantics(
+                            child: Icon(
+                              _icon(section),
+                              size: AppSpacing.lg,
+                              color: section == active
+                                  ? scheme.onSecondaryContainer
+                                  : scheme.onSurfaceVariant,
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: AppSpacing.xs / 2),
-                        Text(
-                          _label(l, section),
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: section == active
-                                ? scheme.onSecondaryContainer
-                                : scheme.onSurfaceVariant,
-                            fontWeight: section == active ? FontWeight.w700 : FontWeight.w400,
+                          const SizedBox(height: AppSpacing.xs / 2),
+                          Text(
+                            _label(l, section),
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: section == active
+                                  ? scheme.onSecondaryContainer
+                                  : scheme.onSurfaceVariant,
+                              fontWeight: section == active ? FontWeight.w700 : FontWeight.w400,
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                 ),
-              ),
-          ],
+            ],
+          ),
         ),
-      ),
       );
     });
   }
@@ -129,33 +127,34 @@ class PeriodPill extends StatelessWidget {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
     return Obx(() {
-      final label =
-          controller.period.value == 0 ? l.progressPeriodThisWeek : l.progressPeriodLastWeek;
+      final label = controller.period.value == 0
+          ? l.progressPeriodThisWeek
+          : l.progressPeriodLastWeek;
 
       return Material(
-      color: scheme.surface,
-      borderRadius: BorderRadius.circular(AppRadius.pill),
-      child: PopupMenuButton<int>(
-        tooltip: label,
-        onSelected: (value) => controller.period.value = value,
-        itemBuilder: (context) => [
-          PopupMenuItem(value: 0, child: Text(l.progressPeriodThisWeek)),
-          PopupMenuItem(value: 1, child: Text(l.progressPeriodLastWeek)),
-        ],
-        child: Container(
-          constraints: const BoxConstraints(minHeight: AppSpacing.minTouchTarget),
-          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.calendar_today_outlined, size: AppSpacing.lg, color: scheme.primary),
-              const SizedBox(width: AppSpacing.xs),
-              Text(label, style: theme.textTheme.labelLarge?.copyWith(color: scheme.primary)),
-              Icon(Icons.expand_more, size: AppSpacing.lg, color: scheme.primary),
-            ],
+        color: scheme.surface,
+        borderRadius: BorderRadius.circular(AppRadius.pill),
+        child: PopupMenuButton<int>(
+          tooltip: label,
+          onSelected: (value) => controller.period.value = value,
+          itemBuilder: (context) => [
+            PopupMenuItem(value: 0, child: Text(l.progressPeriodThisWeek)),
+            PopupMenuItem(value: 1, child: Text(l.progressPeriodLastWeek)),
+          ],
+          child: Container(
+            constraints: const BoxConstraints(minHeight: AppSpacing.minTouchTarget),
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.calendar_today_outlined, size: AppSpacing.lg, color: scheme.primary),
+                const SizedBox(width: AppSpacing.xs),
+                Text(label, style: theme.textTheme.labelLarge?.copyWith(color: scheme.primary)),
+                Icon(Icons.expand_more, size: AppSpacing.lg, color: scheme.primary),
+              ],
+            ),
           ),
         ),
-      ),
       );
     });
   }
@@ -189,125 +188,123 @@ class CalorieProgressCard extends StatelessWidget {
       if (avg == null && days.whereType<DiaryDay>().isEmpty) return const SizedBox.shrink();
 
       return Container(
-      padding: const EdgeInsets.all(AppSpacing.lg),
-      decoration: BoxDecoration(
-        color: scheme.surface,
-        borderRadius: BorderRadius.circular(AppRadius.cardLarge),
-        boxShadow: AppElevation.card(theme.brightness),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            l.progressCalorieTitle,
-            style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700),
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+        padding: const EdgeInsets.all(AppSpacing.lg),
+        decoration: BoxDecoration(
+          color: scheme.surface,
+          borderRadius: BorderRadius.circular(AppRadius.cardLarge),
+          boxShadow: AppElevation.card(theme.brightness),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              l.progressCalorieTitle,
+              style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700),
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (avg != null) ...[
+                        FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.centerLeft,
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              AnimatedCount(
+                                value: avg,
+                                semanticsLabel: '${avg.round()} kcal',
+                                style: theme.textTheme.headlineMedium?.copyWith(
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                              Padding(
+                                padding: const EdgeInsets.only(
+                                  left: AppSpacing.xs,
+                                  bottom: AppSpacing.xs / 2,
+                                ),
+                                child: Text('kcal', style: theme.textTheme.bodySmall),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Text(l.progressAvgConsumed, style: theme.textTheme.bodySmall),
+                      ],
+                      if (goal != null) ...[
+                        const SizedBox(height: AppSpacing.sm),
+                        Text(
+                          l.progressGoalKcal(goal.round()),
+                          style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.sm),
+                Column(
                   children: [
-                    if (avg != null) ...[
-                      FittedBox(
+                    ProgressRing(
+                      size: _ring,
+                      strokeWidth: 6,
+                      // Two server figures or nothing (rule 2): no goal, no fill.
+                      progress: avg == null || goal == null ? null : avg / goal,
+                      child: FittedBox(
                         fit: BoxFit.scaleDown,
-                        alignment: Alignment.centerLeft,
-                        child: Row(
+                        child: Column(
                           mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.end,
                           children: [
-                            AnimatedCount(
-                              value: avg,
-                              semanticsLabel: '${avg.round()} kcal',
-                              style: theme.textTheme.headlineMedium?.copyWith(
-                                fontWeight: FontWeight.w800,
+                            Text(
+                              avg == null || goal == null ? '—' : '${(avg / goal * 100).round()}%',
+                              style: theme.textTheme.titleMedium?.copyWith(
+                                fontWeight: FontWeight.w700,
                               ),
                             ),
-                            Padding(
-                              padding: const EdgeInsets.only(
-                                left: AppSpacing.xs,
-                                bottom: AppSpacing.xs / 2,
-                              ),
-                              child: Text('kcal', style: theme.textTheme.bodySmall),
-                            ),
+                            Text(l.progressOfGoal, style: theme.textTheme.bodySmall),
                           ],
                         ),
                       ),
-                      Text(l.progressAvgConsumed, style: theme.textTheme.bodySmall),
-                    ],
-                    if (goal != null) ...[
-                      const SizedBox(height: AppSpacing.sm),
-                      Text(
-                        l.progressGoalKcal(goal.round()),
-                        style: theme.textTheme.bodySmall?.copyWith(fontWeight: FontWeight.w600),
+                    ),
+                    if (delta != null) ...[
+                      const SizedBox(height: AppSpacing.xs),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          ExcludeSemantics(
+                            child: Icon(
+                              delta >= 0 ? Icons.arrow_upward : Icons.arrow_downward,
+                              size: AppSpacing.md,
+                              color: scheme.onSurfaceVariant,
+                            ),
+                          ),
+                          // Stated, not scored: eating more than last week is a fact, so the line
+                          // keeps the caption's own ink (docs/05 §6).
+                          Text(l.progressVsLastWeek(delta.abs()), style: theme.textTheme.bodySmall),
+                        ],
                       ),
                     ],
                   ],
                 ),
-              ),
-              const SizedBox(width: AppSpacing.sm),
-              Column(
-                children: [
-                  ProgressRing(
-                    size: _ring,
-                    strokeWidth: 6,
-                    // Two server figures or nothing (rule 2): no goal, no fill.
-                    progress: avg == null || goal == null ? null : avg / goal,
-                    child: FittedBox(
-                      fit: BoxFit.scaleDown,
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            avg == null || goal == null
-                                ? '—'
-                                : '${(avg / goal * 100).round()}%',
-                            style: theme.textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                          Text(l.progressOfGoal, style: theme.textTheme.bodySmall),
-                        ],
-                      ),
-                    ),
-                  ),
-                  if (delta != null) ...[
-                    const SizedBox(height: AppSpacing.xs),
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        ExcludeSemantics(
-                          child: Icon(
-                            delta >= 0 ? Icons.arrow_upward : Icons.arrow_downward,
-                            size: AppSpacing.md,
-                            color: scheme.onSurfaceVariant,
-                          ),
-                        ),
-                        // Stated, not scored: eating more than last week is a fact, so the line
-                        // keeps the caption's own ink (docs/05 §6).
-                        Text(l.progressVsLastWeek(delta.abs()), style: theme.textTheme.bodySmall),
-                      ],
-                    ),
-                  ],
-                ],
-              ),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          _WeekBars(
-            days: days,
-            dates: dates,
-            goal: goal,
-            isCurrentWeek: period == 0,
-            locale: locale,
-            height: _chartHeight,
-            goalLabel: goal == null
-                ? null
-                : '${NumberFormat.decimalPattern(locale).format(goal.round())} kcal ${l.progressGoalLabel}',
-          ),
-        ],
-      ),
+              ],
+            ),
+            const SizedBox(height: AppSpacing.lg),
+            _WeekBars(
+              days: days,
+              dates: dates,
+              goal: goal,
+              isCurrentWeek: period == 0,
+              locale: locale,
+              height: _chartHeight,
+              goalLabel: goal == null
+                  ? null
+                  : '${NumberFormat.decimalPattern(locale).format(goal.round())} kcal ${l.progressGoalLabel}',
+            ),
+          ],
+        ),
       );
     });
   }
@@ -508,77 +505,77 @@ class MacroBalanceCard extends StatelessWidget {
       ];
 
       return Container(
-      padding: const EdgeInsets.all(AppSpacing.lg),
-      decoration: BoxDecoration(
-        color: scheme.surface,
-        borderRadius: BorderRadius.circular(AppRadius.cardLarge),
-        boxShadow: AppElevation.card(theme.brightness),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      l.progressMacroTitle,
-                      style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700),
-                    ),
-                    Text(l.progressMacroWindow, style: theme.textTheme.bodySmall),
-                  ],
-                ),
-              ),
-              if (onDetails != null)
-                TextButton(
-                  onPressed: onDetails,
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
+        padding: const EdgeInsets.all(AppSpacing.lg),
+        decoration: BoxDecoration(
+          color: scheme.surface,
+          borderRadius: BorderRadius.circular(AppRadius.cardLarge),
+          boxShadow: AppElevation.card(theme.brightness),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(l.homeDetails),
-                      const Icon(Icons.chevron_right, size: AppSpacing.lg),
+                      Text(
+                        l.progressMacroTitle,
+                        style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700),
+                      ),
+                      Text(l.progressMacroWindow, style: theme.textTheme.bodySmall),
                     ],
                   ),
                 ),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          LayoutBuilder(
-            builder: (context, constraints) {
-              // Side by side like the mock, stacked when 200 % text needs the width (rule 12).
-              final stacked = constraints.maxWidth < AppSizes.heroBreakpoint;
-              final children = [
-                for (final (label, value, target, color) in macros)
-                  _MacroColumn(label: label, value: value, target: target, color: color),
-              ];
+                if (onDetails != null)
+                  TextButton(
+                    onPressed: onDetails,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(l.homeDetails),
+                        const Icon(Icons.chevron_right, size: AppSpacing.lg),
+                      ],
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            LayoutBuilder(
+              builder: (context, constraints) {
+                // Side by side like the mock, stacked when 200 % text needs the width (rule 12).
+                final stacked = constraints.maxWidth < AppSizes.heroBreakpoint;
+                final children = [
+                  for (final (label, value, target, color) in macros)
+                    _MacroColumn(label: label, value: value, target: target, color: color),
+                ];
 
-              if (stacked) {
-                return Column(
+                if (stacked) {
+                  return Column(
+                    children: [
+                      for (final child in children)
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+                          child: child,
+                        ),
+                    ],
+                  );
+                }
+                return Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    for (final child in children)
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-                        child: child,
-                      ),
+                    for (final (i, child) in children.indexed) ...[
+                      if (i > 0) const SizedBox(width: AppSpacing.lg),
+                      Expanded(child: child),
+                    ],
                   ],
                 );
-              }
-              return Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  for (final (i, child) in children.indexed) ...[
-                    if (i > 0) const SizedBox(width: AppSpacing.lg),
-                    Expanded(child: child),
-                  ],
-                ],
-              );
-            },
-          ),
-        ],
-      ),
+              },
+            ),
+          ],
+        ),
       );
     });
   }
@@ -637,10 +634,7 @@ class _MacroColumn extends StatelessWidget {
             ),
             child: Text(
               '$pct%',
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: color,
-                fontWeight: FontWeight.w700,
-              ),
+              style: theme.textTheme.bodySmall?.copyWith(color: color, fontWeight: FontWeight.w700),
             ),
           ),
         ],
@@ -670,59 +664,59 @@ class ConsistencyCard extends StatelessWidget {
       if (dates.isEmpty || logged.isEmpty) return const SizedBox.shrink();
 
       return Container(
-      padding: const EdgeInsets.all(AppSpacing.md),
-      decoration: BoxDecoration(
-        color: scheme.secondaryContainer.withValues(alpha: 0.4),
-        borderRadius: BorderRadius.circular(AppRadius.tile),
-        border: Border.all(color: scheme.secondaryContainer),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const ExcludeSemantics(
-                child: Icon(
-                  Icons.local_fire_department,
-                  size: AppSpacing.xl,
-                  color: AppColors.success,
-                ),
-              ),
-              const SizedBox(width: AppSpacing.md),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      l.progressConsistencyTitle,
-                      style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700),
-                    ),
-                    Text(
-                      l.progressConsistencyCount(logged.length, dates.length),
-                      style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
-                    ),
-                    Text(l.homeStreakBody, style: theme.textTheme.bodySmall),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.sm),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              for (final (i, iso) in dates.indexed)
-                if (DateTime.tryParse(iso) case final date?)
-                  DayDot(
-                    date: date,
-                    isLogged: logged.contains(iso),
-                    isToday: i == dates.length - 1,
-                    locale: locale,
+        padding: const EdgeInsets.all(AppSpacing.md),
+        decoration: BoxDecoration(
+          color: scheme.secondaryContainer.withValues(alpha: 0.4),
+          borderRadius: BorderRadius.circular(AppRadius.tile),
+          border: Border.all(color: scheme.secondaryContainer),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const ExcludeSemantics(
+                  child: Icon(
+                    Icons.local_fire_department,
+                    size: AppSpacing.xl,
+                    color: AppColors.success,
                   ),
-            ],
-          ),
-        ],
-      ),
+                ),
+                const SizedBox(width: AppSpacing.md),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        l.progressConsistencyTitle,
+                        style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700),
+                      ),
+                      Text(
+                        l.progressConsistencyCount(logged.length, dates.length),
+                        style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+                      ),
+                      Text(l.homeStreakBody, style: theme.textTheme.bodySmall),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: AppSpacing.sm),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                for (final (i, iso) in dates.indexed)
+                  if (DateTime.tryParse(iso) case final date?)
+                    DayDot(
+                      date: date,
+                      isLogged: logged.contains(iso),
+                      isToday: i == dates.length - 1,
+                      locale: locale,
+                    ),
+              ],
+            ),
+          ],
+        ),
       );
     });
   }
