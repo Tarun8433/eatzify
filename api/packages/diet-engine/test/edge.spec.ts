@@ -18,6 +18,7 @@ import { MealPatternError, distributeMeals, isWithinTolerance } from '../src/mea
 import { applyOverrides } from '../src/overrides';
 import {
   EngineAssertionError,
+  assertFilledDayCoherent,
   assertMealsCoherent,
   assertTargetsCoherent,
   roundTargets,
@@ -458,5 +459,53 @@ describe('defensive paths', () => {
   it('drops the sodium cap to 1500 mg under hypertension', () => {
     expect(computeSodiumMaxMg(['none'], pack)).toBe(2000);
     expect(computeSodiumMaxMg(['hypertension'], pack)).toBe(1500);
+  });
+});
+
+/// The 500 this closed: `POST /plans/generate` answered `Internal server error` because the fill
+/// landed 14.3 % under target on a real pool. docs/04 §7 gives the filler that fallback on
+/// purpose — "fall back to the closest solution and record the residual in the trace" — so the
+/// day assertion must not turn it into a lost plan.
+describe('the filled day, when the pool could not reach the target', () => {
+  const targets = { kcal: 1626, proteinG: 117 };
+
+  it('should refuse a day that drifts while every slot claims it landed', () => {
+    // Nothing approximated: the slots say they are fine and the day says otherwise. That is an
+    // arithmetic contradiction, which is the bug this assertion exists to catch.
+    const meals = [
+      { kcal: 700, proteinG: 58, approximated: false },
+      { kcal: 694, proteinG: 59, approximated: false },
+    ];
+
+    expect(() => assertFilledDayCoherent(meals, targets, pack)).toThrow(EngineAssertionError);
+  });
+
+  it('should return the plan when a slot already reported it could not be filled', () => {
+    const meals = [
+      { kcal: 700, proteinG: 58, approximated: false },
+      { kcal: 694, proteinG: 59, approximated: true },
+    ];
+
+    expect(() => assertFilledDayCoherent(meals, targets, pack)).not.toThrow();
+  });
+
+  /// The assertion's real job, unchanged: a search that went wrong while every slot looked fine.
+  it('should still refuse a protein blow-out nobody flagged', () => {
+    const meals = [
+      { kcal: 813, proteinG: 164, approximated: false },
+      { kcal: 813, proteinG: 164, approximated: false },
+    ];
+
+    expect(() => assertFilledDayCoherent(meals, targets, pack)).toThrow(/protein/);
+  });
+
+  /// Callers that predate the flag must keep asserting, or the guard quietly stops guarding.
+  it('should assert as before when no meal carries the flag', () => {
+    const meals = [
+      { kcal: 700, proteinG: 58 },
+      { kcal: 694, proteinG: 59 },
+    ];
+
+    expect(() => assertFilledDayCoherent(meals, targets, pack)).toThrow(EngineAssertionError);
   });
 });

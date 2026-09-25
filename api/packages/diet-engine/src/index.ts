@@ -313,7 +313,8 @@ export function generatePlan(
 
   // 14 — alternates. Same-group swaps inside the pack's tolerances; a pack without the block
   // offers none, and that is a statement, not a gap (D-235).
-  const alternates = meals.length > 0 ? pickAlternates(meals, pool.foods, pack) : [];
+  const alternates =
+    meals.length > 0 ? pickAlternates(meals, pool.foods, pack) : [];
   if (meals.length > 0) {
     trace.push({
       step: 'alternates',

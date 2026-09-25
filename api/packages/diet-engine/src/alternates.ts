@@ -108,8 +108,10 @@ function portionMatching(
   const kcal = (alt.kcal * grams) / 100;
   const proteinG = (alt.proteinG * grams) / 100;
 
-  const kcalOk = Math.abs(kcal - item.kcal) <= item.kcal * rules.kcal_tolerance_pct;
-  const proteinOk = Math.abs(proteinG - item.proteinG) <= rules.protein_tolerance_g;
+  const kcalOk =
+    Math.abs(kcal - item.kcal) <= item.kcal * rules.kcal_tolerance_pct;
+  const proteinOk =
+    Math.abs(proteinG - item.proteinG) <= rules.protein_tolerance_g;
   if (!kcalOk || !proteinOk) return null;
 
   return {
