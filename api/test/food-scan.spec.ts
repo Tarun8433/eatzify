@@ -105,16 +105,17 @@ describe('ScanPolicyService.status', () => {
 });
 
 describe('ScanPolicyService.assertAllowed', () => {
+  // assertAllowed reads the real clock, so a trial measured from the fixture's fixed NOW expires
+  // as the calendar moves and the denial becomes `trial_over` instead. A tier with no trial is
+  // what this test is about anyway: the ad, not the trial.
+  const adTier = () => policyService({ policy: policyFor({ trialDays: null }) });
+
   it('should ask for the ad when the tier requires one and none was watched', async () => {
-    await expect(
-      policyService({}).assertAllowed(7, false),
-    ).rejects.toMatchObject({
+    await expect(adTier().assertAllowed(7, false)).rejects.toMatchObject({
       status: 403,
       response: { error: { code: 'AD_REQUIRED' } },
     });
-    await expect(
-      policyService({}).assertAllowed(7, true),
-    ).resolves.toBeDefined();
+    await expect(adTier().assertAllowed(7, true)).resolves.toBeDefined();
   });
 
   it('should send a disabled tier to the upgrade sheet', async () => {
