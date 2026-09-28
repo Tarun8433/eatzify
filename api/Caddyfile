@@ -1,0 +1,22 @@
+# Public front door: HTTPS for the website and the API, certificates issued and renewed by Caddy.
+# Domains come from .env so a staging box can run the same file.
+
+# The website — Terms, Privacy, Refunds, Contact, pricing. What Cashfree reviews and the app links to.
+{$SITE_DOMAIN:eatzify.app}, www.{$SITE_DOMAIN:eatzify.app} {
+	root * /srv/site
+	file_server
+	encode gzip
+	# /privacy and /privacy/ both work: the app and the Play listing use either.
+	try_files {path} {path}/ {path}/index.html
+}
+
+# The API over HTTPS — needed by iOS (App Transport Security) and by Cashfree's webhook.
+{$API_DOMAIN:api.eatzify.app} {
+	reverse_proxy api:{$APP_PORT:3002}
+	encode gzip
+}
+
+# Exercise media, when it is licensed and enabled (GYM_MEDIA_BASE_URL).
+{$MEDIA_DOMAIN:media.eatzify.app} {
+	reverse_proxy media:80
+}
