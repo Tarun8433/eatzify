@@ -11,7 +11,8 @@ import {
  * Where a referral link points. Build-time, like every other environment-dependent URL — a literal
  * would send beta testers to the production listing.
  */
-const LINK_BASE = process.env.REFERRAL_LINK_BASE ?? 'https://eatzify.app/join';
+const LINK_BASE =
+  process.env.REFERRAL_LINK_BASE ?? 'https://eatzify.zynthovo.com/join';
 
 /**
  * No `0`, `O`, `1`, `I` or `5`/`S`.
