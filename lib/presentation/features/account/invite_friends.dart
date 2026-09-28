@@ -15,7 +15,7 @@ import 'package:share_plus/share_plus.dart';
 abstract final class InviteFriends {
   /// Where the invite points. Build-time, the same way the API base URL is set — the store listing
   /// moves between dev, beta and production and a literal here would send testers to the wrong one.
-  static const link = String.fromEnvironment('INVITE_LINK', defaultValue: 'https://eatzify.app');
+  static const link = String.fromEnvironment('INVITE_LINK', defaultValue: 'https://eatzify.zynthovo.com');
 
   /// What gets shared. Separated from the sharing so it can be read in a test without a platform
   /// channel, and so the wording stays a translated string rather than a concatenation.
