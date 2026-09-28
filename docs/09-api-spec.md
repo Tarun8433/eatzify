@@ -99,6 +99,21 @@ GET  /foods/{id}                                  → nutrition + household meas
 POST /foods/custom          { name, kcal, macros, measures[] }   → user-scoped custom food
 POST /logs/food             { diary_date, slot, food_id|recipe_id|custom, quantity_g|measure }
 GET  /logs/day?date=YYYY-MM-DD                    → totals + entries + plan comparison
+POST /logs/food/preview     { food_id, measure+measure_count | quantity_g }
+                                                  → the portion's kcal, macros, fibre, sodium, added sugar,
+                                                    saturated fat — scaled by the same code as the log (D-238)
+GET  /foods?group=pulse,egg                        → any-of docs/03 §4 groups; unknown → 400 FOOD_GROUP_INVALID
+GET  /foods/scan/status                           → { allowed, reason, tier, daily_limit, remaining_today,
+                                                      requires_ad, trial_ends_at }
+POST /foods/scan            multipart image (jpeg|png ≤ 5 MB), ad_watched
+                                                  → { scan_id, dish_name, confidence, items: [{ name, grams, kcal,
+                                                      protein_g, carb_g, fat_g, fibre_g, sodium_mg, added_sugar_g,
+                                                      saturated_fat_g }], totals } — an AI ESTIMATE (D-240)
+POST /foods/scan/{id}/log   { slot, keep?: [item indexes] } → the entry (estimated: true, image_url = signed photo)
+DELETE /foods/scan/{id}                           → the pending photo, deleted now
+GET  /logs/food/{id}/photo?exp=&sig=              → the entry's own photo; the signature is the permission
+                                                    403 ENTITLEMENT_REQUIRED | AD_REQUIRED · 429 SCAN_LIMIT_REACHED ·
+                                                    503 SCAN_UNAVAILABLE · the photo is never stored (D-238) · vendor per FOOD_VISION_PROVIDER (D-239)
 PATCH /logs/food/{id}                             → 409 if locked_at is set (48h rule)
 POST /logs/water            { diary_date, ml }
 POST /logs/steps            { diary_date, steps, provider }
@@ -107,6 +122,48 @@ GET  /logs/summary?from=&to=                      → adherence, macro averages,
 
 `GET /logs/day` returns `diary_date` resolved by the server using the 04:00 IST boundary. The client
 must not compute it independently — one implementation, server-side, exposed to the app.
+
+## 5a. Gym (ADR-013)
+
+Every route is the signed-in person's own training, JWT-guarded, free on every tier (D-245). The
+server resolves diary days, progression, records and energy; the app renders them.
+
+```
+GET    /gym                            → settings, week, routines, today, week_days (server-resolved),
+                                         session_plans (every routine's next session, prefilled and
+                                         progressed — a workout can start offline), totals
+                                         { today_kcal, week_kcal, streak_weeks, … }, recent
+GET    /gym/exercises                  → library (1,324, D-244) + the person's own; no steps
+GET    /gym/exercises/{id}             → exercise with en/hi steps, best, last session, best e1RM,
+                                         plan_entry (what adding it now would start with), routine_ids
+GET    /gym/exercises/{id}/progress    → points (top set | e1RM | effort), last 5 sessions, best
+POST   /gym/exercises                  { name, body_part, description? }   → 409 GYM_EXERCISE_EXISTS
+PATCH  /gym/exercises/{id}             own exercises only → 403 GYM_NOT_OWNER
+DELETE /gym/exercises/{id}             leaves routines; past workouts keep the name stamped on them
+POST   /gym/routines                   { name, icon, progression, exercises[] }
+PUT    /gym/routines/{id}              saved whole; supersets = adjacent exercises sharing an id
+DELETE /gym/routines/{id}              also cleared from the week and any one-off day
+POST   /gym/routines/starter           → push / pull / legs, Mon / Wed / Fri (empty days only)
+PUT    /gym/schedule                   { week: { "1": routine_id | null, … "7": … } }
+POST   /gym/schedule/day               { date, routine_id? , rest? }  → one date only
+PATCH  /gym/settings                   { rest_sec, effort_scale, keep_awake, sound, body_figure }
+POST   /gym/workouts                   { id (uuid, made by the phone), routine_id?, name, started_at,
+                                         ended_at, body_weight_kg?, entries[] }
+                                       → idempotent on id; server computes volume, PRs, e1RM records,
+                                         working weights, diary_date, energy_kcal (D-242) + energy_basis
+GET    /gym/workouts?before=&limit=    → cursor paging, newest first
+GET    /gym/workouts/{id} · DELETE /gym/workouts/{id}
+GET    /gym/calendar?month=YYYY-MM     → 6 Monday-first weeks: trained / planned / changed, summary
+GET    /gym/stats?muscle_window=week|30d|90d|all&effort_window=30d|90d|1y|all&hard=true
+                                       → tiles, 53-week heatmap, muscle levels (+ untrained, neutral),
+                                         effort (RIR/RPE), 30 days of workout energy, recent, exercises
+```
+
+`energy_kcal` is `(MET − 1) × kg × hours`, MET from `energy_reference` rows (Compendium codes). It is
+also returned on `GET /logs/day` as `activity.workout_kcal` — its own figure, never added to
+`energy_burned_kcal` and never subtracted from the day's target (D-242). Null means "not estimated".
+Errors: `GYM_INVALID` (422), `GYM_EXERCISE_NOT_FOUND` / `GYM_ROUTINE_NOT_FOUND` / `GYM_WORKOUT_NOT_FOUND`
+(404), `GYM_EXERCISE_EXISTS` (409), `GYM_NOT_OWNER` (403).
 
 ## 6. Coach
 
@@ -168,6 +225,8 @@ POST /admin/notifications     { title, body, segment }        → segment.condit
 GET  /admin/metrics/overview                                 → excludes is_demo
 GET  /admin/audit?actor=&subject=&from=&to=
 POST /admin/rule-packs/activate { version }                  → super_admin only, requires reviewed_by
+GET  /admin/scan-policy                                      → per-tier scan rules (D-238)
+PATCH /admin/scan-policy/{tier} { enabled, daily_limit, requires_ad, trial_days } → X-TOTP required
 ```
 
 There is deliberately **no** `GET /admin/users/export.csv` for non-super-admin roles, and the

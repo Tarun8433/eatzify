@@ -26,15 +26,17 @@ const serviceWith = (rows: unknown[], targets: Record<string, number> | null) =>
     { find: () => Promise.resolve(rows) } as never,
     {} as never,
     {
-      findOne: () =>
-        Promise.resolve(targets === null ? null : { targets }),
+      findOne: () => Promise.resolve(targets === null ? null : { targets }),
     } as never,
     { find: () => Promise.resolve([]) } as never,
   );
 
 describe('fibre in the diary day (D-136)', () => {
   it('should sum fibre into the day totals', async () => {
-    const service = serviceWith([foodRow({}), foodRow({ id: 'r2', fibreG: '2.2' })], null);
+    const service = serviceWith(
+      [foodRow({}), foodRow({ id: 'r2', fibreG: '2.2' })],
+      null,
+    );
 
     const day = await service.day(7, '2026-09-01');
 
@@ -44,7 +46,10 @@ describe('fibre in the diary day (D-136)', () => {
   it('should treat an unrecorded fibre as nothing, not as nought', async () => {
     // A custom entry (fibreG null) must not block the sum, and the ENTRY must say null so a
     // client can tell "not recorded" from "zero fibre".
-    const service = serviceWith([foodRow({}), foodRow({ id: 'r2', fibreG: null })], null);
+    const service = serviceWith(
+      [foodRow({}), foodRow({ id: 'r2', fibreG: null })],
+      null,
+    );
 
     const day = await service.day(7, '2026-09-01');
 

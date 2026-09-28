@@ -1,0 +1,268 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Medium, four cells by two (D-219). The iOS medium widget, drawn with Android views: calories
+  against the plan with a progress line, the one button that writes (a glass), and four tiles.
+
+  Every figure starts as an em dash, which is what the provider writes when nothing was measured —
+  never a zero (D-80). The ids are shared across the three sizes so one renderer binds them all.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@android:id/background"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@drawable/eatzify_widget_background"
+    android:orientation="vertical"
+    android:padding="14dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+
+        <FrameLayout
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:background="@drawable/eatzify_widget_tile">
+
+            <ImageView
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:importantForAccessibility="no"
+                android:src="@drawable/ic_widget_flame"
+                android:layout_gravity="center" />
+        </FrameLayout>
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginHorizontal="12dp"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/kcal_value"
+                android:layout_width="match_parent"
+                android:layout_height="32dp"
+                android:autoSizeMaxTextSize="26sp"
+                android:autoSizeMinTextSize="16sp"
+                android:autoSizeTextType="uniform"
+                android:fontFamily="sans-serif-medium"
+                android:maxLines="1"
+                android:text="@string/widget_no_reading"
+                android:textColor="@color/widget_ink"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/kcal_caption"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:text="@string/widget_calories_today"
+                android:textColor="@color/widget_ink_muted"
+                android:textSize="13sp" />
+        </LinearLayout>
+
+        <FrameLayout
+            android:id="@+id/add_water"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:background="@drawable/eatzify_widget_add_background"
+            android:contentDescription="@string/widget_add_water">
+
+            <ImageView
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:layout_gravity="center"
+                android:importantForAccessibility="no"
+                android:src="@drawable/ic_widget_add" />
+        </FrameLayout>
+    </LinearLayout>
+
+    <ProgressBar
+        android:id="@+id/kcal_progress"
+        style="?android:attr/progressBarStyleHorizontal"
+        android:layout_width="match_parent"
+        android:layout_height="5dp"
+        android:layout_marginTop="10dp"
+        android:indeterminate="false"
+        android:max="1000"
+        android:progress="0"
+        android:progressDrawable="@drawable/eatzify_widget_progress" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_marginTop="10dp"
+        android:layout_weight="1"
+        android:minHeight="56dp"
+        android:orientation="horizontal">
+
+        <LinearLayout
+            android:id="@+id/water_tile"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:background="@drawable/eatzify_widget_tile"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:paddingHorizontal="4dp"
+            android:paddingVertical="6dp">
+
+            <ImageView
+                android:layout_width="18dp"
+                android:layout_height="18dp"
+                android:importantForAccessibility="no"
+                android:src="@drawable/ic_widget_water" />
+
+            <TextView
+                android:id="@+id/water_value"
+                android:text="@string/widget_no_reading"
+                android:layout_width="match_parent"
+                android:layout_height="20dp"
+                android:layout_marginTop="3dp"
+                android:autoSizeMaxTextSize="15sp"
+                android:autoSizeMinTextSize="9sp"
+                android:autoSizeTextType="uniform"
+                android:gravity="center"
+                android:maxLines="1"
+                android:textColor="@color/widget_ink"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:text="@string/widget_water"
+                android:textColor="@color/widget_ink_muted"
+                android:textSize="11sp" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/steps_tile"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:layout_marginStart="6dp"
+            android:background="@drawable/eatzify_widget_tile"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:paddingHorizontal="4dp"
+            android:paddingVertical="6dp">
+
+            <ImageView
+                android:layout_width="18dp"
+                android:layout_height="18dp"
+                android:importantForAccessibility="no"
+                android:src="@drawable/ic_widget_walk" />
+
+            <TextView
+                android:id="@+id/steps_value"
+                android:text="@string/widget_no_reading"
+                android:layout_width="match_parent"
+                android:layout_height="20dp"
+                android:layout_marginTop="3dp"
+                android:autoSizeMaxTextSize="15sp"
+                android:autoSizeMinTextSize="9sp"
+                android:autoSizeTextType="uniform"
+                android:gravity="center"
+                android:maxLines="1"
+                android:textColor="@color/widget_ink"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:text="@string/widget_steps"
+                android:textColor="@color/widget_ink_muted"
+                android:textSize="11sp" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/burned_tile"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:layout_marginStart="6dp"
+            android:background="@drawable/eatzify_widget_tile"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:paddingHorizontal="4dp"
+            android:paddingVertical="6dp">
+
+            <ImageView
+                android:layout_width="18dp"
+                android:layout_height="18dp"
+                android:importantForAccessibility="no"
+                android:src="@drawable/ic_widget_flame" />
+
+            <TextView
+                android:id="@+id/burned_value"
+                android:text="@string/widget_no_reading"
+                android:layout_width="match_parent"
+                android:layout_height="20dp"
+                android:layout_marginTop="3dp"
+                android:autoSizeMaxTextSize="15sp"
+                android:autoSizeMinTextSize="9sp"
+                android:autoSizeTextType="uniform"
+                android:gravity="center"
+                android:maxLines="1"
+                android:textColor="@color/widget_ink"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:text="@string/widget_burned"
+                android:textColor="@color/widget_ink_muted"
+                android:textSize="11sp" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/meal_tile"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:layout_marginStart="6dp"
+            android:background="@drawable/eatzify_widget_tile"
+            android:gravity="center"
+            android:orientation="vertical"
+            android:paddingHorizontal="4dp"
+            android:paddingVertical="6dp">
+
+            <ImageView
+                android:layout_width="18dp"
+                android:layout_height="18dp"
+                android:importantForAccessibility="no"
+                android:src="@drawable/ic_widget_meal" />
+
+            <TextView
+                android:text="@string/widget_log"
+                android:layout_width="match_parent"
+                android:layout_height="20dp"
+                android:layout_marginTop="3dp"
+                android:autoSizeMaxTextSize="15sp"
+                android:autoSizeMinTextSize="9sp"
+                android:autoSizeTextType="uniform"
+                android:gravity="center"
+                android:maxLines="1"
+                android:textColor="@color/widget_ink"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:text="@string/widget_meal"
+                android:textColor="@color/widget_ink_muted"
+                android:textSize="11sp" />
+        </LinearLayout>
+    </LinearLayout>
+</LinearLayout>

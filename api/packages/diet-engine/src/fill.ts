@@ -438,8 +438,7 @@ function searchMeal(
         const totals = add(state.totals, candidate.per);
         const items = state.items + (fresh ? 1 : 0);
         const repeats =
-          state.repeats +
-          (fresh && eatenToday.has(candidate.food.id) ? 1 : 0);
+          state.repeats + (fresh && eatenToday.has(candidate.food.id) ? 1 : 0);
         const covered = state.covered | (composition.bits[index] ?? 0);
         const child: State = {
           counts,
@@ -447,7 +446,15 @@ function searchMeal(
           items,
           repeats,
           covered,
-          cost: costOf(totals, items, repeats, targetKcal, allowance, composition, covered),
+          cost: costOf(
+            totals,
+            items,
+            repeats,
+            targetKcal,
+            allowance,
+            composition,
+            covered,
+          ),
         };
 
         // The same multiset reached by a different order is the same meal. Without this the beam
@@ -463,7 +470,11 @@ function searchMeal(
     if (children.size === 0) break;
 
     beam = [...children.values()]
-      .sort((a, b) => a.cost - b.cost || signature(a.counts).localeCompare(signature(b.counts)))
+      .sort(
+        (a, b) =>
+          a.cost - b.cost ||
+          signature(a.counts).localeCompare(signature(b.counts)),
+      )
       .slice(0, BEAM_WIDTH);
 
     const leader = beam[0];
@@ -599,7 +610,8 @@ export function fillMeals({
 
     for (const [index, count] of state.counts.entries()) {
       const candidate = candidates[index];
-      if (count > 0 && candidate !== undefined) eatenToday.add(candidate.food.id);
+      if (count > 0 && candidate !== undefined)
+        eatenToday.add(candidate.food.id);
     }
 
     const items = state.counts

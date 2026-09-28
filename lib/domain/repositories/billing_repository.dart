@@ -20,6 +20,7 @@ abstract class BillingRepository {
     required String tier,
     required int months,
     required String idempotencyKey,
+
     /// D-236: an offer code the server prices. The app never computes a discount (rule 2/3).
     String? couponCode,
   });

@@ -1,10 +1,10 @@
 import 'dart:async';
-
 import 'package:get/get.dart' hide Condition;
 import 'package:health_pro/core/format/time_of_day_text.dart';
 import 'package:health_pro/core/session/session_controller.dart';
 import 'package:health_pro/domain/entities/onboarding_enums.dart';
 import 'package:health_pro/domain/entities/onboarding_submission.dart';
+import 'package:health_pro/domain/entities/profession.dart';
 import 'package:health_pro/domain/repositories/plan_repository.dart';
 import 'package:health_pro/domain/repositories/profile_repository.dart';
 import 'package:health_pro/domain/usecases/validate_onboarding.dart';
@@ -129,8 +129,15 @@ class OnboardingController extends GetxController {
   final conditions = <Condition>{}.obs;
 
   // Daily routine. "HH:MM" strings — a time of day, not an instant.
-  final wakeTime = RxnString();
-  final sleepTime = RxnString();
+  /// Prefilled, not blank. "Not set" on every row made the step read as five questions when it is
+  /// really a confirmation: most people wake and eat at roughly these hours, and the ones who do
+  /// not are exactly the ones who will change them. A default the user can see and correct beats
+  /// an empty field they have to fill to get past.
+  final wakeTime = RxnString(_defaultWake);
+  final sleepTime = RxnString(_defaultSleep);
+
+  static const _defaultWake = '07:00';
+  static const _defaultSleep = '23:00';
 
   /// Derived from the two clock times, never typed (D-77). Null until both are set.
   ///
@@ -152,10 +159,17 @@ class OnboardingController extends GetxController {
   final hormonalMedication = Rxn<bool>();
 
   // Meal timings.
-  final breakfastTime = RxnString();
-  final lunchTime = RxnString();
-  final eveningSnackTime = RxnString();
-  final dinnerTime = RxnString();
+  /// Same reasoning as the wake and sleep defaults. These are ordinary Indian meal hours; the
+  /// plan is built around whatever they are changed to.
+  final breakfastTime = RxnString('08:00');
+  final lunchTime = RxnString('13:00');
+  final eveningSnackTime = RxnString('17:00');
+
+  /// docs/04 §7's five-to-six pattern only: mid-morning between breakfast and lunch, and an
+  /// OPTIONAL bedtime occasion. Sent only when that pattern is chosen — see [buildSubmission].
+  final midMorningTime = RxnString('11:00');
+  final bedtimeSnackTime = RxnString('22:00');
+  final dinnerTime = RxnString('20:30');
 
   final foodDislikes = ''.obs;
 
@@ -189,6 +203,10 @@ class OnboardingController extends GetxController {
   /// docs/05 §3 gates that fired. Non-empty means no plan is generated, at all.
   final gates = <Condition>{}.obs;
 
+  /// What the user said they do. Routing only — see [Profession]. Never sent to the server and
+  /// never treated as a qualification.
+  final profession = Profession.none.obs;
+
   static const _allSteps = [
     OnboardingStep.basics,
     OnboardingStep.result,
@@ -200,8 +218,11 @@ class OnboardingController extends GetxController {
     OnboardingStep.womensHealth,
     OnboardingStep.screening,
     OnboardingStep.diet,
-    OnboardingStep.mealTimings,
+    // `routine` first (D-170). It asks HOW MANY meals, and `mealTimings` asks WHEN each one is —
+    // which slots exist at all depends on the answer, so asking for the times first meant asking
+    // about a snack the user had not yet said they eat.
     OnboardingStep.routine,
+    OnboardingStep.mealTimings,
     OnboardingStep.summary,
     OnboardingStep.consent,
   ];
@@ -217,6 +238,12 @@ class OnboardingController extends GetxController {
 
   int get stepNumber => _orderedSteps.indexOf(step.value) + 1;
   int get totalSteps => _orderedSteps.length;
+
+  /// Whether the chosen meal pattern has a snack slot (docs/04 §7). Three meals do not.
+  bool get asksSnackTime => mealCount.value != MealCount.three;
+
+  /// Whether the pattern has mid-morning and bedtime occasions. Only five-to-six does.
+  bool get asksExtraSlots => mealCount.value == MealCount.fiveOrSix;
 
   /// FR-1.3 / docs/13: menstrual health is asked of female users only. For anyone else these are
   /// health fields with no clinical purpose, which we must not collect at all.
@@ -280,8 +307,13 @@ class OnboardingController extends GetxController {
     OnboardingStep.mealTimings =>
       breakfastTime.value != null &&
           lunchTime.value != null &&
-          eveningSnackTime.value != null &&
-          dinnerTime.value != null,
+          dinnerTime.value != null &&
+          // docs/04 §7: three meals are breakfast, lunch and dinner — there is no snack slot to
+          // ask about, so requiring one would block the step on a question nobody was shown.
+          (!asksSnackTime || eveningSnackTime.value != null) &&
+          // Mid-morning belongs to the five-to-six pattern. Bedtime is OPTIONAL even there, so it
+          // is never required.
+          (!asksExtraSlots || midMorningTime.value != null),
     OnboardingStep.routine => mealCount.value != null && lifestyle.value != null,
     // Nothing to answer — it exists to be read, like [result].
     OnboardingStep.summary => true,
@@ -399,6 +431,19 @@ class OnboardingController extends GetxController {
     allergies.assignAll(next.contains(a) ? (next..remove(a)) : (next..add(a)));
   }
 
+  /// Set when the summary sends the user back to change one answer: where to return to on the
+  /// next advance, instead of making them walk every step in between a second time.
+  OnboardingStep? _returnTo;
+
+  /// The summary's edit affordance: jump to [target] with the flow's backward motion, and come
+  /// straight back on the next advance.
+  void editFrom(OnboardingStep target) {
+    reject.value = null;
+    goingForward = false;
+    _returnTo = step.value;
+    step.value = target;
+  }
+
   Future<void> next() async {
     reject.value = null;
     if (!canAdvance) return;
@@ -435,6 +480,16 @@ class OnboardingController extends GetxController {
         step.value = OnboardingStep.gate;
         return;
       }
+    }
+
+    // An edit that came from the summary goes back to the summary. After the gate checks above,
+    // so a changed answer that fires one still gates.
+    final returnTo = _returnTo;
+    if (returnTo != null) {
+      _returnTo = null;
+      goingForward = true;
+      step.value = returnTo;
+      return;
     }
 
     final i = _orderedSteps.indexOf(step.value);
@@ -574,7 +629,11 @@ class OnboardingController extends GetxController {
       sleepHours: sleepHours,
       breakfastTime: breakfastTime.value,
       lunchTime: lunchTime.value,
-      eveningSnackTime: eveningSnackTime.value,
+      eveningSnackTime: asksSnackTime ? eveningSnackTime.value : null,
+      // Sent only for the pattern that HAS these occasions. A three-meal profile carrying a
+      // mid-morning time would describe a day the user never said they eat.
+      midMorningTime: asksExtraSlots ? midMorningTime.value : null,
+      bedtimeSnackTime: asksExtraSlots ? bedtimeSnackTime.value : null,
       dinnerTime: dinnerTime.value,
       foodDislikes: foodDislikes.value.trim(),
       medications: medications.value.trim(),
@@ -599,6 +658,15 @@ class OnboardingController extends GetxController {
     if (step.value == OnboardingStep.gate) return;
     if (step.value == OnboardingStep.done) {
       step.value = OnboardingStep.consent;
+      return;
+    }
+    // Backing out of a summary edit abandons it and returns where the user was, rather than to
+    // whatever happens to precede the edited step in the flow's own order.
+    final returnTo = _returnTo;
+    if (returnTo != null) {
+      _returnTo = null;
+      goingForward = true;
+      step.value = returnTo;
       return;
     }
     final i = _orderedSteps.indexOf(step.value);

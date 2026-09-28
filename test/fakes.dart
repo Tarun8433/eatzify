@@ -219,9 +219,62 @@ class FakeDiaryRepository implements DiaryRepository {
 
   String? lastLoggedFoodId;
 
+  /// Every `logFood` call, so a test can assert the portion the sheet sent — not just that
+  /// something was logged.
+  final loggedCalls =
+      <
+        ({
+          String slot,
+          String foodId,
+          String? measure,
+          double? measureCount,
+          double? quantityG,
+          String? source,
+        })
+      >[];
+
+  /// Every `previewFood` call. A portion change must re-ask the server rather than scale locally.
+  final previewCalls =
+      <({String foodId, String? measure, double? measureCount, double? quantityG})>[];
+
+  /// What the preview answers. The fixed figures make the micronutrient rows assertable.
+  Either<Failure, NutritionPreview> previewResult = const Right(
+    NutritionPreview(
+      grams: 160,
+      kcal: 483.2,
+      proteinG: 10.2,
+      carbG: 64.2,
+      fatG: 20.5,
+      fibreG: 6.2,
+      sodiumMg: 656,
+      addedSugarG: 0,
+      saturatedFatG: 6.7,
+    ),
+  );
+
+  @override
+  Future<Either<Failure, NutritionPreview>> previewFood({
+    required String foodId,
+    String? measure,
+    double? measureCount,
+    double? quantityG,
+  }) async {
+    previewCalls.add((
+      foodId: foodId,
+      measure: measure,
+      measureCount: measureCount,
+      quantityG: quantityG,
+    ));
+    return previewResult;
+  }
+
+  /// Ids `remove` was called with — the snackbar's Undo.
+  final removedIds = <String>[];
+
   /// Every request this fake was asked for, so a paging test can assert the offsets rather than
   /// only the rows that came back.
-  final searchCalls = <({String query, int limit, int offset, String? suitableFor})>[];
+  final searchCalls =
+      <({String query, int limit, int offset, String? suitableFor, List<String>? groups})>[];
 
   @override
   Future<Either<Failure, List<Food>>> searchFoods(
@@ -229,8 +282,15 @@ class FakeDiaryRepository implements DiaryRepository {
     int limit = 20,
     int offset = 0,
     String? suitableFor,
+    List<String>? groups,
   }) async {
-    searchCalls.add((query: query, limit: limit, offset: offset, suitableFor: suitableFor));
+    searchCalls.add((
+      query: query,
+      limit: limit,
+      offset: offset,
+      suitableFor: suitableFor,
+      groups: groups,
+    ));
     if (failure != null) return Left(failure!);
     // Pages the fixture the way the server does, so "a short page is the last page" is exercised
     // here rather than only against a real database.
@@ -248,8 +308,17 @@ class FakeDiaryRepository implements DiaryRepository {
     String? measure,
     double? measureCount,
     double? quantityG,
+    String? source,
   }) async {
     lastLoggedFoodId = foodId;
+    loggedCalls.add((
+      slot: slot,
+      foodId: foodId,
+      measure: measure,
+      measureCount: measureCount,
+      quantityG: quantityG,
+      source: source,
+    ));
     if (failure != null) return Left(failure!);
     return Right(
       LogEntry(
@@ -286,7 +355,10 @@ class FakeDiaryRepository implements DiaryRepository {
   }
 
   @override
-  Future<Either<Failure, Unit>> remove(String id) async => const Right(unit);
+  Future<Either<Failure, Unit>> remove(String id) async {
+    removedIds.add(id);
+    return const Right(unit);
+  }
 }
 
 const emptyDay = DiaryDay(
@@ -308,9 +380,16 @@ class CountingDiaryRepository extends FakeDiaryRepository {
     int limit = 20,
     int offset = 0,
     String? suitableFor,
+    List<String>? groups,
   }) {
     searches++;
-    return super.searchFoods(query, limit: limit, offset: offset, suitableFor: suitableFor);
+    return super.searchFoods(
+      query,
+      limit: limit,
+      offset: offset,
+      suitableFor: suitableFor,
+      groups: groups,
+    );
   }
 }
 
@@ -669,7 +748,8 @@ class FakePrivacyRepository implements PrivacyRepository {
 
     setCalls.add((type: type, granted: granted));
     consents = [
-      for (final c in consents) if (c.type == type) c.copyWith(granted: granted) else c,
+      for (final c in consents)
+        if (c.type == type) c.copyWith(granted: granted) else c,
     ];
     return Right(consents);
   }

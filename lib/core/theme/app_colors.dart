@@ -73,6 +73,24 @@ abstract final class AppColors {
   static const darkTint = Color(0xFF223026);
   static const darkOnTint = Color(0xFFA8D0AE);
 
+  /// The paywall's second tier (D-160). Premium is sold as two cards side by side, and two cards in
+  /// the same green differ only by the words on them — the warm pair is what makes PRO read as the
+  /// other choice at a glance rather than as a repeat of BASIC.
+  ///
+  /// Deliberately the same contrast as the green tint pair it sits beside (6.6:1 light, 8.8:1 dark
+  /// against 6.6 and 8.1), so neither card is the harder one to read. [warning] is 3.8:1 on the
+  /// light tint: it is the crown and the badge's edge — a UI boundary at WCAG 1.4.11's 3:1 — and
+  /// never text, which takes `onTintWarm`.
+  static const lightTintWarm = Color(0xFFFDF0D9);
+  static const lightOnTintWarm = Color(0xFF7A4A00);
+  static const darkTintWarm = Color(0xFF32271A);
+  static const darkOnTintWarm = Color(0xFFE8C48A);
+
+  /// The "most popular" pill, one step up from the card it sits on so the badge is a badge rather
+  /// than a word floating on the same wash. 5.5:1 light and 6.6:1 dark with `onTintWarm` on it.
+  static const lightBadgeWarm = Color(0xFFF7D9A8);
+  static const darkBadgeWarm = Color(0xFF4A3A22);
+
   /// A border that carries meaning (a selected chip, a focused field) rather than decoration.
   /// WCAG 1.4.11 asks 3:1 for UI boundaries; `darkOutline` is 1.4:1 and is for decoration only.
   static const darkOutlineStrong = Color(0xFF5A6E67);

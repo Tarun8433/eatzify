@@ -16,6 +16,8 @@ abstract final class AppTheme {
     outline: AppColors.lightOutline,
     tint: AppColors.lightTint,
     onTint: AppColors.lightOnTint,
+    warmTint: AppColors.lightTintWarm,
+    onWarmTint: AppColors.lightOnTintWarm,
   );
 
   static ThemeData get dark => _build(
@@ -28,6 +30,8 @@ abstract final class AppTheme {
     outline: AppColors.darkOutline,
     tint: AppColors.darkTint,
     onTint: AppColors.darkOnTint,
+    warmTint: AppColors.darkTintWarm,
+    onWarmTint: AppColors.darkOnTintWarm,
   );
 
   static ThemeData _build({
@@ -40,6 +44,8 @@ abstract final class AppTheme {
     required Color outline,
     required Color tint,
     required Color onTint,
+    required Color warmTint,
+    required Color onWarmTint,
   }) {
     final isDark = brightness == Brightness.dark;
     // Accent carries the interactive role in dark mode — deep green lacks contrast on a dark ground.
@@ -64,6 +70,9 @@ abstract final class AppTheme {
       // the progress track and the selected chip are built on.
       secondaryContainer: tint,
       onSecondaryContainer: onTint,
+      // The warm counterpart: the streak reads as encouragement, not as another data card.
+      tertiaryContainer: warmTint,
+      onTertiaryContainer: onWarmTint,
     );
 
     return ThemeData(

@@ -16,6 +16,8 @@ Widget app({
   double? startKg = 70,
   double? targetKg = 50,
   bool? inHealthyRange,
+  double? healthyLowKg,
+  double? healthyHighKg,
   TextScaler scaler = TextScaler.noScaling,
 }) => MaterialApp(
   theme: AppTheme.light,
@@ -34,7 +36,13 @@ Widget app({
     body: SafeArea(
       child: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
-        child: GoalResultView(startKg: startKg, targetKg: targetKg, inHealthyRange: inHealthyRange),
+        child: GoalResultView(
+          startKg: startKg,
+          targetKg: targetKg,
+          inHealthyRange: inHealthyRange,
+          healthyLowKg: healthyLowKg,
+          healthyHighKg: healthyHighKg,
+        ),
       ),
     ),
   ),
@@ -63,19 +71,27 @@ void main() {
     await settle(tester);
     final l = l10n(tester);
     expect(find.text(l.onboardingResultHealthyNote), findsOneWidget);
-    expect(find.text(l.onboardingResultHealthyChip), findsOneWidget);
+  });
+
+  testWidgets('and names the band when the numbers are known', (tester) async {
+    await tester.pumpWidget(app(inHealthyRange: true, healthyLowKg: 62, healthyHighKg: 68));
+    await settle(tester);
+    final l = l10n(tester);
+    expect(find.text(l.onboardingResultRangeNote('62', '68')), findsOneWidget);
+    expect(find.text(l.onboardingResultHealthyNote), findsNothing);
   });
 
   testWidgets('and says nothing at all when it is not, or cannot be known', (tester) async {
     for (final answer in [false, null]) {
-      await tester.pumpWidget(app(inHealthyRange: answer));
+      // The band is supplied but the target is not inside it (or cannot be judged): still
+      // silence — docs/05 §6 forbids judging a goal, and rule 7 puts any clinical message on the
+      // server. A goal under the floor is refused at input, not scolded here.
+      await tester.pumpWidget(app(inHealthyRange: answer, healthyLowKg: 62, healthyHighKg: 68));
       await settle(tester);
       final l = l10n(tester);
 
-      // Silence, not a warning. docs/05 §6 forbids judging a goal, and rule 7 puts any clinical
-      // message on the server — a goal under the floor is refused at input, not scolded here.
       expect(find.text(l.onboardingResultHealthyNote), findsNothing, reason: '$answer');
-      expect(find.text(l.onboardingResultHealthyChip), findsNothing, reason: '$answer');
+      expect(find.text(l.onboardingResultRangeNote('62', '68')), findsNothing, reason: '$answer');
       // The rest of the card is unchanged.
       expect(find.text('50.0 kg'), findsOneWidget, reason: '$answer');
     }

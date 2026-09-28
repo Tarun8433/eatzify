@@ -71,8 +71,29 @@ export class FoodLogEntity {
   @Column({ type: 'numeric', precision: 6, scale: 1, nullable: true })
   fibreG: string | null;
 
+  /// D-240. Copied like the macros; null on older rows and custom entries — "not recorded".
+  @Column({ type: 'numeric', precision: 8, scale: 1, nullable: true })
+  sodiumMg: string | null;
+
+  @Column({ type: 'numeric', precision: 6, scale: 1, nullable: true })
+  addedSugarG: string | null;
+
+  @Column({ type: 'numeric', precision: 6, scale: 1, nullable: true })
+  saturatedFatG: string | null;
+
   @Column({ type: 'varchar', default: 'manual' })
   source: string;
+
+  /// D-240. The user's own photo of a scanned plate, relative to the private photo store. Never a
+  /// public URL — served only through a short-lived signed link, and deleted after the retention
+  /// window (docs/13 §4).
+  @Column({ type: 'varchar', nullable: true })
+  photoPath: string | null;
+
+  /// D-240. The nutrition is a model's estimate of a photographed plate, not the food table's
+  /// verified figures — every screen that shows it says so.
+  @Column({ type: 'boolean', default: false })
+  estimated: boolean;
 
   /// docs/08: editable for 48 h, then locked. A diary that can be rewritten indefinitely is not a
   /// record of what happened.

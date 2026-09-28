@@ -30,6 +30,8 @@ class OnboardingSubmission {
     this.sleepHours,
     this.breakfastTime,
     this.lunchTime,
+    this.midMorningTime,
+    this.bedtimeSnackTime,
     this.eveningSnackTime,
     this.dinnerTime,
     this.foodDislikes,
@@ -71,6 +73,12 @@ class OnboardingSubmission {
   final double? sleepHours;
   final String? breakfastTime;
   final String? lunchTime;
+
+  /// docs/04 §7's five-to-six pattern only. Null for three and four meals, because those
+  /// patterns have no such occasion — a time for a meal nobody eats is not missing data.
+  final String? midMorningTime;
+  final String? bedtimeSnackTime;
+
   final String? eveningSnackTime;
   final String? dinnerTime;
 
@@ -110,6 +118,8 @@ class OnboardingSubmission {
       if (sleepHours != null) 'sleep_hours': sleepHours,
       if (breakfastTime != null) 'breakfast_time': breakfastTime,
       if (lunchTime != null) 'lunch_time': lunchTime,
+      if (midMorningTime != null) 'mid_morning_time': midMorningTime,
+      if (bedtimeSnackTime != null) 'bedtime_snack_time': bedtimeSnackTime,
       if (eveningSnackTime != null) 'evening_snack_time': eveningSnackTime,
       if (dinnerTime != null) 'dinner_time': dinnerTime,
       if (foodDislikes != null && foodDislikes!.isNotEmpty) 'food_dislikes': foodDislikes,

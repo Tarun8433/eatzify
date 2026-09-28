@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:health_pro/core/theme/app_assets.dart';
@@ -5,9 +7,15 @@ import 'package:health_pro/core/theme/app_colors.dart';
 import 'package:health_pro/core/theme/app_spacing.dart';
 import 'package:health_pro/core/widgets/app_card.dart';
 import 'package:health_pro/core/widgets/form_fields.dart';
+import 'package:health_pro/core/widgets/view_state.dart';
+import 'package:health_pro/domain/entities/food.dart';
+import 'package:health_pro/domain/repositories/diary_repository.dart';
 import 'package:health_pro/domain/repositories/measurements_repository.dart';
+import 'package:health_pro/domain/usecases/adjust_steps.dart';
 import 'package:health_pro/presentation/features/home/home_controller.dart';
+import 'package:health_pro/presentation/features/onboarding/enum_labels.dart';
 import 'package:health_pro/presentation/l10n/app_localizations.dart';
+import 'package:intl/intl.dart';
 
 /// Manual activity entry (D-80): steps, and calories burned if the user happens to know them.
 ///
@@ -18,6 +26,11 @@ import 'package:health_pro/presentation/l10n/app_localizations.dart';
 ///
 /// Both fields are optional and either can be sent alone. Someone who walked and does not own a
 /// watch has steps and nothing else, and that is a complete answer.
+///
+/// Steps are a CHANGE to today's count (D-220): it shows what the day already holds, and what is
+/// typed is added to it or taken off it. The change is stored apart from what the phone counted
+/// (D-221), so a later sync adds to it instead of wiping it. Calories burned stays a figure,
+/// because nobody adds to a watch's calorie reading by hand.
 class ActivityLogTab extends StatefulWidget {
   const ActivityLogTab({super.key});
 
@@ -28,7 +41,6 @@ class ActivityLogTab extends StatefulWidget {
 class _ActivityLogTabState extends State<ActivityLogTab> {
   /// docs/03 §2 ranges. Named, because the same two numbers set the wheel, the bound check and the
   /// caption under each field — three copies of `100000` is how those three drift apart.
-  static const _maxSteps = 100000;
   static const _maxBurned = 8000;
 
   /// What one notch of the wheel moves. Steps are counted in thousands and kcal in tens; a
@@ -36,14 +48,56 @@ class _ActivityLogTabState extends State<ActivityLogTab> {
   static const _stepsNotch = 500;
   static const _burnedNotch = 50;
 
-  int? _steps;
+  /// Where each wheel opens: a short walk, a light session. The middle of the range put steps at
+  /// 50,000 and burned at 4,000 — numbers nobody means, one careless Done from being saved.
+  static const _stepsOpensAt = 1000;
+  static const _burnedOpensAt = 200;
+
+  /// Today, for the count the change applies to. Always today's, whichever day Home is showing:
+  /// this sheet writes to today.
+  ViewState<DiaryDay> _today = const Loading();
+
+  /// What was typed for steps, before it is applied. Zero is no change, so it is null too.
+  int? _stepsChange;
+  bool _removing = false;
   int? _burned;
   bool _saving = false;
 
   /// The server's `user_message`, verbatim (CLAUDE.md rule 7).
   String? _error;
 
-  bool get _canSave => !_saving && (_steps != null || _burned != null);
+  int? get _currentSteps => switch (_today) {
+    Ready<DiaryDay>(:final data) => data.steps,
+    _ => null,
+  };
+
+  int? get _addedSteps => switch (_today) {
+    Ready<DiaryDay>(:final data) => data.stepsAdded,
+    _ => null,
+  };
+
+  /// The day's count after the change, or null when there is nothing valid to save — including
+  /// while today has not loaded, because a change to an unknown count has no total.
+  int? get _stepsTotal {
+    final change = _stepsChange;
+    if (change == null || _today is! Ready<DiaryDay>) return null;
+    return AdjustSteps.total(current: _currentSteps, amount: change, remove: _removing);
+  }
+
+  bool get _canSave => !_saving && (_stepsTotal != null || _burned != null);
+
+  @override
+  void initState() {
+    super.initState();
+    _loadToday();
+  }
+
+  Future<void> _loadToday() async {
+    setState(() => _today = const Loading());
+    final result = await Get.find<DiaryRepository>().day();
+    if (!mounted) return;
+    setState(() => _today = result.fold(Failed.new, Ready.new));
+  }
 
   Future<void> _save() async {
     if (!_canSave) return;
@@ -55,9 +109,18 @@ class _ActivityLogTabState extends State<ActivityLogTab> {
     final measurements = Get.find<MeasurementsRepository>();
     // Two rows, because they are two measurements. The server overwrites per kind per diary day,
     // so saving twice in one day corrects the figure rather than adding to it.
+    final change = _stepsTotal == null ? null : _stepsChange;
     final results = [
-      if (_steps != null)
-        await measurements.record(kind: 'steps', value: _steps!.toDouble(), unit: 'steps'),
+      if (change != null)
+        await measurements.record(
+          kind: 'steps_added',
+          value: AdjustSteps.added(
+            previous: _addedSteps,
+            amount: change,
+            remove: _removing,
+          ).toDouble(),
+          unit: 'steps',
+        ),
       if (_burned != null)
         await measurements.record(
           kind: 'energy_burned_kcal',
@@ -106,15 +169,7 @@ class _ActivityLogTabState extends State<ActivityLogTab> {
           _FieldCard(
             icon: Icons.directions_walk,
             title: l.logActivitySteps,
-            child: NumberField(
-              label: l.logActivityStepsHint,
-              helperText: l.logActivityStepsRange(_maxSteps),
-              // Typed OR scrolled (D-95). Someone who read 8,432 off a watch types it; someone
-              // logging "about six thousand" spins to it.
-              picker: const NumberPickerConfig(min: 0, max: _maxSteps, step: _stepsNotch),
-              onLiveChange: (v) => setState(() => _steps = _bounded(v, _maxSteps)),
-              onCommit: (v) => setState(() => _steps = _bounded(v, _maxSteps)),
-            ),
+            child: _stepsEditor(l, theme),
           ),
           const SizedBox(height: AppSpacing.lg),
           _FieldCard(
@@ -125,7 +180,12 @@ class _ActivityLogTabState extends State<ActivityLogTab> {
             child: NumberField(
               label: l.logActivityBurnedHint,
               helperText: l.logActivityBurnedRange(_maxBurned),
-              picker: const NumberPickerConfig(min: 0, max: _maxBurned, step: _burnedNotch),
+              picker: const NumberPickerConfig(
+                min: 0,
+                max: _maxBurned,
+                step: _burnedNotch,
+                opensAt: _burnedOpensAt,
+              ),
               onLiveChange: (v) => setState(() => _burned = _bounded(v, _maxBurned)),
               onCommit: (v) => setState(() => _burned = _bounded(v, _maxBurned)),
             ),
@@ -155,6 +215,120 @@ class _ActivityLogTabState extends State<ActivityLogTab> {
         ],
       ),
     );
+  }
+
+  /// What the day holds, which way the change goes, how much, and where that leaves the day.
+  Widget _stepsEditor(AppLocalizations l, ThemeData theme) {
+    final locale = Localizations.localeOf(context).toLanguageTag();
+    final numbers = NumberFormat.decimalPattern(locale);
+    final signed = NumberFormat('+#,##0;−#,##0', locale);
+    final current = _currentSteps;
+    final limit = AdjustSteps.limit(current: current, remove: _removing);
+    final total = _stepsTotal;
+    final muted = theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.onSurfaceVariant);
+
+    final String? outcome;
+    if (_stepsChange == null || _today is! Ready<DiaryDay>) {
+      outcome = null;
+    } else if (total != null) {
+      outcome = l.logActivityStepsNewTotal(numbers.format(total));
+    } else {
+      outcome = _removing
+          ? l.logActivityStepsTooFew(numbers.format(current ?? 0))
+          : l.logActivityStepsTooMany(numbers.format(AdjustSteps.max));
+    }
+
+    final today = _today;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        switch (today) {
+          Loading<DiaryDay>() => Text(l.logActivityStepsLoading, style: muted),
+          Ready<DiaryDay>(:final data) => Text(
+            // Rule 10: where the count came from, beside it — and how much of it is the person's.
+            switch (data) {
+              DiaryDay(steps: null) => l.logActivityStepsNone,
+              DiaryDay(:final steps?, :final stepsAdded?) when data.stepsSource.isAutomatic =>
+                l.logActivityStepsNowSplit(
+                  numbers.format(steps),
+                  numbers.format(steps - stepsAdded),
+                  data.stepsSource.label(l),
+                  signed.format(stepsAdded),
+                ),
+              DiaryDay(:final steps?) => l.logActivityStepsNow(
+                numbers.format(steps),
+                data.stepsSource.label(l),
+              ),
+            },
+            style: theme.textTheme.bodyMedium,
+          ),
+          // Empty is not a state this read produces; a day always comes back.
+          Empty<DiaryDay>() => Text(l.logActivityStepsNone, style: theme.textTheme.bodyMedium),
+          Failed<DiaryDay>(:final failure) => Row(
+            children: [
+              Expanded(
+                child: Text(
+                  failure.userMessage,
+                  style: muted?.copyWith(color: theme.colorScheme.error),
+                ),
+              ),
+              TextButton(onPressed: _loadToday, child: Text(l.accountRetry)),
+            ],
+          ),
+        },
+        const SizedBox(height: AppSpacing.md),
+        SegmentedButton<bool>(
+          segments: [
+            ButtonSegment(value: false, icon: const Icon(Icons.add), label: Text(l.logActivityAdd)),
+            ButtonSegment(
+              value: true,
+              icon: const Icon(Icons.remove),
+              label: Text(l.logActivityRemove),
+              // Nothing to take off a day with no count.
+              enabled: (current ?? 0) > 0,
+            ),
+          ],
+          selected: {_removing},
+          onSelectionChanged: (choice) => setState(() => _removing = choice.first),
+        ),
+        const SizedBox(height: AppSpacing.md),
+        NumberField(
+          label: _removing ? l.logActivityStepsRemoveHint : l.logActivityStepsAddHint,
+          helperText: l.logActivityStepsRange(limit),
+          // Typed OR scrolled (D-95). Someone who read 8,432 off a watch types it; someone
+          // logging "about six thousand" spins to it.
+          picker: NumberPickerConfig(
+            min: 0,
+            max: limit,
+            step: _stepsNotch,
+            // On a notch, or Done would commit a number the wheel is not showing.
+            opensAt: math.min(_stepsOpensAt, limit - limit % _stepsNotch),
+          ),
+          onLiveChange: (v) => setState(() => _stepsChange = _change(v)),
+          onCommit: (v) => setState(() => _stepsChange = _change(v)),
+        ),
+        if (outcome != null) ...[
+          const SizedBox(height: AppSpacing.sm),
+          Text(
+            outcome,
+            style: theme.textTheme.titleSmall?.copyWith(
+              color: total == null ? theme.colorScheme.error : theme.colorScheme.primary,
+            ),
+          ),
+        ],
+        // Someone who just connected a watch will wonder whether the next sync undoes this. It
+        // does not (D-221), and the place to say so is before they save.
+        if (total != null && today is Ready<DiaryDay> && today.data.stepsSource.isAutomatic) ...[
+          const SizedBox(height: AppSpacing.xs),
+          Text(l.logActivityStepsKept(today.data.stepsSource.label(l)), style: muted),
+        ],
+      ],
+    );
+  }
+
+  static int? _change(String raw) {
+    final parsed = int.tryParse(raw);
+    return parsed == 0 ? null : parsed;
   }
 
   /// Out of range reads as "not answered", not as a rejection — the server's bounds are the ones
@@ -207,7 +381,7 @@ class _ActivityHero extends StatelessWidget {
             const SizedBox(width: AppSpacing.md),
             ExcludeSemantics(
               child: Image.asset(
-                AppAssets.activityHero,
+                AppAssets.themed(AppAssets.activityHero, Theme.of(context).brightness),
                 width: art,
                 // The illustration is square once its empty canvas is trimmed off, and it is drawn
                 // at the size it was encoded for — art scaled up is blurry art.

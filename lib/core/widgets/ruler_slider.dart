@@ -22,8 +22,13 @@ class RulerSlider extends StatefulWidget {
     super.key,
     this.step = 0.1,
     this.majorEvery = 10,
+    this.labelDigits = 0,
     this.semanticLabel,
   });
+
+  /// Decimal places on the major labels. The weight log writes "70"; the picker sheet's
+  /// reference writes "70.0", and both are one ruler.
+  final int labelDigits;
 
   final double value;
   final ValueChanged<double> onChanged;
@@ -158,8 +163,8 @@ class _RulerSliderState extends State<RulerSlider> {
                     itemCount: _ticks,
                     itemBuilder: (context, i) => _Tick(
                       isMajor: i % widget.majorEvery == 0,
-                      // Whole units on the majors: a label per tenth is a wall of numbers.
-                      label: (widget.min + i * widget.step).toStringAsFixed(0),
+                      // Labels on the majors only: a label per tenth is a wall of numbers.
+                      label: (widget.min + i * widget.step).toStringAsFixed(widget.labelDigits),
                       color: scheme.outline,
                       style: theme.textTheme.bodySmall,
                     ),

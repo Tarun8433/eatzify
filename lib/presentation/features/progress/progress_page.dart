@@ -8,6 +8,7 @@ import 'package:health_pro/core/widgets/view_state.dart';
 import 'package:health_pro/domain/entities/measurement.dart';
 import 'package:health_pro/domain/repositories/diary_repository.dart';
 import 'package:health_pro/domain/repositories/measurements_repository.dart';
+import 'package:health_pro/presentation/features/gym/gym_energy_habit.dart';
 import 'package:health_pro/presentation/features/onboarding/enum_labels.dart';
 import 'package:health_pro/presentation/features/progress/log_weight_sheet.dart';
 import 'package:health_pro/presentation/features/progress/progress_controller.dart';
@@ -61,7 +62,7 @@ class ProgressPage extends StatelessWidget {
             ),
           ),
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screenH),
             child: SizedBox(
               width: double.infinity,
               child: FilledButton(
@@ -103,13 +104,13 @@ class _Progress extends StatelessWidget {
       // Which habit rows a section wants: activity is what the body did, habits is what the user
       // keeps up; overview is everything.
       final habitKinds = switch (sec) {
-        'activity' => const ['steps', 'energy_burned_kcal'],
+        'activity' => const ['steps', 'distance_m', 'energy_burned_kcal'],
         'habits' => const ['water_ml'],
         _ => ProgressController.habitKinds,
       };
 
       return ListView(
-        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screenH),
         children: [
           if (hasDiary) ...[
             SectionChips(controller: controller),
@@ -120,9 +121,7 @@ class _Progress extends StatelessWidget {
             const SizedBox(height: AppSpacing.lg),
             MacroBalanceCard(
               controller: controller,
-              onDetails: sec == 'nutrition'
-                  ? null
-                  : () => controller.section.value = 'nutrition',
+              onDetails: sec == 'nutrition' ? null : () => controller.section.value = 'nutrition',
             ),
             const SizedBox(height: AppSpacing.lg),
           ],
@@ -165,6 +164,8 @@ class _Progress extends StatelessWidget {
             Text(l.progressHabitsSubtitle, style: theme.textTheme.bodySmall),
             const SizedBox(height: AppSpacing.sm),
             for (final kind in habitKinds) _Habit(kind: kind, history: controller.habits[kind]),
+            // D-242: workout energy, its own row — never folded into calories burned.
+            const GymEnergyHabit(),
             const SizedBox(height: AppSpacing.lg),
           ],
         ],
@@ -248,7 +249,12 @@ class _Habit extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: AppSpacing.xs),
-              Text(l.habitDaysLogged(points.length), style: theme.textTheme.bodySmall),
+              // Rule 10: where the headline figure came from, beside it. A count the phone reported
+              // and one somebody typed are different claims.
+              Text(
+                l.habitDaysFrom(l.habitDaysLogged(points.length), latest!.source.label(l)),
+                style: theme.textTheme.bodySmall,
+              ),
             ],
           ],
         ),
@@ -259,6 +265,7 @@ class _Habit extends StatelessWidget {
   /// CLAUDE.md rule 4: a kind is a wire value and l10n on screen.
   static String _label(AppLocalizations l, String kind) => switch (kind) {
     'steps' => l.habitSteps,
+    'distance_m' => l.habitDistance,
     'water_ml' => l.habitWater,
     _ => l.habitBurned,
   };
@@ -270,6 +277,8 @@ class _Habit extends StatelessWidget {
     final number = NumberFormat.decimalPattern(locale).format(value.round());
     return switch (kind) {
       'steps' => number,
+      // Metres on the wire, kilometres to a reader: 6,100 m is a number, 6.1 km is a walk.
+      'distance_m' => '${NumberFormat('#,##0.0', locale).format(value / 1000)} km',
       'water_ml' => '$number ml',
       _ => '$number kcal',
     };
@@ -437,13 +446,20 @@ class _WeightTrend extends StatelessWidget {
               );
 
               final chart = plotted.length >= 2
-                  ? SizedBox(height: _chartHeight, child: _Chart(points: plotted))
+                  ? SizedBox(
+                      height: _chartHeight,
+                      child: _Chart(points: plotted),
+                    )
                   : Text(l.progressNoTrend, style: theme.textTheme.bodyMedium);
 
               if (stacked) {
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [figures, const SizedBox(height: AppSpacing.md), chart],
+                  children: [
+                    figures,
+                    const SizedBox(height: AppSpacing.md),
+                    chart,
+                  ],
                 );
               }
               return Row(

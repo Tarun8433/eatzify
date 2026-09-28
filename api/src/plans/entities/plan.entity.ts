@@ -45,6 +45,12 @@ export class PlanEntity {
   @Column({ type: 'jsonb', default: () => "'[]'" })
   mealTargets: unknown[];
 
+  /// The food itself (D-164). Empty for a plan generated before steps 11 and 13 existed, and for
+  /// any plan whose candidate pool came back empty — never null, so no reader has to tell "no food
+  /// chosen" from "not asked".
+  @Column({ type: 'jsonb', default: () => "'[]'" })
+  meals: unknown[];
+
   @Column({ type: 'jsonb', nullable: true })
   constraints: Record<string, unknown> | null;
 

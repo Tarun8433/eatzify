@@ -19,11 +19,16 @@ class WeightCurve extends StatelessWidget {
     super.key,
     this.height = AppSizes.chartHeight,
     this.markerAt,
+    this.topInset = AppSpacing.xl,
   });
 
   final double startKg;
   final double targetKg;
   final double height;
+
+  /// Room above the start dot. The default matches the other three sides; a caller hanging a
+  /// "Now" flag over the dot passes more, and the curve starts lower to make the space.
+  final double topInset;
 
   /// Where along the curve to put a solid node, 0-1, or null for none.
   ///
@@ -53,8 +58,11 @@ class WeightCurve extends StatelessWidget {
             painter: _CurvePainter(
               progress: t,
               markerAt: markerAt,
+              topInset: topInset,
               line: scheme.primary,
-              fill: scheme.primary.withValues(alpha: 0.12),
+              // The top of a gradient that fades to nothing at the floor, so it can start a shade
+              // stronger than the old flat wash without tinting the whole card.
+              fill: scheme.primary.withValues(alpha: 0.18),
               node: scheme.primary,
               onNode: scheme.onPrimary,
               track: scheme.outline,
@@ -89,6 +97,7 @@ class _CurvePainter extends CustomPainter {
   _CurvePainter({
     required this.progress,
     required this.markerAt,
+    required this.topInset,
     required this.line,
     required this.fill,
     required this.node,
@@ -98,6 +107,7 @@ class _CurvePainter extends CustomPainter {
 
   final double progress;
   final double? markerAt;
+  final double topInset;
   final Color line;
   final Color fill;
   final Color node;
@@ -110,17 +120,19 @@ class _CurvePainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     const left = _inset;
-    const top = _inset;
+    final top = topInset;
     final right = size.width - _inset;
     final bottom = size.height - _inset;
 
-    // A single ease-out descent: steep at first, flattening towards the target. That is the shape
-    // of the thing, not a prediction of the rate — see the class doc.
+    // A single gentle descent. Sine, not cubic: the cubic's steep middle read as a cliff — a rate
+    // the app never promised — and its drop ran straight through the note card hung over the
+    // right half. The sine spreads the same fall evenly, which is the reference's shape and is
+    // still not a prediction — see the class doc.
     final path = Path()..moveTo(left, top);
     const steps = 64;
     for (var i = 1; i <= steps; i++) {
       final t = i / steps;
-      final eased = Curves.easeInOutCubic.transform(t);
+      final eased = Curves.easeInOutSine.transform(t);
       path.lineTo(left + (right - left) * t, top + (bottom - top) * eased);
     }
 
@@ -137,13 +149,21 @@ class _CurvePainter extends CustomPainter {
     final metric = path.computeMetrics().first;
     final drawn = metric.extractPath(0, metric.length * progress);
 
-    // The area under the drawn part, which is what gives the line weight on a pale page.
+    // The area under the drawn part, which is what gives the line weight on a pale page. A fade
+    // to nothing at the floor rather than a flat block: solid, the wash read as a second grey
+    // shape rather than as the line's own shadow.
     final area = Path.from(drawn)
       ..lineTo(left + (right - left) * progress, bottom)
       ..lineTo(left, bottom)
       ..close();
+    final areaPaint = Paint()
+      ..shader = LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [fill, fill.withValues(alpha: 0)],
+      ).createShader(Rect.fromLTRB(left, top, right, bottom));
     canvas
-      ..drawPath(area, Paint()..color = fill)
+      ..drawPath(area, areaPaint)
       ..drawPath(
         drawn,
         Paint()
@@ -157,18 +177,21 @@ class _CurvePainter extends CustomPainter {
     // line of data.
     _dashedLine(canvas, Offset(left, bottom), Offset(right, bottom), track);
 
+    // The drop from the start dot to the floor, dashed like the floor itself: it hands the eye
+    // down to the current-weight figure under the chart, the way the reference ties each end of
+    // the line to its number.
+    _dashedLine(canvas, Offset(left, top), Offset(left, bottom), track);
+
     // Where the journey starts. Solid, against the target's open ring: one is a fact already
     // recorded, the other is somewhere nobody has been yet.
-    canvas.drawCircle(const Offset(left, top), AppSpacing.sm * 0.75, Paint()..color = line);
+    canvas.drawCircle(Offset(left, top), AppSpacing.sm * 0.75, Paint()..color = line);
 
-    // The anchor the caller's note hangs from, and the leader up to it.
+    // The leader down from the caller's note to its anchor on the curve. No dot where it lands —
+    // a solid node two thirds along read as a milestone the app never set (see markerAt's doc).
     final marker = markerAt;
     if (marker != null && progress >= marker) {
       final at = metric.getTangentForOffset(metric.length * marker)?.position;
-      if (at != null) {
-        _dashedLine(canvas, Offset(at.dx, top), at, track);
-        canvas.drawCircle(at, AppSpacing.sm * 0.75, Paint()..color = line);
-      }
+      if (at != null) _dashedLine(canvas, Offset(at.dx, top), at, track);
     }
 
     // The head of the line, so the eye has something to follow.

@@ -55,10 +55,14 @@ export class ProfileController {
     @Request() request: RequestWithUser<JwtPayloadType>,
   ): Promise<ProfileView> {
     const userId = Number(request.user.id);
-    // The photo lives on the user, not the profile — it is set through PATCH /auth/me, which the
-    // boilerplate already owns. Reading it here keeps the client to one request for the You tab.
+    // The photo and the phone live on the user, not the profile — the photo is set through
+    // PATCH /auth/me and the phone is what OTP signed in with. Reading them here keeps the client
+    // to one request for the You tab.
     const user = await this.users.findById(userId);
-    return this.service.getProfile(userId, user?.photo?.path ?? null);
+    return this.service.getProfile(userId, {
+      photoUrl: user?.photo?.path ?? null,
+      phone: user?.phone ?? null,
+    });
   }
 
   /// docs/09 §4 — edits the profile half; re-gates if anthropometrics changed.

@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Widget copy. In Android resources rather than the app's `.arb` files, because a launcher widget
+  is rendered by the system and never sees Dart's localisations. `values-hi` carries the Hindi.
+-->
+<resources>
+    <!-- The three entries in the widget picker (D-219). -->
+    <string name="widget_name_small">Calories</string>
+    <string name="widget_name_medium">Today</string>
+    <string name="widget_name_large">Today in full</string>
+    <string name="widget_description_small">Today\'s calories against your plan, with steps and calories burned.</string>
+    <string name="widget_description">Today\'s calories, water, steps and calories burned. Add a glass without opening the app.</string>
+    <string name="widget_description_large">Everything for today — calories, water against its target, steps and calories burned — with a glass and a meal a tap away.</string>
+
+    <string name="widget_calories_today">calories today</string>
+    <string name="widget_of_calories">of %1$s calories</string>
+    <string name="widget_of_kcal">of %1$s kcal</string>
+    <string name="widget_ml_today">ml today</string>
+    <string name="widget_of_ml">of %1$s ml</string>
+    <string name="widget_steps_today">steps today</string>
+    <string name="widget_kcal_active">kcal while active</string>
+    <string name="widget_search_food">Search a food</string>
+
+    <string name="widget_water">Water</string>
+    <string name="widget_steps">Steps</string>
+    <string name="widget_burned">Burned</string>
+    <string name="widget_meal">Meal</string>
+    <string name="widget_log">Log</string>
+    <string name="widget_log_meal">Log a meal</string>
+    <string name="widget_add_water">Add a glass of water</string>
+    <!-- Never a zero: nobody measured is not the same as they had none. -->
+    <string name="widget_no_reading">—</string>
+</resources>

@@ -1,4 +1,5 @@
 import {
+  ForbiddenException,
   HttpStatus,
   Injectable,
   UnprocessableEntityException,
@@ -11,14 +12,16 @@ import {
   type EngineInput,
 } from '@eatzify/diet-engine';
 import { EngineService } from '../modules/engine';
+import { PrivacyService } from '../privacy/privacy.service';
 import { PlanEntity } from './entities/plan.entity';
 import { ProfileEntity } from '../profile/entities/profile.entity';
 import { HealthProfileEntity } from '../profile/entities/health-profile.entity';
 import {
+  consentWithdrawnMessage,
   gateMessage,
   mealPatternConflictMessage,
-  warningsForUser,
   type UserFacingWarning,
+  warningsForUser,
 } from './plan-copy';
 import { BillingService } from '../billing/billing.service';
 import { diaryDateFor } from './diary-date';
@@ -26,6 +29,8 @@ import {
   PlanOptionsService,
   type FoodOptionView,
 } from './plan-options.service';
+import { FoodEntity } from '../foods/entities/food.entity';
+import { toEngineFoods } from './food-pool';
 
 export type MealTargetView = {
   slot: string;
@@ -61,9 +66,12 @@ export class PlansService {
     private readonly profiles: Repository<ProfileEntity>,
     @InjectRepository(HealthProfileEntity)
     private readonly healthProfiles: Repository<HealthProfileEntity>,
+    @InjectRepository(FoodEntity)
+    private readonly foods: Repository<FoodEntity>,
     private readonly engine: EngineService,
     private readonly billing: BillingService,
     private readonly planOptions: PlanOptionsService,
+    private readonly privacy: PrivacyService,
   ) {}
 
   /// docs/09 §4.2. Inputs come from the server-side profile — never from the client, which is why
@@ -78,6 +86,19 @@ export class PlansService {
       const existing = await this.plans.findOne({ where: { idempotencyKey } });
       // A retried request returns its original plan rather than billing a second generation.
       if (existing) return this.toResponse(existing);
+    }
+
+    // docs/13 §3: withdrawing health-processing consent STOPS plan generation. Checked before
+    // anything is read, because reading the health profile in order to decide is the processing
+    // they withdrew from. A withdrawal that only changed a screen would be decoration (D-233).
+    if (!(await this.privacy.mayProcessHealth(userId))) {
+      throw new ForbiddenException({
+        status: HttpStatus.FORBIDDEN,
+        error: {
+          code: 'HEALTH_CONSENT_REQUIRED',
+          user_message: consentWithdrawnMessage(),
+        },
+      });
     }
 
     // docs/09 §10: plan generation is entitlement-driven (FREE 1/day, BASIC 2, PRO 3). Checked
@@ -104,12 +125,23 @@ export class PlansService {
 
     const input = this.engineInput(userId, profile, health, planDate);
 
+    // docs/04 §2 step 11 needs candidates, and the engine may not read a database (rule 2). Only
+    // VERIFIED foods: an unreviewed row is fine to search for and log by hand, and not fine to be
+    // prescribed. Ordered by id so the pool — and therefore the plan — is identical between runs.
+    const pool = toEngineFoods(
+      await this.foods.find({
+        where: { isVerified: true },
+        relations: { measures: true },
+        order: { id: 'ASC' },
+      }),
+    );
+
     // The engine rejects an input the user can fix — a meal pattern too small for a condition's
     // minimum eating occasions (docs/04 §6 priority 5). That is a 422 they can act on, not the 500
     // an uncaught throw produced.
     let output: ReturnType<typeof this.engine.generate>;
     try {
-      output = this.engine.generate(input);
+      output = this.engine.generate(input, pool);
     } catch (error) {
       if (error instanceof MealPatternError) {
         throw new UnprocessableEntityException({
@@ -150,6 +182,7 @@ export class PlansService {
       targets: output.targets as unknown as Record<string, number> | null,
       derived: output.derived as unknown as Record<string, unknown> | null,
       mealTargets: [...output.mealTargets],
+      meals: [...output.meals],
       constraints: output.constraints as unknown as Record<
         string,
         unknown
@@ -289,8 +322,9 @@ export class PlansService {
         valid_from: plan.planDate,
         targets: plan.targets,
         meal_targets: this.toMealTargets(plan),
-        // Empty until the food database lands (E2) — engine steps 11/13/14 need it to fill meals.
-        meals: [],
+        // Filled by engine steps 11 and 13 (D-164). Still empty for a plan generated before they
+        // existed, and for any plan whose candidate pool came back empty.
+        meals: plan.meals,
       },
       rule_pack_version: plan.rulePackVersion,
       warnings: warningsForUser(plan.warnings),

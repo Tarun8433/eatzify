@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:health_pro/core/theme/app_colors.dart';
@@ -5,6 +7,7 @@ import 'package:health_pro/core/theme/app_spacing.dart';
 import 'package:health_pro/core/widgets/animated_count.dart';
 import 'package:health_pro/core/widgets/app_card.dart';
 import 'package:health_pro/core/widgets/day_dot.dart';
+import 'package:health_pro/core/widgets/food_image.dart';
 import 'package:health_pro/core/widgets/press_scale.dart';
 import 'package:health_pro/core/widgets/progress_ring.dart';
 import 'package:health_pro/core/widgets/state_views.dart';
@@ -12,13 +15,16 @@ import 'package:health_pro/core/widgets/view_state.dart';
 import 'package:health_pro/domain/entities/food.dart';
 import 'package:health_pro/domain/repositories/billing_repository.dart';
 import 'package:health_pro/domain/repositories/diary_repository.dart';
-import 'package:health_pro/domain/repositories/health_repository.dart';
-import 'package:health_pro/domain/repositories/measurements_repository.dart';
 import 'package:health_pro/domain/repositories/plan_repository.dart';
-import 'package:health_pro/domain/usecases/sync_steps.dart';
+import 'package:health_pro/domain/usecases/plan_reminders.dart';
+import 'package:health_pro/domain/usecases/sync_health.dart';
+import 'package:health_pro/presentation/features/account/reminders_page.dart';
 import 'package:health_pro/presentation/features/billing/billing_controller.dart';
 import 'package:health_pro/presentation/features/billing/premium_widgets.dart';
+import 'package:health_pro/presentation/features/gym/gym_today_card.dart';
 import 'package:health_pro/presentation/features/home/home_controller.dart';
+import 'package:health_pro/presentation/features/home/home_health_sync.dart';
+import 'package:health_pro/presentation/features/home/home_skeleton.dart';
 import 'package:health_pro/presentation/features/onboarding/enum_labels.dart';
 import 'package:health_pro/presentation/features/tab_scaffold.dart';
 import 'package:health_pro/presentation/l10n/app_localizations.dart';
@@ -40,15 +46,11 @@ class HomePage extends StatelessWidget {
       HomeController(
         diary: Get.find<DiaryRepository>(),
         plans: Get.find<PlanRepository>(),
-        // Resolved rather than required (D-99): tests that are not about step syncing register no
-        // HealthRepository, and Home must work without one — a step count is something the day may
-        // carry, never something it depends on.
-        syncSteps: Get.isRegistered<HealthRepository>()
-            ? SyncSteps(
-                health: Get.find<HealthRepository>(),
-                measurements: Get.find<MeasurementsRepository>(),
-              )
-            : null,
+        // Resolved rather than required: tests that are not about syncing register none, and Home
+        // must work without it — activity is something the day may carry, never something it
+        // depends on.
+        syncHealth: Get.isRegistered<SyncHealth>() ? Get.find<SyncHealth>() : null,
+        reminders: Get.isRegistered<RefreshReminders>() ? Get.find<RefreshReminders>() : null,
       ),
       permanent: true,
     );
@@ -59,6 +61,8 @@ class HomePage extends StatelessWidget {
 
     return Stack(
       children: [
+        // Draws nothing; puts up the once-per-account connect sheet when Home asks for it.
+        HomeHealthPrompt(controller: c),
         TabScaffold(
           title: l10n.tabHome,
           titleIcon: Icons.waving_hand,
@@ -66,7 +70,7 @@ class HomePage extends StatelessWidget {
           action: billing == null ? null : PremiumPill(billing: billing),
           child: Obx(
             () => switch (c.state.value) {
-              Loading<DiaryDay>() => const LoadingView(),
+              Loading<DiaryDay>() => const HomeSkeleton(),
               Empty<DiaryDay>() => EmptyView(title: l10n.homeEmptyTitle, body: l10n.homeEmptyBody),
               Failed<DiaryDay>(:final failure) => FailedView(
                 failure: failure,
@@ -97,7 +101,7 @@ class _Today extends StatelessWidget {
     return ListView(
       // No top inset: the day bar sits directly under the heading (the header's own padding is
       // the whole gap).
-      padding: const EdgeInsets.fromLTRB(AppSpacing.xl, 0, AppSpacing.xl, AppSpacing.xxl),
+      padding: const EdgeInsets.fromLTRB(AppSpacing.md, 0, AppSpacing.md, AppSpacing.xxl),
       children: [
         // Which day this is, and the way to yesterday. Without it the diary is a display of the
         // last few hours: everything logged before 04:00 this morning was unreachable (D-128).
@@ -105,7 +109,7 @@ class _Today extends StatelessWidget {
         const SizedBox(height: AppSpacing.sm),
         // D-57: the hero is the screen, not a card on it — the summary cards on the left, the
         // walker on his stage to the right, both painted in their own layers.
-        _Hero(day: day),
+        _Hero(day: day, controller: controller),
         if (targets == null) ...[
           const SizedBox(height: AppSpacing.lg),
           Obx(
@@ -158,10 +162,15 @@ class _Today extends StatelessWidget {
           ),
           const SizedBox(height: AppSpacing.xs),
           _NutrientTiles(day: day),
-          const SizedBox(height: AppSpacing.lg),
+          // `sm`, not `lg`: the row now carries `sm` of shadow room of its own, and the gap to the
+          // next heading is the two together. The shadow used to paint into this spacer.
+          const SizedBox(height: AppSpacing.sm),
         ],
         _StreakCard(controller: controller, day: day),
         const SizedBox(height: AppSpacing.sm),
+        // D-241: the Gym's door on Home — today's routine and a one-tap Start. It carries its own
+        // gap, so a Home with no Gym registered is laid out exactly as before.
+        const GymTodayCard(),
         // What was EATEN, by slot (D-140) — the plan's prescription lives on the Plan tab; this
         // is the diary's answer to it. Each slot heads its entries with the slot's own sums.
         Text(
@@ -192,9 +201,10 @@ class _Today extends StatelessWidget {
 /// to the right. Both the walker and the stage are painted in their own layers (D-60, D-63) —
 /// this column only has to keep the words out from under him.
 class _Hero extends StatelessWidget {
-  const _Hero({required this.day});
+  const _Hero({required this.day, required this.controller});
 
   final DiaryDay day;
+  final HomeController controller;
 
   /// The words' share of the hero; the rest is the walker's.
   static const _textFraction = 0.56;
@@ -234,9 +244,17 @@ class _Hero extends StatelessWidget {
                   icon: Icons.directions_run_outlined,
                   iconColor: AppColors.macroCarb,
                   value: day.steps!.toDouble(),
-                  label: l.homeStepsFrom(day.stepsSource.label(l)),
+                  // "+ you" once the person has added to a phone's count (D-221).
+                  label: day.stepsAdded != null && day.stepsSource.isAutomatic
+                      ? l.homeStepsFromWithYou(day.stepsSource.label(l))
+                      : l.homeStepsFrom(day.stepsSource.label(l)),
+                  // Sync sits beside the figure it refreshes.
+                  trailing: HomeHealthSync.inline(controller: controller),
                 ),
               ),
+            // Connect, or Sync when there is no figure to sit beside (D-218). A button, not a
+            // banner: not connecting is a fine answer, and manual entry is one tap away on the +.
+            HomeHealthSync(controller: controller, syncShownInline: day.steps != null),
           ],
         );
 
@@ -285,7 +303,12 @@ class _CalorieSummaryCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     final theme = Theme.of(context);
-    final burned = day.energyBurnedKcal;
+    // D-246 (amends D-242): one figure for energy out. The device's own number and the day's
+    // workouts are added together here rather than shown as two rivals — with the split named
+    // under the card, because the workout half is an estimate and the device half is measured.
+    final device = day.energyBurnedKcal;
+    final workout = day.workoutKcal;
+    final burned = device == null && workout == null ? null : (device ?? 0) + (workout ?? 0);
     final target = day.targets?.kcal;
 
     return Container(
@@ -417,6 +440,28 @@ class _CalorieSummaryCard extends StatelessWidget {
               ),
             ],
           ),
+          // What the figure above is made of, when part of it was estimated rather than measured.
+          if (workout != null) ...[
+            const SizedBox(height: AppSpacing.xs),
+            Row(
+              children: [
+                const ExcludeSemantics(
+                  child: Icon(
+                    Icons.fitness_center,
+                    size: AppSpacing.lg,
+                    color: AppColors.darkMuted,
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.xs),
+                Flexible(
+                  child: Text(
+                    l.homeWorkoutKcal(workout),
+                    style: theme.textTheme.bodySmall?.copyWith(color: AppColors.darkOnSurface),
+                  ),
+                ),
+              ],
+            ),
+          ],
         ],
       ),
     );
@@ -442,30 +487,44 @@ class _WaterCard extends StatelessWidget {
       padding: const EdgeInsets.all(AppSpacing.sm),
       child: Row(
         children: [
-         // const SizedBox(width: AppSpacing.md),
+          // const SizedBox(width: AppSpacing.md),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
                   children: [
-                    const Icon(Icons.water_drop_outlined, size: AppSpacing.xl, color: AppColors.info),
+                    const Icon(
+                      Icons.water_drop_outlined,
+                      size: AppSpacing.xl,
+                      color: AppColors.info,
+                    ),
                     const SizedBox(width: AppSpacing.xs),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [ 
-                        
-                        //Text(l.homeWater, style: theme.textTheme.bodySmall),
-                        Text(
+                    // The rest of a card only ~168 dp wide beside the walker: a four-digit figure
+                    // next to the bell shrinks a little rather than running off the edge. At large
+                    // text the hero stacks and the card gets the full width back.
+                    Expanded(
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: AlignmentDirectional.centerStart,
+                        child: Text(
                           '$logged / $target ml',
                           style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700),
                         ),
-                       
-                      ],
+                      ),
                     ),
+                    // "Remind me" beside the water it is about (D-222). Absent where reminders
+                    // are not set up, which is every test that is not about them. Default density:
+                    // compact would shrink the target below 48 dp (rule 12).
+                    if (Get.isRegistered<RefreshReminders>())
+                      IconButton(
+                        tooltip: AppLocalizations.of(context).remindersTitle,
+                        onPressed: RemindersPage.open,
+                        icon: const Icon(Icons.notifications_none_outlined, color: AppColors.info),
+                      ),
                   ],
                 ),
-                
+
                 const SizedBox(height: AppSpacing.xs),
                 Row(
                   children: [
@@ -529,26 +588,48 @@ class _NutrientTiles extends StatelessWidget {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        // Four across on a phone, two-by-two when the text scale or a narrow screen needs the
-        // width (rule 12).
-        final perRow = constraints.maxWidth < AppSizes.heroBreakpoint ? 2 : tiles.length;
+        // Share the width evenly when the tiles fit, and scroll sideways when they do not,
+        // rather than dividing the column four ways whatever it costs: at 79 pt a tile is a
+        // narrow stack of a disc, a label, a figure and a ring (AppSizes.nutrientTile).
+        //
+        // One scroll view either way. When the even share wins there is nothing wider than the
+        // viewport inside it, so it simply does not scroll — no second branch to keep in step.
+        final even = (constraints.maxWidth - AppSpacing.sm * (tiles.length - 1)) / tiles.length;
+        final width = math.max(even, AppSizes.nutrientTile);
 
-        return Wrap(
-          spacing: AppSpacing.sm,
-          runSpacing: AppSpacing.sm,
-          children: [
-            for (final (icon, color, label, eaten, target) in tiles)
-              SizedBox(
-                width: (constraints.maxWidth - AppSpacing.sm * (perRow - 1)) / perRow,
-                child: _NutrientTile(
-                  icon: icon,
-                  color: color,
-                  label: label,
-                  eaten: eaten,
-                  target: target,
-                ),
-              ),
-          ],
+        return SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          // Room for the tiles' drop shadow INSIDE the clip. A scroll view clips to its viewport
+          // and `IntrinsicHeight` sizes the row to exactly the tiles, so the shadow — which paints
+          // outside the box — was being cut clean off, and a card whose shade stops dead at its
+          // own edge reads as sliced rather than as resting on the page.
+          //
+          // Bottom only: both shadows in `AppElevation.card` are offset downwards. Not horizontal
+          // either, which would push the first tile off the screen gutter; the outermost tiles
+          // lose their side shade to the clip, which at 8 % alpha is not a thing you can see.
+          padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+          // IntrinsicHeight so a tile whose target is zero — no percent line, so one row
+          // shorter — does not leave the row ragged. Four children; the extra pass is free.
+          child: IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                for (final (i, (icon, color, label, eaten, target)) in tiles.indexed) ...[
+                  if (i > 0) const SizedBox(width: AppSpacing.sm),
+                  SizedBox(
+                    width: width,
+                    child: _NutrientTile(
+                      icon: icon,
+                      color: color,
+                      label: label,
+                      eaten: eaten,
+                      target: target,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
         );
       },
     );
@@ -804,7 +885,13 @@ class _TargetsHitCard extends StatelessWidget {
 
 /// One figure: the glyph, the counting number, the caption under it (D-118).
 class _StatTile extends StatelessWidget {
-  const _StatTile({required this.icon, required this.value, required this.label, this.iconColor});
+  const _StatTile({
+    required this.icon,
+    required this.value,
+    required this.label,
+    this.iconColor,
+    this.trailing,
+  });
 
   final IconData icon;
 
@@ -814,6 +901,9 @@ class _StatTile extends StatelessWidget {
 
   final String label;
   final Color? iconColor;
+
+  /// An action for this figure, right after the number — so the label below keeps its width.
+  final Widget? trailing;
 
   @override
   Widget build(BuildContext context) {
@@ -825,10 +915,14 @@ class _StatTile extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         ExcludeSemantics(
-          child: Icon(
-            icon,
-            size: AppSpacing.xl,
-            color: iconColor ?? theme.colorScheme.onSurfaceVariant,
+          // Level with the number, whose line is a touch target tall when it carries an action.
+          child: SizedBox(
+            height: trailing == null ? null : AppSpacing.minTouchTarget,
+            child: Icon(
+              icon,
+              size: AppSpacing.xl,
+              color: iconColor ?? theme.colorScheme.onSurfaceVariant,
+            ),
           ),
         ),
         const SizedBox(width: AppSpacing.lg),
@@ -837,10 +931,19 @@ class _StatTile extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              if (amount == null)
-                Text('—', style: numberStyle)
-              else
-                AnimatedCount(value: amount, style: numberStyle),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (amount == null)
+                    Text('—', style: numberStyle)
+                  else
+                    AnimatedCount(value: amount, style: numberStyle),
+                  if (trailing case final action?) ...[
+                    const SizedBox(width: AppSpacing.sm),
+                    action,
+                  ],
+                ],
+              ),
               Text(
                 label,
                 style: theme.textTheme.bodyMedium?.copyWith(
@@ -1051,19 +1154,33 @@ class _EntryRow extends StatelessWidget {
 
   final LogEntry entry;
 
+  static const _photo = 52.0;
+
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     final theme = Theme.of(context);
-    final amount = entry.measureLabel == null
+    final grams = entry.measureLabel == null
         ? '${entry.quantityG.round()} g'
         : '${entry.measureLabel} · ${entry.quantityG.round()} g';
+    // D-240: a scanned plate's numbers are a model's estimate, and the row says so every time.
+    final amount = entry.estimated ? '$grams · ${l.logEstimated}' : grams;
 
     return Padding(
       padding: const EdgeInsets.only(bottom: AppSpacing.sm),
       child: AppCard(
-        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.md),
+        padding: const EdgeInsets.fromLTRB(
+          AppSpacing.sm,
+          AppSpacing.sm,
+          AppSpacing.lg,
+          AppSpacing.sm,
+        ),
         child: Row(
           children: [
+            // What was eaten, not only its name (docs/21 §6). A custom entry has no photo and gets
+            // the same-sized placeholder, so the rows stay aligned (D-83).
+            FoodImage(url: entry.imageUrl, attribution: entry.imageAttribution, size: _photo),
+            const SizedBox(width: AppSpacing.md),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,

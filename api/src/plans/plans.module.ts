@@ -9,6 +9,7 @@ import { ProfileEntity } from '../profile/entities/profile.entity';
 import { HealthProfileEntity } from '../profile/entities/health-profile.entity';
 import { EngineService } from '../modules/engine';
 import { BillingModule } from '../billing/billing.module';
+import { PrivacyModule } from '../privacy/privacy.module';
 
 @Module({
   imports: [
@@ -19,6 +20,8 @@ import { BillingModule } from '../billing/billing.module';
       FoodEntity,
     ]),
     BillingModule,
+    // docs/13 §3: a withdrawn health consent stops generation (D-233).
+    PrivacyModule,
   ],
   controllers: [PlansController],
   providers: [
@@ -35,6 +38,6 @@ import { BillingModule } from '../billing/billing.module';
         ),
     },
   ],
-  exports: [PlansService],
+  exports: [PlansService, EngineService],
 })
 export class PlansModule {}

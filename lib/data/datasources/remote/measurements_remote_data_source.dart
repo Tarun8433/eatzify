@@ -41,6 +41,31 @@ class MeasurementsRemoteDataSource {
     }
   }
 
+  /// `POST /measurements/bulk` (D-216).
+  Future<Either<Failure, Unit>> recordMany(List<NewMeasurement> readings) async {
+    try {
+      await _dio.post<Map<String, dynamic>>(
+        '/measurements/bulk',
+        data: {
+          'readings': [
+            for (final r in readings)
+              {
+                'kind': r.kind,
+                'value': r.value,
+                'unit': r.unit,
+                'source': r.source.wire,
+                'recorded_at': r.at.toUtc().toIso8601String(),
+                if (r.replaceManual) 'replace_manual': true,
+              },
+          ],
+        },
+      );
+      return const Right(unit);
+    } on DioException catch (e) {
+      return Left(mapDioError(e));
+    }
+  }
+
   Future<Either<Failure, MeasurementHistory>> history(String kind) async {
     try {
       final res = await _dio.get<Map<String, dynamic>>('/measurements/$kind');

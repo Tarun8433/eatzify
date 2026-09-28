@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!--
+      Where Health Connect's "privacy policy" link lands (PrivacyPolicyActivity). Google app review
+      opens it, so the page has to exist before a release carries health permissions — see
+      docs/HEALTH-SYNC-TRACKER.md §6 and docs/19 Q15.
+    -->
+    <string name="privacy_policy_url" translatable="false">https://eatzify.app/privacy</string>
+</resources>

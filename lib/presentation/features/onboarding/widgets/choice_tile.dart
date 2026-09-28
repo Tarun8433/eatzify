@@ -65,9 +65,13 @@ class ChoiceTile extends StatelessWidget {
             duration: AppMotion.normal,
             curve: AppMotion.enter,
             constraints: const BoxConstraints(minHeight: AppSpacing.minTouchTarget),
+            // `sm`, not `md`. With a 44 pt disc inside it the row stood 68 pt tall, and three of
+            // them filled half a phone for three one-word answers — the gender step read as the
+            // heaviest question in the funnel when it is the quickest. At `sm` around a 32 pt disc
+            // the row lands on the 48 dp floor exactly, so it is as thin as rule 12 allows.
             padding: EdgeInsets.symmetric(
               horizontal: compact ? AppSpacing.md : AppSpacing.lg,
-              vertical: AppSpacing.md,
+              vertical: AppSpacing.sm,
             ),
             decoration: BoxDecoration(
               // The tint, not the deep primary at 8 % (D-107). Dark green over a warm cream page
@@ -99,15 +103,15 @@ class ChoiceTile extends StatelessWidget {
                   AnimatedContainer(
                     duration: AppMotion.normal,
                     curve: AppMotion.enter,
-                    height: AppSizes.ringSmall,
-                    width: AppSizes.ringSmall,
+                    height: AppSizes.choiceDisc,
+                    width: AppSizes.choiceDisc,
                     decoration: BoxDecoration(
                       color: selected ? scheme.primary : scheme.secondaryContainer,
                       shape: BoxShape.circle,
                     ),
                     child: Icon(
                       icon,
-                      size: AppSpacing.xl,
+                      size: AppSpacing.lg,
                       color: selected ? scheme.onPrimary : scheme.onSecondaryContainer,
                     ),
                   ),

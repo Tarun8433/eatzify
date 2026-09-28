@@ -14,6 +14,19 @@ abstract final class AppSpacing {
 
   /// Minimum touch target. docs/14 §5 and CLAUDE.md rule 12.
   static const minTouchTarget = 48.0;
+
+  /// The screen gutter: the inset from the screen edge to content, on every screen. A header and
+  /// the body beneath it both use THIS — picking separately off the scale is what put every tab's
+  /// title 8 pt left of its own content, because `TabScaffold` had chosen [lg] and all four bodies
+  /// had chosen [xl].
+  ///
+  /// [md], not the [xl] docs/DESIGN-SYSTEM §5 first set (D-177): at 24 the cards had given up a
+  /// seventh of a phone's width to margin. Changing it here moves every screen at once, which is
+  /// the whole reason the gutter is a name rather than a number repeated down the tree.
+  ///
+  /// A sheet is already inset from the page and runs on [lg] instead — see the food log's
+  /// search row. That is the one deliberate exception; anything full-screen uses this.
+  static const screenH = md;
 }
 
 /// Corner radii. docs/14 §5: 12 cards, 24 sheets, 999 pills. Pick and stick.
@@ -30,7 +43,29 @@ abstract final class AppRadius {
 /// Component sizes. Here rather than inline so a ring is the same size everywhere it appears.
 abstract final class AppSizes {
   static const ringSmall = 44.0;
+
+  /// The disc on an onboarding option row. Smaller than [ringSmall] on purpose: that one heads a
+  /// card, this one repeats three to eight times down a step, and at 44 pt the rows stood 68 pt
+  /// tall and made one-word answers look like the longest question in the funnel. At 32, with the
+  /// row's own padding, the tile lands on the 48 dp touch floor exactly.
+  static const choiceDisc = 32.0;
   static const ringMacro = 56.0;
+
+  /// The narrowest a Home nutrient tile can be and still read (D-138 revisited).
+  ///
+  /// Four tiles divided a phone's content column into 79 pt each, and a tile is a stack — disc,
+  /// label, "0 / 121 g", ring, percent — so at that width it read as four tall, narrow columns
+  /// rather than as a row of tiles. Below this the row scrolls sideways instead of squeezing;
+  /// above it the tiles share the width evenly and nothing scrolls.
+  static const nutrientTile = 112.0;
+
+  /// A coach's stat tile. Wider than a nutrient tile because it carries a trend line under the
+  /// label, and "vs last 30 days" wraps to three lines at 112.
+  static const coachTile = 136.0;
+
+  /// A series chart on a coach's client screen. Shorter than the Progress tab's full chart because
+  /// several stack on one page, tall enough that a gentle trend is still visible.
+  static const coachChart = 120.0;
   static const gauge = 200.0;
   static const chartHeight = 200.0;
   static const avatar = 96.0;
@@ -119,15 +154,27 @@ abstract final class AppSizes {
   /// anything taller held a dead band open between the hero and the content.
   static const profileFrame = 150.0;
 
-
   /// The travelling walker's frames are 308 x 886, so his box is this much wider than it is tall
   /// (D-56). Sizing him by height and deriving the width keeps him upright at every anchor.
   static const walkerAspect = 308 / 886;
+
+  /// The botanical stage under the walker (D-138), shared by the shell and the splash so his
+  /// setting is the same everywhere he stands. Width against HIS height, so shrinking him shrinks
+  /// the stage with him; the aspect is the file's own; the podium surface is measured off the art.
+  static const stageWidthFactor = 1.45;
+  static const stageAspect = 763 / 640;
+  static const stagePodiumLine = 0.86;
 
   /// Below this card width, or above this text scale, the hero stacks art over figures instead of
   /// side by side — a four-digit headline at 200 % no longer fits beside the art (rule 12).
   /// 300: a 390 pt phone leaves the card 310 pt inside its paddings, and must stay side by side.
   static const heroBreakpoint = 300.0;
+
+  /// The narrowest a tier card can be and still hold a price and a per-month line beside a radio
+  /// (D-160). Two of these plus a gap is what the paywall needs before it puts BASIC and PRO side
+  /// by side; under it the cards stack, which is also what happens at 200 % text because the
+  /// threshold is measured against the scaled width rather than the raw one (rule 12).
+  static const tierCardMin = 150.0;
 
   /// The narrowest a number field can be and still read (D-90, widened in D-108). Two of these
   /// plus the gap is what `_NumberPair` needs before it will sit side by side — a phone's content

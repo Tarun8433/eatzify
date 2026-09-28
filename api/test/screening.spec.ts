@@ -55,9 +55,12 @@ describe('screening — docs/05 §3 gates, enforced server-side', () => {
     expect(gates.clinicianGated).toContain('special_diet');
   });
 
+  /// The key is `age_ineligible`, matching both `GATE_COPY` in plan-copy.ts and the
+  /// `AGE_INELIGIBLE` error code docs/09 §4 names. It was `age_below_minimum`, which no copy
+  /// table had an entry for, so a minor got the generic blocking-condition string.
   it('blocks under 18 and BMI under 16', () => {
     expect(evaluateGates({ ...base, ageYears: 17 }).blocked).toContain(
-      'age_below_minimum',
+      'age_ineligible',
     );
     expect(evaluateGates({ ...base, weightKg: 45 }).blocked).toContain(
       'bmi_below_16',

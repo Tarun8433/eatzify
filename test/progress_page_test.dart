@@ -9,6 +9,7 @@ import 'package:health_pro/domain/entities/food.dart';
 import 'package:health_pro/domain/entities/measurement.dart';
 import 'package:health_pro/domain/repositories/diary_repository.dart';
 import 'package:health_pro/domain/repositories/measurements_repository.dart';
+import 'package:health_pro/presentation/features/progress/progress_controller.dart';
 import 'package:health_pro/presentation/features/progress/progress_page.dart';
 import 'package:health_pro/presentation/l10n/app_localizations.dart';
 
@@ -318,7 +319,41 @@ void main() {
       expect(find.text('Steps'), findsOneWidget);
       // 8,432 — not 8432.0, and not the 6,000 from the day before.
       expect(find.text('8,432'), findsOneWidget);
-      expect(find.text('2 days logged'), findsOneWidget);
+      expect(find.text('2 days logged · you entered'), findsOneWidget);
+    });
+
+    /// Rule 10, and D-214: a figure the phone reported says so, right under the figure.
+    testWidgets('a synced habit names the app it came from, in its own unit', (tester) async {
+      await tester.pumpWidget(
+        progressUnderTest(
+          _KindedMeasurements(
+            weight: historyOf([70, 69.5]),
+            byKind: {
+              'distance_m': const MeasurementHistory(
+                kind: 'distance_m',
+                points: [
+                  Measurement(
+                    id: 'd1',
+                    kind: 'distance_m',
+                    value: 6100,
+                    unit: 'm',
+                    diaryDate: '2026-08-21',
+                    isSuspect: false,
+                    source: MeasurementSource.healthConnect,
+                  ),
+                ],
+              ),
+            },
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.drag(find.byType(ListView), const Offset(0, -900));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Distance walked'), findsOneWidget);
+      expect(find.text('6.1 km'), findsOneWidget);
+      expect(find.text('1 day logged · Health Connect'), findsOneWidget);
     });
 
     testWidgets('a habit nobody has logged says so rather than showing a zero', (tester) async {
@@ -330,8 +365,8 @@ void main() {
       await tester.drag(find.byType(ListView), const Offset(0, -900));
       await tester.pumpAndSettle();
 
-      // Three habits, none logged: "nought steps" and "you have not said" are different claims.
-      expect(find.text('Nothing logged yet'), findsNWidgets(3));
+      // Every habit, none logged: "nought steps" and "you have not said" are different claims.
+      expect(find.text('Nothing logged yet'), findsNWidgets(ProgressController.habitKinds.length));
       expect(find.text('0'), findsNothing);
     });
   });
@@ -348,6 +383,10 @@ class LineChartStub extends StatelessWidget {
 /// Serves a different history per kind, which the shared fake does not.
 class _KindedMeasurements implements MeasurementsRepository {
   _KindedMeasurements({required this.weight, this.byKind = const {}});
+
+  @override
+  Future<Either<Failure, Unit>> recordMany(List<NewMeasurement> readings) async =>
+      const Right(unit);
 
   final MeasurementHistory weight;
 

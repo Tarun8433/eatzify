@@ -31,4 +31,7 @@ class ProfileRepositoryImpl implements ProfileRepository {
 
   @override
   Future<Either<Failure, Unit>> removePhoto() => _remote.removePhoto();
+
+  @override
+  Future<Either<Failure, List<String>>> roles() => _remote.roles();
 }

@@ -12,6 +12,7 @@ import {
   SerializeOptions,
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
+import { MeService, type MeView } from './me.service';
 import { ApiBearerAuth, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import { AuthEmailLoginDto } from './dto/auth-email-login.dto';
 import { AuthOtpRequestDto } from './dto/auth-otp-request.dto';
@@ -39,6 +40,7 @@ import type { JwtRefreshPayloadType } from './strategies/types/jwt-refresh-paylo
 export class AuthController {
   constructor(
     private readonly service: AuthService,
+    private readonly meService: MeService,
     private readonly otpService: OtpService,
   ) {}
 
@@ -114,14 +116,14 @@ export class AuthController {
   })
   @Get('me')
   @UseGuards(AuthGuard('jwt'))
-  @ApiOkResponse({
-    type: User,
-  })
   @HttpCode(HttpStatus.OK)
+  /// docs/09 §3: `{ user, roles, entitlements, active_plan_summary }`, not the bare user row the
+  /// boilerplate returned. This is the app's cold-start call, and the entitlements half gates
+  /// every premium surface (CLAUDE.md rule 3) — three round trips before, one now.
   public me(
     @Request() request: RequestWithUser<JwtPayloadType>,
-  ): Promise<NullableType<User>> {
-    return this.service.me(request.user);
+  ): Promise<MeView> {
+    return this.meService.of(Number(request.user.id));
   }
 
   @ApiBearerAuth()

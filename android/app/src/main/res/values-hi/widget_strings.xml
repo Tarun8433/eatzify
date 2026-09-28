@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="widget_name_small">कैलोरी</string>
+    <string name="widget_name_medium">आज</string>
+    <string name="widget_name_large">आज, विस्तार से</string>
+    <string name="widget_description_small">आपके प्लान के मुकाबले आज की कैलोरी, साथ में कदम और खर्च हुई कैलोरी।</string>
+    <string name="widget_description">आज की कैलोरी, पानी, कदम और खर्च हुई कैलोरी। ऐप खोले बिना एक गिलास जोड़िए।</string>
+    <string name="widget_description_large">आज का सब कुछ — कैलोरी, लक्ष्य के मुकाबले पानी, कदम और खर्च हुई कैलोरी — और एक टैप पर गिलास या खाना।</string>
+
+    <string name="widget_calories_today">आज की कैलोरी</string>
+    <string name="widget_of_calories">%1$s कैलोरी में से</string>
+    <string name="widget_of_kcal">%1$s kcal में से</string>
+    <string name="widget_ml_today">ml आज</string>
+    <string name="widget_of_ml">%1$s ml में से</string>
+    <string name="widget_steps_today">आज के कदम</string>
+    <string name="widget_kcal_active">kcal, सक्रिय रहते हुए</string>
+    <string name="widget_search_food">खाना खोजें</string>
+
+    <string name="widget_water">पानी</string>
+    <string name="widget_steps">कदम</string>
+    <string name="widget_burned">खर्च</string>
+    <string name="widget_meal">खाना</string>
+    <string name="widget_log">लॉग</string>
+    <string name="widget_log_meal">खाना लॉग करें</string>
+    <string name="widget_add_water">एक गिलास पानी जोड़ें</string>
+    <string name="widget_no_reading">—</string>
+</resources>

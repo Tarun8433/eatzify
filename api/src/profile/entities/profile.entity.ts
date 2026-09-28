@@ -72,6 +72,15 @@ export class ProfileEntity {
   @Column({ type: 'numeric', precision: 3, scale: 1, nullable: true })
   sleepHours: string | null;
 
+  /// docs/04 §7's five-to-six pattern: mid-morning between breakfast and lunch, and an OPTIONAL
+  /// bedtime occasion. Null for every profile that chose three or four meals — those patterns do
+  /// not have these slots, and a time for an occasion nobody eats is not missing data.
+  @Column({ type: 'varchar', nullable: true })
+  midMorningTime: string | null;
+
+  @Column({ type: 'varchar', nullable: true })
+  bedtimeSnackTime: string | null;
+
   @Column({ type: 'varchar', nullable: true })
   breakfastTime: string | null;
 

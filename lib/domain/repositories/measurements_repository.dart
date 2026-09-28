@@ -20,5 +20,12 @@ abstract class MeasurementsRepository {
     DateTime? at,
   });
 
+  /// `POST /measurements/bulk` (D-216) — a health-platform sync, in one request.
+  ///
+  /// Right means the request was answered, not that every reading stuck: the server still refuses
+  /// to let a device overwrite a hand-typed figure (D-97), and reports that per reading. A sync has
+  /// nothing to show anybody about either, so this does not pass the detail on.
+  Future<Either<Failure, Unit>> recordMany(List<NewMeasurement> readings);
+
   Future<Either<Failure, MeasurementHistory>> history(String kind);
 }

@@ -1,0 +1,51 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html,
+  body {
+    /* The shell is the viewport now (full-bleed), so the page ground is the shell's own black.
+       `bg-canvas` here would show as a hairline at the edges during overscroll. */
+    @apply h-full bg-shell;
+    -webkit-font-smoothing: antialiased;
+  }
+}
+
+@layer components {
+  /* A card. Every panel on the page is one, which is most of why the reference reads as a set. */
+  .card {
+    @apply rounded-card bg-surface;
+  }
+
+  /* The small "..." affordance every card header carries. */
+  .card-menu {
+    @apply flex h-7 w-7 items-center justify-center rounded-full text-ink-muted transition-colors hover:bg-raised hover:text-ink;
+  }
+}
+
+@layer utilities {
+  /*
+   * The empty activity cell. The reference fills unworked hours with a fine diagonal hatch rather
+   * than flat grey — at this size a flat cell would read as a filled one at low opacity, and the
+   * whole grid depends on filled and empty being unmistakable.
+   */
+  .cell-empty {
+    background-image: repeating-linear-gradient(
+      45deg,
+      #242424,
+      #242424 1px,
+      transparent 1px,
+      transparent 4px
+    );
+  }
+
+  /* Hide the scrollbar on the horizontal rails without losing the scrolling itself. */
+  .no-scrollbar {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+}

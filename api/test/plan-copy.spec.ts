@@ -66,3 +66,33 @@ describe('plan copy — docs/05 §7', () => {
     expect(warningsForUser([])).toEqual([]);
   });
 });
+
+/// D-231: a diabetic plan can come in under its energy target because the carbohydrate cap binds.
+/// Saying nothing leaves somebody staring at a 2,000 kcal plan against a 2,700 kcal target.
+describe('the carbohydrate-cap shortfall', () => {
+  it('should explain the shortfall and name what the person can change', () => {
+    const [warning] = warningsForUser(['carb_cap_limits_energy']);
+
+    expect(warning?.code).toBe('carb_cap_limits_energy');
+    expect(warning?.user_message).toContain('number of meals');
+  });
+
+  it('should say it once, whatever the engine repeated', () => {
+    expect(
+      warningsForUser(['carb_cap_limits_energy', 'carb_cap_limits_energy']),
+    ).toHaveLength(1);
+  });
+
+  it('should still collapse the clamp warnings beside it', () => {
+    const out = warningsForUser([
+      'deficit_capped_age',
+      'carb_cap_limits_energy',
+      'target_raised_to_floor',
+    ]);
+
+    expect(out.map((w) => w.code)).toEqual([
+      'safety_clamp_applied',
+      'carb_cap_limits_energy',
+    ]);
+  });
+});

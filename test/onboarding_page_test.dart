@@ -6,7 +6,9 @@ import 'package:health_pro/core/errors/failures.dart';
 import 'package:health_pro/core/session/session_controller.dart';
 import 'package:health_pro/core/theme/app_theme.dart';
 import 'package:health_pro/core/widgets/app_card.dart';
+import 'package:health_pro/core/widgets/carousel_picker.dart';
 import 'package:health_pro/core/widgets/form_fields.dart';
+import 'package:health_pro/core/widgets/ruler_slider.dart';
 import 'package:health_pro/core/widgets/weight_curve.dart';
 import 'package:health_pro/core/widgets/wheel_picker.dart';
 import 'package:health_pro/domain/entities/onboarding_enums.dart';
@@ -156,13 +158,14 @@ Future<void> completeFlow(WidgetTester tester) async {
     await tapChoice(tester, tap);
   }
 
-  // Meal timings were set in reachScreening; the step just needs advancing.
-  await tapChoice(tester, 'Continue');
-
+  // `routine` before `mealTimings` now (D-170): how many meals decides which times are asked for.
   // No budget tap: it is a slider now (D-78) and it starts at a usable default.
   for (final tap in ['4 meals', 'Office job', 'Continue']) {
     await tapChoice(tester, tap);
   }
+
+  // Meal times arrive prefilled (D-170), so the step just needs advancing.
+  await tapChoice(tester, 'Continue');
 
   // The summary reads the answers back and asks nothing (D-114).
   await tapChoice(tester, 'Continue');
@@ -350,15 +353,32 @@ void main() {
 
       await tester.tap(find.byIcon(Icons.keyboard_arrow_down).first);
       await tester.pumpAndSettle();
-      expect(find.byType(WheelPicker), findsOneWidget, reason: 'in a sheet, not on the step');
+      // Age is the horizontal carousel, per the reference — with its caption under the chip.
+      expect(find.byType(CarouselPicker), findsOneWidget, reason: 'in a sheet, not on the step');
+      expect(find.text('Years old'), findsOneWidget);
 
       await tester.tap(find.text('Done'));
       await tester.pumpAndSettle();
 
       // Committed WITHOUT scrolling: the sheet opens centred on a number, and Done has to mean
-      // that number rather than nothing. 59 is the middle of 18..99.
-      expect(Get.find<OnboardingController>().ageYears.value, 59);
-      expect(find.widgetWithText(TextField, '59'), findsOneWidget, reason: 'and it is visible');
+      // that number rather than nothing. 25 is `opensAt` — a plausible first answer, where the
+      // midpoint of 18..99 opened the sheet on a 59-year-old.
+      expect(Get.find<OnboardingController>().ageYears.value, 25);
+      expect(find.widgetWithText(TextField, '25'), findsOneWidget, reason: 'and it is visible');
+
+      // The chevron stepper: one notch, no fling.
+      await tester.tap(find.byIcon(Icons.keyboard_arrow_down).first);
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.descendant(
+          of: find.byType(CarouselPicker),
+          matching: find.byIcon(Icons.chevron_right),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Done'));
+      await tester.pumpAndSettle();
+      expect(Get.find<OnboardingController>().ageYears.value, 26);
     });
 
     testWidgets('Done stays reachable at 200 % font scale (rule 12)', (tester) async {
@@ -389,6 +409,123 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(Get.find<OnboardingController>().ageYears.value, isNotNull);
+    });
+
+    testWidgets('the height sheet explains itself and can speak feet and inches', (tester) async {
+      await tester.pumpWidget(app());
+      await tester.pumpAndSettle();
+
+      // The second picker button on the step is height (name has none, age is first).
+      await tester.tap(find.byIcon(Icons.keyboard_arrow_down).at(1));
+      await tester.pumpAndSettle();
+
+      // The redesigned sheet: named header, why-card, and a unit toggle only height gets.
+      expect(find.text('Why we need this?'), findsOneWidget);
+      expect(find.text('ft & in'), findsOneWidget);
+
+      await tester.ensureVisible(find.text('ft & in'));
+      await tester.tap(find.text('ft & in'));
+      await tester.pumpAndSettle();
+
+      // The wheel opens on the midpoint, 170 cm, which reads 5'7" — display only, the value
+      // underneath stays metric.
+      expect(find.text("5'7\""), findsOneWidget);
+
+      await tester.ensureVisible(find.text('Done'));
+      await tester.tap(find.text('Done'));
+      await tester.pumpAndSettle();
+
+      expect(Get.find<OnboardingController>().heightCm.value, 170);
+      expect(find.widgetWithText(TextField, '170'), findsOneWidget);
+
+      // Reopened with a value stored, the sheet grows its undo: scroll away, restore, and Done
+      // commits what the sheet opened with rather than the scroll taken too far.
+      await tester.tap(find.byIcon(Icons.keyboard_arrow_down).at(1));
+      await tester.pumpAndSettle();
+      expect(find.text('Use previous: 170 cm'), findsOneWidget);
+
+      await tester.drag(find.byType(WheelPicker), const Offset(0, -104), warnIfMissed: false);
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text('Use previous: 170 cm'));
+      await tester.tap(find.text('Use previous: 170 cm'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Done'));
+      await tester.pumpAndSettle();
+
+      expect(Get.find<OnboardingController>().heightCm.value, 170);
+    });
+
+    testWidgets('the weight sheet is a ruler that can read pounds', (tester) async {
+      await tester.pumpWidget(app());
+      await tester.pumpAndSettle();
+
+      // Weight is the third picker button (age, height, weight, target) — below the fold.
+      await tester.ensureVisible(find.byIcon(Icons.keyboard_arrow_down).at(2));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byIcon(Icons.keyboard_arrow_down).at(2));
+      await tester.pumpAndSettle();
+
+      // The reference's frame: the flag, the ruler, both cards, kg ⇄ lb in the header.
+      expect(find.byType(RulerSlider), findsOneWidget);
+      expect(find.text('Selected weight'), findsOneWidget);
+      expect(find.text('Track your progress'), findsOneWidget);
+      // `findsWidgets`: the chip reads 70.0 and the ruler's major behind it carries the same
+      // label.
+      expect(find.text('70.0'), findsWidgets, reason: 'opensAt, not the 140 kg midpoint');
+
+      // Pounds are display only: the chip re-reads, the stored value stays metric.
+      await tester.tap(find.text('lb'));
+      await tester.pumpAndSettle();
+      expect(find.text('154.3'), findsOneWidget);
+
+      await tester.ensureVisible(find.text('Done'));
+      await tester.tap(find.text('Done'));
+      await tester.pumpAndSettle();
+      expect(Get.find<OnboardingController>().weightKg.value, 70.0);
+    });
+
+    testWidgets('the target sheet suggests the healthy band once height is known', (tester) async {
+      await tester.pumpWidget(app());
+      await tester.pumpAndSettle();
+
+      // No height yet — the sheet must not invent a band from nothing.
+      await tester.ensureVisible(find.byIcon(Icons.keyboard_arrow_down).at(3));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byIcon(Icons.keyboard_arrow_down).at(3));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('healthy weight for your height'), findsNothing);
+      await tester.tap(find.text('Done'));
+      await tester.pumpAndSettle();
+
+      // Height entered, sheet reopened: the suggestion is computed at open, not at build.
+      await tester.enterText(find.byType(TextField).at(2), '170');
+      FocusManager.instance.primaryFocus?.unfocus();
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.byIcon(Icons.keyboard_arrow_down).at(3));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byIcon(Icons.keyboard_arrow_down).at(3));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('healthy weight for your height'), findsOneWidget);
+    });
+
+    testWidgets('the next step opens at the top, not where the last one was left', (tester) async {
+      await tester.pumpWidget(app());
+      await tester.pumpAndSettle();
+
+      await fillBasics(tester);
+      // Leave the step scrolled deep, the way finishing its last field does on a real phone.
+      await tester.drag(find.byType(SingleChildScrollView).first, const Offset(0, -400));
+      await tester.pumpAndSettle();
+      final scrolled = tester.state<ScrollableState>(find.byType(Scrollable).first);
+      expect(scrolled.position.pixels, greaterThan(0), reason: 'the step really was scrolled');
+
+      await tapChoice(tester, 'Continue');
+
+      expect(
+        tester.state<ScrollableState>(find.byType(Scrollable).first).position.pixels,
+        0,
+        reason: 'the next step must open at its top, not mid-scroll',
+      );
     });
 
     testWidgets('a typed number is accepted, and an illegal one is refused', (tester) async {
@@ -491,11 +628,17 @@ void main() {
       await tester.pumpWidget(app());
       await tester.pumpAndSettle();
 
-      expect(find.byType(Image), findsOneWidget);
+      // Two on the first step: its hero, plus the disclaimer's pointing figure — which rides
+      // the footer card on EVERY step, so it is the one image the later steps keep.
+      expect(find.byType(Image), findsNWidgets(2));
 
       Get.find<OnboardingController>().step.value = OnboardingStep.goal;
       await tester.pumpAndSettle();
-      expect(find.byType(Image), findsNothing, reason: 'the funnel is not a gallery');
+      expect(
+        find.byType(Image),
+        findsOneWidget,
+        reason: 'only the disclaimer figure — the funnel is not a gallery',
+      );
     });
 
     testWidgets('a large text scale takes the art, not the title (rule 12)', (tester) async {
@@ -701,13 +844,15 @@ void main() {
         insulinOrKidney: false,
         eatingDisorder: false,
       );
+      // `routine` before `mealTimings` (D-170): the meal count decides which times are asked for,
+      // so the times cannot be asked first.
       for (final tap in [
         'Continue',
         'Vegetarian',
         'Continue',
-        'Continue',
         '4 meals',
         'Office job',
+        'Continue',
         'Continue',
       ]) {
         await tapChoice(tester, tap);
@@ -738,6 +883,32 @@ void main() {
 
       expect(tester.widget<FilledButton>(find.byType(FilledButton)).onPressed, isNotNull);
     });
+
+    testWidgets('a row opens the step that set it, and Continue comes straight back', (
+      tester,
+    ) async {
+      await reachSummary(tester);
+
+      // The chevron is earned (D-109): the times row opens the meal-timings step…
+      await tapChoice(tester, 'Meal times');
+      expect(find.text('When do you eat?'), findsOneWidget);
+      expect(find.byType(WeightCurve), findsNothing);
+
+      // …and advancing returns straight to the summary, not to the routine step after it.
+      await tapChoice(tester, 'Continue');
+      expect(find.byType(WeightCurve), findsOneWidget);
+      expect(find.text('Meal times'), findsOneWidget);
+    });
+
+    testWidgets('backing out of an edit abandons it and returns to the summary', (tester) async {
+      await reachSummary(tester);
+
+      await tapChoice(tester, 'Meal times');
+      await tester.tap(find.byIcon(Icons.arrow_back));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(WeightCurve), findsOneWidget);
+    });
   });
 
   /// D-113 gave the meal-timings step the routine step's treatment.
@@ -755,6 +926,10 @@ void main() {
       for (final tap in ['Continue', 'Vegetarian', 'Continue']) {
         await tapChoice(tester, tap);
       }
+      // `routine` comes first now (D-170) and its answer decides which slots are asked for.
+      for (final tap in ['4 meals', 'Office job', 'Continue']) {
+        await tapChoice(tester, tap);
+      }
 
       // Four slots, four rows — the same widget wake and bedtime use one step earlier, so the two
       // halves of "when does your day happen" cannot drift apart visually.
@@ -762,6 +937,86 @@ void main() {
       for (final slot in ['Breakfast', 'Lunch', 'Evening snack', 'Dinner']) {
         expect(find.text(slot), findsOneWidget, reason: slot);
       }
+    });
+
+    /// docs/04 §7: three meals are breakfast, lunch and dinner. Asking when someone eats a snack
+    /// they just said they do not eat is a question with no right answer — and it used to be
+    /// asked BEFORE the meal count, so it could not have known either way.
+    testWidgets('drops the snack row when three meals were chosen', (tester) async {
+      await tester.pumpWidget(app());
+      await tester.pumpAndSettle();
+      await reachScreening(tester);
+      await answerScreening(
+        tester,
+        specialDiet: false,
+        insulinOrKidney: false,
+        eatingDisorder: false,
+      );
+      for (final tap in ['Continue', 'Vegetarian', 'Continue']) {
+        await tapChoice(tester, tap);
+      }
+      for (final tap in ['3 meals', 'Office job', 'Continue']) {
+        await tapChoice(tester, tap);
+      }
+
+      expect(find.byType(ValueRow), findsNWidgets(3));
+      expect(find.text('Evening snack'), findsNothing);
+    });
+
+    /// docs/04 §7's five-to-six pattern has SIX occasions: breakfast, mid-morning, lunch, evening,
+    /// dinner and an optional bedtime. The table carried four columns, so anyone choosing 5–6 was
+    /// shown the four-meal question and had their plan built around a day they never described
+    /// (D-171).
+    testWidgets('asks for all six slots when five to six meals were chosen', (tester) async {
+      await tester.pumpWidget(app());
+      await tester.pumpAndSettle();
+      await reachScreening(tester);
+      await answerScreening(
+        tester,
+        specialDiet: false,
+        insulinOrKidney: false,
+        eatingDisorder: false,
+      );
+      for (final tap in ['Continue', 'Vegetarian', 'Continue']) {
+        await tapChoice(tester, tap);
+      }
+      for (final tap in ['5–6 meals', 'Office job', 'Continue']) {
+        await tapChoice(tester, tap);
+      }
+
+      expect(find.byType(ValueRow), findsNWidgets(6));
+      for (final slot in [
+        'Breakfast',
+        'Mid-morning',
+        'Lunch',
+        'Evening snack',
+        'Dinner',
+        'Bedtime (optional)',
+      ]) {
+        expect(find.text(slot), findsOneWidget, reason: slot);
+      }
+    });
+
+    /// D-170: the step used to open on four "Not set" rows, which read as four questions. It is
+    /// a confirmation — the hours are ordinary and the people they do not suit will change them.
+    testWidgets('opens with times already filled in', (tester) async {
+      await tester.pumpWidget(app());
+      await tester.pumpAndSettle();
+      await reachScreening(tester);
+      await answerScreening(
+        tester,
+        specialDiet: false,
+        insulinOrKidney: false,
+        eatingDisorder: false,
+      );
+      for (final tap in ['Continue', 'Vegetarian', 'Continue']) {
+        await tapChoice(tester, tap);
+      }
+      for (final tap in ['4 meals', 'Office job', 'Continue']) {
+        await tapChoice(tester, tap);
+      }
+
+      expect(find.text('Not set'), findsNothing);
     });
   });
 
@@ -1184,7 +1439,10 @@ void main() {
   testWidgets('the disclaimer appears in the onboarding footer (docs/05 §7)', (tester) async {
     await tester.pumpWidget(app());
     await tester.pumpAndSettle();
-    expect(find.textContaining('is not medical advice'), findsOneWidget);
+    // The paragraph became four titled points; the first one carries the load-bearing words.
+    expect(find.textContaining('not medical advice'), findsOneWidget);
+    expect(find.textContaining('diagnose or treat'), findsOneWidget);
+    expect(find.textContaining('qualified healthcare professional'), findsOneWidget);
   });
 
   testWidgets('PCOS is offered to women only (D-89)', (tester) async {

@@ -137,8 +137,7 @@ describe('measurement rules', () => {
   /// passed every check here and then threw at the INSERT, so the user was told the number was
   /// fine and then handed a 500. A bound the storage cannot hold is not a bound.
   describe('the windowed change readout (docs/21 §3)', () => {
-    const day = (d: number) =>
-      `2026-08-${String(d).padStart(2, '0')}`;
+    const day = (d: number) => `2026-08-${String(d).padStart(2, '0')}`;
 
     it('ignores readings older than the window', () => {
       // A month of loss long past, then a stable fortnight: since-start says "down", the last
@@ -196,6 +195,9 @@ describe('measurement rules', () => {
       // not silently put 9,500 back. It leaves no trace, so they would never know.
       expect(canOverwrite('manual', 'apple_health')).toBe(false);
       expect(canOverwrite('manual', 'health_connect')).toBe(false);
+      // D-218: unless the person asked for the device's figure.
+      expect(canOverwrite('manual', 'apple_health', true)).toBe(true);
+      expect(canOverwrite('manual', 'health_connect', true)).toBe(true);
     });
 
     it('lets a person overwrite a device, which is what the field is for', () => {

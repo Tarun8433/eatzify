@@ -34,10 +34,13 @@ class TabScaffold extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Padding(
+          // The same gutter the body under it uses. These were picked separately — the header
+          // on `lg`, every tab body on `xl` — so the title sat 8 pt left of its own content on
+          // all four tabs.
           padding: const EdgeInsets.fromLTRB(
+            AppSpacing.screenH,
             AppSpacing.lg,
-            AppSpacing.lg,
-            AppSpacing.lg,
+            AppSpacing.screenH,
             AppSpacing.sm,
           ),
           child: Row(

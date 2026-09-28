@@ -6,6 +6,8 @@ import { CoachGrantEntity } from '../coach/entities/coach-grant.entity';
 import { CoachInviteEntity } from '../coach/entities/coach-invite.entity';
 import { SubscriptionEntity } from '../billing/entities/subscription.entity';
 import { FoodEntity } from '../foods/entities/food.entity';
+import { ExerciseEntity } from '../gym/entities/exercise.entity';
+import { EnergyReferenceEntity } from '../gym/entities/energy-reference.entity';
 import { UserEntity } from '../users/infrastructure/persistence/relational/entities/user.entity';
 import { AuditLogEntity } from './entities/audit-log.entity';
 import { RoleEnum } from '../roles/roles.enum';
@@ -167,6 +169,28 @@ export class AdminPanelModule {
               // The one resource doc 20 §3 actually argued for: "the screen you'll use most and care
               // about least". Writable, because a food is content rather than a person.
               resource: FoodEntity,
+              options: { actions: { delete: { isAccessible: false } } },
+            },
+            {
+              // ADR-013: the exercise library is content, like a food. A user's own exercise is
+              // visible here too; delete stays off so no workout loses the exercise it names.
+              resource: ExerciseEntity,
+              options: {
+                listProperties: [
+                  'id',
+                  'name',
+                  'bodyPart',
+                  'equipment',
+                  'target',
+                  'energyActivity',
+                  'ownerUserId',
+                ],
+                actions: { delete: { isAccessible: false } },
+              },
+            },
+            {
+              // D-242: the MET values a workout's energy is priced at, each with its Compendium code.
+              resource: EnergyReferenceEntity,
               options: { actions: { delete: { isAccessible: false } } },
             },
           ],

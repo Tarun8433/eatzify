@@ -4,13 +4,16 @@ import 'package:health_pro/core/format/rupees.dart';
 import 'package:health_pro/core/format/time_of_day_text.dart';
 import 'package:health_pro/core/session/session_controller.dart';
 import 'package:health_pro/core/theme/app_assets.dart';
+import 'package:health_pro/core/theme/app_colors.dart';
 import 'package:health_pro/core/theme/app_spacing.dart';
 import 'package:health_pro/core/widgets/app_card.dart';
 import 'package:health_pro/core/widgets/form_fields.dart';
 import 'package:health_pro/core/widgets/step_progress.dart';
 import 'package:health_pro/core/widgets/wheel_picker.dart';
 import 'package:health_pro/domain/entities/onboarding_enums.dart';
+import 'package:health_pro/domain/entities/profession.dart';
 import 'package:health_pro/domain/usecases/validate_onboarding.dart';
+import 'package:health_pro/presentation/features/coach/partner_invite_sheet.dart';
 import 'package:health_pro/presentation/features/onboarding/enum_labels.dart';
 import 'package:health_pro/presentation/features/onboarding/onboarding_controller.dart';
 import 'package:health_pro/presentation/features/onboarding/widgets/choice_tile.dart';
@@ -46,8 +49,8 @@ class OnboardingPage extends StatelessWidget {
             children: [
               _Header(controller: c),
               Expanded(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+                child: _StepScrollView(
+                  step: step,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
@@ -513,6 +516,8 @@ class _BasicsStep extends StatelessWidget {
           onChanged: (v) => controller.name.value = v,
         ),
         const SizedBox(height: AppSpacing.lg),
+        _ProfessionQuestion(controller: controller),
+        const SizedBox(height: AppSpacing.lg),
         // Paired (D-90). Two fit a phone side by side, and the weights especially belong together:
         // the gap between current and target is the thing being decided, and it is only visible
         // when both numbers are in view.
@@ -520,7 +525,16 @@ class _BasicsStep extends StatelessWidget {
           left: _NumberSpec(
             label: l.fieldAge,
             icon: Icons.calendar_today_outlined,
-            picker: const NumberPickerConfig(min: 18, max: 99),
+            // Horizontal: the reference draws age as a carousel, height as a wheel.
+            picker: NumberPickerConfig(
+              min: 18,
+              max: 99,
+              // 25, not the range's midpoint of 59: the wheel opens on a plausible first answer.
+              opensAt: 25,
+              horizontal: true,
+              caption: l.pickerYearsOld,
+            ),
+            pickerWhy: l.onboardingAgeWhy,
             initial: () => controller.ageYears.value,
             onChanged: (t, {silent = false}) => controller.setAge(int.tryParse(t), silent: silent),
           ),
@@ -529,7 +543,8 @@ class _BasicsStep extends StatelessWidget {
             // centimetre moves BMR by ~3 kcal — below the noise floor of self-reported activity.
             label: l.fieldHeightCm,
             icon: Icons.straighten,
-            picker: const NumberPickerConfig(min: 120, max: 220, suffix: 'cm'),
+            picker: const NumberPickerConfig(min: 120, max: 220, suffix: 'cm', feetInches: true),
+            pickerWhy: l.onboardingHeightWhy,
             initial: () => controller.heightCm.value,
             onChanged: (t, {silent = false}) =>
                 controller.setHeight(int.tryParse(t), silent: silent),
@@ -570,9 +585,22 @@ class _BasicsStep extends StatelessWidget {
             label: l.fieldWeightShort,
             icon: Icons.monitor_weight_outlined,
             decimal: true,
-            // Half a kilo ON THE WHEEL: people know their weight to that, and not to a gram. A
+            // Half a kilo ON THE RULER: people know their weight to that, and not to a gram. A
             // typed 70.3 is still accepted — see NumberPickerConfig.step.
-            picker: const NumberPickerConfig(min: 30, max: 250, step: 0.5, suffix: 'kg'),
+            picker: NumberPickerConfig(
+              min: 30,
+              max: 250,
+              step: 0.5,
+              suffix: 'kg',
+              // The reference draws weight as a horizontal ruler with a kg ⇄ lb toggle, opening
+              // on a plausible reading rather than the range's 140 kg midpoint.
+              ruler: true,
+              kgPounds: true,
+              opensAt: 70,
+              flag: l.pickerSelectedWeight,
+            ),
+            pickerWhy: l.onboardingWeightWhy,
+            pickerNote: l.onboardingWeightTrack,
             initial: () => controller.weightKg.value,
             onChanged: (t, {silent = false}) =>
                 controller.setWeight(double.tryParse(t), silent: silent),
@@ -583,7 +611,31 @@ class _BasicsStep extends StatelessWidget {
             label: l.fieldGoalWeightShort,
             icon: Icons.track_changes,
             decimal: true,
-            picker: const NumberPickerConfig(min: 30, max: 250, step: 0.5, suffix: 'kg'),
+            // The same ruler as the current weight beside it — two identical questions rendered
+            // by two different controls would read as two different questions.
+            picker: NumberPickerConfig(
+              min: 30,
+              max: 250,
+              step: 0.5,
+              suffix: 'kg',
+              ruler: true,
+              kgPounds: true,
+              opensAt: 70,
+              flag: l.pickerSelectedWeight,
+            ),
+            // The BMI-derived band as a SUGGESTION on the sheet (docs/05 §6: informs the choice,
+            // never makes it). Computed by the same domain helper the form validates against, so
+            // the card and the rules cannot disagree — and at open time, so it sees the height
+            // entered a moment ago.
+            pickerHint: () {
+              final range = controller.healthyWeightRange;
+              return range == null
+                  ? null
+                  : l.pickerHealthyHint(
+                      range.low.toStringAsFixed(1),
+                      range.high.toStringAsFixed(1),
+                    );
+            },
             initial: () => controller.goalWeightKg.value,
             onChanged: (t, {silent = false}) =>
                 controller.setGoalWeight(double.tryParse(t), silent: silent),
@@ -666,21 +718,22 @@ class _ResultStep extends StatelessWidget {
       final start = controller.weightKg.value;
       final target = controller.goalWeightKg.value ?? start;
       final height = controller.heightCm.value;
+      // Answered here rather than in the view, because it is a domain question: the band comes
+      // from the same bound `ValidateOnboarding.goalWeightKg` rejects on, so what the card says
+      // and what the form enforces cannot disagree (rule 2 — no clinical arithmetic in a widget).
+      final band = height == null ? null : ValidateOnboarding.healthyWeightRangeKg(height);
 
       return GoalResultView(
         startKg: start,
         targetKg: target,
-        // Answered here rather than in the view, because it is a domain question: the band comes
-        // from the same bound `ValidateOnboarding.goalWeightKg` rejects on, so what the card says
-        // and what the form enforces cannot disagree (rule 2 — no clinical arithmetic in a widget).
-        inHealthyRange: (target == null || height == null) ? null : _inHealthyRange(target, height),
+        inHealthyRange: (target == null || band == null)
+            ? null
+            : target >= band.low && target <= band.high,
+        // The note names the numbers when they are known — same helper, same silence rules.
+        healthyLowKg: band?.low,
+        healthyHighKg: band?.high,
       );
     });
-  }
-
-  static bool _inHealthyRange(double target, int heightCm) {
-    final band = ValidateOnboarding.healthyWeightRangeKg(heightCm);
-    return target >= band.low && target <= band.high;
   }
 }
 
@@ -1104,7 +1157,7 @@ class _DailyRoutineStep extends StatelessWidget {
         _StepHero(
           title: l.onboardingDailyRoutineTitle,
           subtitle: l.onboardingDailyRoutineSubtitle,
-          art: AppAssets.routineHero,
+          art: AppAssets.themed(AppAssets.routineHero, Theme.of(context).brightness),
           glyph: Icons.wb_sunny_outlined,
         ),
         Obx(
@@ -1404,6 +1457,16 @@ class _MealTimingsStep extends StatelessWidget {
                 value: controller.breakfastTime.value,
                 onChanged: (v) => controller.breakfastTime.value = v,
               ),
+              // docs/04 §7's five-to-six pattern puts mid-morning between breakfast and lunch,
+              // so the row sits where the meal does.
+              if (controller.asksExtraSlots)
+                TimeField(
+                  label: l.onboardingMidMorningTime,
+                  icon: Icons.bakery_dining_outlined,
+                  fallback: const TimeOfDay(hour: 11, minute: 0),
+                  value: controller.midMorningTime.value,
+                  onChanged: (v) => controller.midMorningTime.value = v,
+                ),
               TimeField(
                 label: l.onboardingLunchTime,
                 icon: Icons.lunch_dining_outlined,
@@ -1411,13 +1474,17 @@ class _MealTimingsStep extends StatelessWidget {
                 value: controller.lunchTime.value,
                 onChanged: (v) => controller.lunchTime.value = v,
               ),
-              TimeField(
-                label: l.onboardingEveningSnackTime,
-                icon: Icons.cookie_outlined,
-                fallback: const TimeOfDay(hour: 17, minute: 30),
-                value: controller.eveningSnackTime.value,
-                onChanged: (v) => controller.eveningSnackTime.value = v,
-              ),
+
+              // docs/04 §7: a three-meal pattern has no snack slot. Asking when someone eats a
+              // snack they just said they do not eat is a question with no right answer.
+              if (controller.asksSnackTime)
+                TimeField(
+                  label: l.onboardingEveningSnackTime,
+                  icon: Icons.cookie_outlined,
+                  fallback: const TimeOfDay(hour: 17, minute: 30),
+                  value: controller.eveningSnackTime.value,
+                  onChanged: (v) => controller.eveningSnackTime.value = v,
+                ),
               TimeField(
                 label: l.onboardingDinnerTime,
                 icon: Icons.dinner_dining_outlined,
@@ -1425,6 +1492,16 @@ class _MealTimingsStep extends StatelessWidget {
                 value: controller.dinnerTime.value,
                 onChanged: (v) => controller.dinnerTime.value = v,
               ),
+              // docs/04 §7 marks the bedtime occasion OPTIONAL, so it is offered and never
+              // required to move on.
+              if (controller.asksExtraSlots)
+                TimeField(
+                  label: l.onboardingBedtimeSnackTime,
+                  icon: Icons.nightlight_outlined,
+                  fallback: const TimeOfDay(hour: 22, minute: 0),
+                  value: controller.bedtimeSnackTime.value,
+                  onChanged: (v) => controller.bedtimeSnackTime.value = v,
+                ),
             ],
           ),
         ),
@@ -1732,6 +1809,8 @@ class _SummaryStep extends StatelessWidget {
               inHealthyRange: (target == null || band == null)
                   ? null
                   : target >= band.low && target <= band.high,
+              healthyLowKg: band?.low,
+              healthyHighKg: band?.high,
               // The headline and the encouragement belong to the result step, which is where they
               // land for the first time. Repeated here they would read as the app padding out a
               // recap; the curve is the part worth seeing twice.
@@ -1742,9 +1821,44 @@ class _SummaryStep extends StatelessWidget {
         const SizedBox(height: AppSpacing.xl),
         StaggeredIn(
           index: 2,
-          child: Text(
-            l.onboardingSummaryShape,
-            style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+          // The reference gives the section its own disc and a line of why (D-106's field-disc
+          // language, at section scale).
+          child: Row(
+            children: [
+              ExcludeSemantics(
+                child: Container(
+                  height: AppSizes.ringSmall,
+                  width: AppSizes.ringSmall,
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.secondaryContainer,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.calendar_today_outlined,
+                    size: AppSpacing.xl,
+                    color: theme.colorScheme.onSecondaryContainer,
+                  ),
+                ),
+              ),
+              const SizedBox(width: AppSpacing.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      l.onboardingSummaryShape,
+                      style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+                    ),
+                    Text(
+                      l.onboardingSummaryShapeSub,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
         ),
         const SizedBox(height: AppSpacing.md),
@@ -1758,6 +1872,9 @@ class _SummaryStep extends StatelessWidget {
             controller.dinnerTime.value,
           ].map((t) => TimeOfDayText.formatWire(context, t)).nonNulls.toList();
 
+          // Each row opens the step that set it and returns here on the next advance
+          // (`editFrom`) — the chevron the rows now earn is the reference's "you can still
+          // change this", made true.
           return Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -1766,23 +1883,25 @@ class _SummaryStep extends StatelessWidget {
                   icon: meals.icon,
                   label: l.onboardingSummaryMeals,
                   value: meals.label(l),
-                  onTap: null,
+                  onTap: () => controller.editFrom(OnboardingStep.routine),
                 ),
               if (life != null)
                 ValueRow(
                   icon: life.icon,
                   label: l.onboardingLifestyleLabel,
                   value: life.label(l),
-                  onTap: null,
+                  onTap: () => controller.editFrom(OnboardingStep.routine),
                 ),
               if (times.isNotEmpty)
                 ValueRow(
                   icon: Icons.schedule_outlined,
                   label: l.onboardingSummaryTimes,
                   // Joined rather than four rows: by this screen the times are one fact about the
-                  // shape of a day, not four separate answers to check.
+                  // shape of a day, not four separate answers to check. Dense: four times at
+                  // titleLarge wrap into a two-line billboard on a phone.
                   value: times.join('  ·  '),
-                  onTap: null,
+                  dense: true,
+                  onTap: () => controller.editFrom(OnboardingStep.mealTimings),
                 ),
               // The one figure on the screen that is money, and the reason the step exists as far
               // as the user is concerned: they moved a slider two screens ago and never saw the
@@ -1791,10 +1910,10 @@ class _SummaryStep extends StatelessWidget {
                 icon: Icons.account_balance_wallet_outlined,
                 label: l.onboardingBudgetLabel,
                 value: l.onboardingBudgetPerMonth(Rupees.format(controller.budgetMonthlyInr.value)),
-                onTap: null,
+                onTap: () => controller.editFrom(OnboardingStep.routine),
               ),
             ],
-          );
+          ).paddingOnly(bottom: AppSpacing.md);
         }),
       ],
     );
@@ -1842,7 +1961,7 @@ class _ConsentStep extends StatelessWidget {
               builder: (context, constraints) => Center(
                 child: ExcludeSemantics(
                   child: Image.asset(
-                    AppAssets.consentHero,
+                    AppAssets.themed(AppAssets.consentHero, Theme.of(context).brightness),
                     width: constraints.maxWidth * _artFraction,
                     // A missing asset must not take the consent screen down with it, and nothing
                     // stands in: the picture says nothing the question does not.
@@ -2082,10 +2201,12 @@ class _GateView extends StatelessWidget {
         GateOutcome.eatingDisorderSupport => l.copyEdSupport,
       };
 
-      return Padding(
+      // Scrollable since the disclaimer grew into its four-point card: the gate's message plus
+      // the card is legitimately taller than a short phone, and a gate that clips its safety
+      // text is worse than one that scrolls (rule 12).
+      return SingleChildScrollView(
         padding: const EdgeInsets.all(AppSpacing.xl),
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(l.gateTitle, style: theme.textTheme.headlineMedium),
@@ -2117,20 +2238,248 @@ class _GateView extends StatelessWidget {
 /// docs/05 §7: the disclaimer appears on every plan screen, every export, and the onboarding footer.
 /// docs/05 §7's note, on every step of the funnel.
 ///
-/// A card, not a grey paragraph (D-109). It was set at caption size in muted grey under the fold —
-/// typographically indistinguishable from a footer nobody reads, which is the wrong treatment for
-/// the one thing on the screen that says this is not medical advice. Warm rather than green so it
-/// does not read as another of the app's own hints.
+/// A card, not a grey paragraph (D-109) — and no longer one paragraph either: the reference
+/// breaks the same sentences into four titled points, each with its own glyph, under a headline
+/// that says why the note is here at all. A wall of safety text is a wall nobody reads; four
+/// scannable lines are the version that gets read. Warm rather than green so it does not read as
+/// another of the app's own hints. The words carry the same meaning as the old paragraph — split,
+/// not rewritten.
 class _Disclaimer extends StatelessWidget {
   const _Disclaimer();
+
+  /// The pointing figure's width — under half the card, so the points keep the reading column.
+  static const _artWidth = 156.0;
+
+  /// How much of the card's right edge the points leave clear for him. Less than [_artWidth]:
+  /// his left fringe is leaves and air, and the words are allowed to run under those.
+  static const _artTextInset = 104.0;
 
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
-    return HintCard.important(
-      icon: Icons.verified_user_outlined,
-      title: l.copyImportant,
-      text: l.copyDisclaimer,
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.lg),
+      decoration: BoxDecoration(
+        // HintCard.important's warm palette, kept exactly — the card grew, its tone did not.
+        color: AppColors.warmCoral.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(AppRadius.cardLarge),
+        border: Border.all(color: AppColors.warmCoral.withValues(alpha: 0.28)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              ExcludeSemantics(
+                child: Container(
+                  height: AppSizes.ringSmall,
+                  width: AppSizes.ringSmall,
+                  decoration: BoxDecoration(color: scheme.surface, shape: BoxShape.circle),
+                  child: const Icon(
+                    Icons.verified_user_outlined,
+                    size: AppSpacing.xl,
+                    color: AppColors.warning,
+                  ),
+                ),
+              ),
+              const SizedBox(width: AppSpacing.md),
+              // Expanded so the title wraps at 200 % font scale instead of running off the card.
+              Expanded(
+                child: Text(
+                  l.copyImportant,
+                  style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.md),
+          Text.rich(
+            TextSpan(
+              children: [
+                TextSpan(text: l.disclaimerHeadlinePre),
+                // The one warm word in a green headline — the reference's emphasis, done with
+                // colour the palette already carries.
+                TextSpan(
+                  text: l.disclaimerHeadlineWord,
+                  style: const TextStyle(color: AppColors.warning),
+                ),
+                TextSpan(text: l.disclaimerHeadlinePost),
+              ],
+            ),
+            style: theme.textTheme.headlineSmall?.copyWith(
+              color: scheme.primary,
+              fontWeight: FontWeight.w800,
+              height: 1.2,
+            ),
+          ),
+          const SizedBox(height: AppSpacing.lg),
+          // A Stack, not a Row: the figure is pinned to the card's bottom-right corner BEHIND
+          // the points, so the text keeps one consistent measure instead of being squeezed by
+          // however tall the picture happens to be. The inset keeps the words off his dense
+          // middle; his leafy left fringe may run under them, which is what "behind" is for.
+          // Gone at large font scale (the pair-stacking threshold, D-90): at 200 % the words
+          // need the whole card, and rule 12 says the layout gives way, not the text.
+          Builder(
+            builder: (context) {
+              final showArt =
+                  MediaQuery.textScalerOf(context).scale(1) < AppSizes.heroStackTextScale;
+
+              return Stack(
+                children: [
+                  if (showArt)
+                    Positioned(
+                      right: 0,
+                      bottom: 0,
+                      width: _artWidth,
+                      child: ExcludeSemantics(child: Image.asset(AppAssets.disclaimerHero)),
+                    ),
+                  Padding(
+                    padding: EdgeInsets.only(right: showArt ? _artTextInset : 0),
+                    child: Column(
+                      children: [
+                        _DisclaimerPoint(
+                          icon: Icons.verified_user,
+                          tint: scheme.primary,
+                          title: l.disclaimerPoint1Title,
+                          body: l.disclaimerPoint1Body,
+                        ),
+                        _DisclaimerPoint(
+                          icon: Icons.favorite,
+                          tint: AppColors.danger,
+                          title: l.disclaimerPoint2Title,
+                          body: l.disclaimerPoint2Body,
+                        ),
+                        _DisclaimerPoint(
+                          icon: Icons.medical_services_outlined,
+                          tint: AppColors.info,
+                          title: l.disclaimerPoint3Title,
+                          body: l.disclaimerPoint3Body,
+                        ),
+                        _DisclaimerPoint(
+                          icon: Icons.medication_outlined,
+                          tint: AppColors.warning,
+                          title: l.disclaimerPoint4Title,
+                          body: l.disclaimerPoint4Body,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              );
+            },
+          ),
+          const SizedBox(height: AppSpacing.sm),
+          Container(
+            padding: const EdgeInsets.all(AppSpacing.md),
+            decoration: BoxDecoration(
+              color: scheme.secondaryContainer.withValues(alpha: 0.45),
+              borderRadius: BorderRadius.circular(AppRadius.tile),
+            ),
+            child: Row(
+              children: [
+                ExcludeSemantics(
+                  child: Container(
+                    height: AppSpacing.xxl,
+                    width: AppSpacing.xxl,
+                    decoration: BoxDecoration(color: scheme.surface, shape: BoxShape.circle),
+                    child: Icon(Icons.eco, size: AppSpacing.lg, color: scheme.primary),
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.md),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        l.disclaimerFooterTitle,
+                        style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700),
+                      ),
+                      Text(
+                        l.disclaimerFooterBody,
+                        style: theme.textTheme.bodySmall?.copyWith(color: scheme.onSurfaceVariant),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.sm),
+                ExcludeSemantics(
+                  child: Container(
+                    height: AppSpacing.xxl,
+                    width: AppSpacing.xxl,
+                    decoration: BoxDecoration(color: scheme.primary, shape: BoxShape.circle),
+                    child: Icon(Icons.favorite, size: AppSpacing.lg, color: scheme.onPrimary),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// One of the disclaimer's four points: a tinted disc, a bold claim, one sentence under it.
+class _DisclaimerPoint extends StatelessWidget {
+  const _DisclaimerPoint({
+    required this.icon,
+    required this.tint,
+    required this.title,
+    required this.body,
+  });
+
+  final IconData icon;
+  final Color tint;
+  final String title;
+  final String body;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppSpacing.md),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          ExcludeSemantics(
+            child: Container(
+              height: AppSizes.ringSmall,
+              width: AppSizes.ringSmall,
+              decoration: BoxDecoration(
+                color: tint.withValues(alpha: 0.12),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, size: AppSpacing.xl, color: tint),
+            ),
+          ),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: theme.colorScheme.primary,
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.xs),
+                Text(
+                  body,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -2144,6 +2493,9 @@ class _NumberSpec {
     required this.onChanged,
     this.decimal = false,
     this.icon,
+    this.pickerWhy,
+    this.pickerNote,
+    this.pickerHint,
   });
 
   final String label;
@@ -2152,6 +2504,16 @@ class _NumberSpec {
 
   /// Passed straight to `NumberField.icon` — the tinted disc at the leading edge.
   final IconData? icon;
+
+  /// Passed straight to `NumberField.pickerWhy` — the why-card on the picker sheet.
+  final String? pickerWhy;
+
+  /// Passed straight to `NumberField.pickerNote` — the second card under the why-card.
+  final String? pickerNote;
+
+  /// Passed straight to `NumberField.pickerHint` — evaluated when the sheet opens, so it can
+  /// read answers given after this spec was built.
+  final String? Function()? pickerHint;
 
   /// Read ONCE, to prefill the field. `NumberField` owns its text after that — pushing a value
   /// back in on every rebuild would fight the user mid-keystroke.
@@ -2223,11 +2585,55 @@ class _NumberColumn extends StatelessWidget {
       decimal: spec.decimal,
       icon: spec.icon,
       picker: spec.picker,
+      pickerWhy: spec.pickerWhy,
+      pickerNote: spec.pickerNote,
+      pickerHint: spec.pickerHint,
       initial: value == null ? '' : WheelPicker.formatValue(value),
       onLiveChange: (t) => spec.onChanged(t, silent: true),
       onCommit: spec.onChanged,
     );
   }
+}
+
+/// The step's scroll view, rewound to the top whenever the step changes.
+///
+/// One scroll view serves all thirteen steps, so without this the offset survives the change and
+/// the next question opens wherever the last one was left — mid-page, or on the disclaimer.
+/// Widget-layer on purpose: the controller cannot hold a ScrollController (no Flutter imports),
+/// and every one of the seven step mutations funnels through this one `didUpdateWidget`.
+class _StepScrollView extends StatefulWidget {
+  const _StepScrollView({required this.step, required this.child});
+
+  final OnboardingStep step;
+  final Widget child;
+
+  @override
+  State<_StepScrollView> createState() => _StepScrollViewState();
+}
+
+class _StepScrollViewState extends State<_StepScrollView> {
+  final _scroll = ScrollController();
+
+  @override
+  void didUpdateWidget(_StepScrollView oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // Jump, not animate: the slide transition is already the motion, and a second animation
+    // racing it up the page would read as a glitch.
+    if (oldWidget.step != widget.step && _scroll.hasClients) _scroll.jumpTo(0);
+  }
+
+  @override
+  void dispose() {
+    _scroll.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) => SingleChildScrollView(
+    controller: _scroll,
+    padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+    child: widget.child,
+  );
 }
 
 /// Slides one question out and the next one in (D-103).
@@ -2274,6 +2680,61 @@ class _StepTransition extends StatelessWidget {
         children: [...previous, if (current != null) current],
       ),
       child: KeyedSubtree(key: ValueKey(step), child: child),
+    );
+  }
+}
+
+/// "What do you do?", asked once, on the about-you step.
+///
+/// A self-declaration and nothing more. It decides whether the partner offer is shown and is never
+/// sent to the server — docs/13 §4 says collect less, and a field that only picks the next screen
+/// has no reason to sit in a health profile. Saying "doctor" here grants nothing: docs/12 §6 makes
+/// a verified partner someone whose documents a human has read.
+class _ProfessionQuestion extends StatelessWidget {
+  const _ProfessionQuestion({required this.controller});
+
+  final OnboardingController controller;
+
+  @override
+  Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+
+    final options = <(Profession, String)>[
+      (Profession.none, l.onboardingProfessionNone),
+      (Profession.trainer, l.onboardingProfessionTrainer),
+      (Profession.nutritionist, l.onboardingProfessionNutritionist),
+      (Profession.doctor, l.onboardingProfessionDoctor),
+    ];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          l.onboardingProfessionLabel,
+          style: theme.textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w700),
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        Obx(
+          () => Wrap(
+            spacing: AppSpacing.sm,
+            runSpacing: AppSpacing.sm,
+            children: [
+              for (final (value, label) in options)
+                ChoiceChip(
+                  label: Text(label),
+                  selected: controller.profession.value == value,
+                  onSelected: (_) {
+                    controller.profession.value = value;
+                    // Immediately, while the answer is still the thing on screen. Held back to a
+                    // later step it reads as an unrelated advert; here it reads as a reply.
+                    if (value.mayCoach) PartnerInviteSheet.show(context);
+                  },
+                ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }

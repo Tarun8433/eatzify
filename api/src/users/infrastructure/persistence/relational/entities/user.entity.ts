@@ -33,6 +33,14 @@ export class UserEntity extends EntityRelationalHelper {
   @Column({ type: String, unique: true, nullable: true })
   phone: string | null;
 
+  /// Seeded or demonstration data (`.claude/rules/database.md`: "`is_demo BOOLEAN` on every table
+  /// with user-visible content. Metrics exclude it"). Kept on `user` rather than repeated on every
+  /// table: everything else in this schema hangs off a user, so one flag answers it for all of them
+  /// (D-230).
+  @Index()
+  @Column({ type: Boolean, default: false })
+  isDemo: boolean;
+
   @Column({ nullable: true })
   password?: string;
 

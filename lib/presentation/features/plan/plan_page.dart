@@ -71,7 +71,7 @@ class _NoPlan extends StatelessWidget {
     final theme = Theme.of(context);
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl),
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.screenH),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
@@ -117,7 +117,7 @@ class _PlanView extends StatelessWidget {
     final targets = plan.targets;
 
     return ListView(
-      padding: const EdgeInsets.fromLTRB(AppSpacing.xl, 0, AppSpacing.xl, AppSpacing.xxl),
+      padding: const EdgeInsets.fromLTRB(AppSpacing.screenH, 0, AppSpacing.screenH, AppSpacing.xxl),
       children: [
         if (targets != null) ...[
           _TargetCard(targets: targets, plan: plan),

@@ -129,8 +129,7 @@ export class AdminMetricsService {
       return row?.sum ?? '0';
     };
 
-    const days = (n: number): Date =>
-      new Date(now.getTime() - n * 86_400_000);
+    const days = (n: number): Date => new Date(now.getTime() - n * 86_400_000);
 
     const refundedRow = await this.orders
       .createQueryBuilder('o')
@@ -148,7 +147,12 @@ export class AdminMetricsService {
       .addGroupBy('o.duration')
       .orderBy('sold', 'DESC')
       .addOrderBy('gross', 'DESC')
-      .getRawMany<{ tier: string; duration: string; sold: string; gross: string }>();
+      .getRawMany<{
+        tier: string;
+        duration: string;
+        sold: string;
+        gross: string;
+      }>();
 
     return {
       totals: {

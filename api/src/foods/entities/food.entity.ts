@@ -1,4 +1,5 @@
 import {
+  BaseEntity,
   Column,
   CreateDateColumn,
   Entity,
@@ -13,10 +14,19 @@ import { HouseholdMeasureEntity } from './household-measure.entity';
 /// system normalises to that, so a food row never carries a serving size — that is what
 /// `household_measure` is for.
 ///
+/// docs/08 §4's lifecycle. Nothing is deleted: a retired food is still in somebody's diary.
+export const FOOD_STATUSES = [
+  'draft',
+  'reviewed',
+  'published',
+  'retired',
+] as const;
+export type FoodStatus = (typeof FOOD_STATUSES)[number];
+
 /// `source` and `sourceRef` are not decoration: docs/03 says a food must be traceable to IFCT/INDB
 /// or a named manual entry, because a nutrition number nobody can attribute cannot be corrected.
 @Entity({ name: 'food' })
-export class FoodEntity {
+export class FoodEntity extends BaseEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
@@ -103,8 +113,31 @@ export class FoodEntity {
 
   /// Unverified rows are visible to admins and excluded from plan generation — a half-entered food
   /// must never reach a user's plan.
+  ///
+  /// Kept in step with [status] by `FoodsService`: published sets it, retired clears it. It is the
+  /// flag every existing read still uses, and the expand half of the migration that adds a status
+  /// (D-227).
   @Column({ type: 'boolean', default: false })
   isVerified: boolean;
+
+  /// docs/08 §4: `draft` → `reviewed` → `published`, and `retired` for a row that must stop being
+  /// offered without being deleted (it is in somebody's diary).
+  @Column({ type: 'varchar', default: 'draft' })
+  status: FoodStatus;
+
+  /// Who checked it, and when. A food's macros end up in a plan, so "somebody reviewed this" has to
+  /// name somebody (docs/02 FR-8.3's spirit, and why `coach_application.reviewedByUserId` exists).
+  @Column({ type: 'integer', nullable: true })
+  reviewedByUserId: number | null;
+
+  @Column({ type: 'timestamptz', nullable: true })
+  reviewedAt: Date | null;
+
+  @Column({ type: 'integer', nullable: true })
+  publishedByUserId: number | null;
+
+  @Column({ type: 'timestamptz', nullable: true })
+  publishedAt: Date | null;
 
   @OneToMany(() => HouseholdMeasureEntity, (m) => m.food)
   measures: HouseholdMeasureEntity[];

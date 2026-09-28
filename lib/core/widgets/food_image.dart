@@ -49,6 +49,9 @@ class FoodImage extends StatelessWidget {
         ? placeholder
         : CachedNetworkImage(
             imageUrl: url!,
+            // A user's own meal photo arrives on a signed link whose expiry changes on every load
+            // (D-240); keyed on the path, it is fetched once rather than every time Home refreshes.
+            cacheKey: url!.split('?').first,
             width: size,
             height: drawnHeight,
             fit: BoxFit.cover,
