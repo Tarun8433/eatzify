@@ -62,24 +62,5 @@ services:
       postgres:
         condition: service_healthy
 
-  # HTTPS for the website, the API and media. Caddy obtains and renews the certificates itself;
-  # its data volume keeps them across restarts so a redeploy does not re-request them.
-  caddy:
-    image: caddy:2-alpine
-    restart: unless-stopped
-    ports:
-      - 80:80
-      - 443:443
-    env_file: .env
-    volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile:ro
-      - ${SITE_DIR:-../site}:/srv/site:ro
-      - caddy-data:/data
-      - caddy-config:/config
-    depends_on:
-      - api
-
 volumes:
   boilerplate-db:
-  caddy-data:
-  caddy-config:
