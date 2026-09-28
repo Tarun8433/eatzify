@@ -36,6 +36,17 @@ services:
   #   ports:
   #     - 6379:6379
 
+  # Exercise animations (D-243). The files live on the host and are mounted read-only — never in
+  # the image and never in git: they are © Gym visual and licensed separately, so a deployment
+  # without them simply has no media and the app falls back to icons.
+  media:
+    image: nginx:alpine
+    restart: unless-stopped
+    ports:
+      - ${GYM_MEDIA_PORT:-3003}:80
+    volumes:
+      - ${GYM_MEDIA_DIR:-./media}:/usr/share/nginx/html:ro
+
   api:
     build:
       context: .
