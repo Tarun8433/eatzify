@@ -27,12 +27,15 @@ import {
 import { RefundService, type RefundView } from './refund.service';
 import { CashfreeClient } from './cashfree.client';
 import { CashfreeMode } from './cashfree.config';
-import { STUB_MODE } from './billing-copy';
+import { PAYMENTS_NOT_OFFERED, STUB_MODE } from './billing-copy';
 import { PRICES, type Tier } from './tiers';
 import type { RequestWithUser } from '../utils/types/request-with-user.type';
 import type { JwtPayloadType } from '../auth/strategies/types/jwt-payload.type';
+import { cashfreeOffered, platformFrom } from './payment-rails';
 
-const DURATIONS = ['1M', '3M', '6M', '9M', '12M'] as const;
+// D-248: 9 months is no longer sold — Google Play and the App Store cannot bill it, and one plan
+// list on every payment method is what users see.
+const DURATIONS = ['1M', '3M', '6M', '12M'] as const;
 
 class CheckoutDto {
   /// FREE is absent on purpose: there is nothing to buy, and accepting it would create a ₹0 order.
@@ -155,8 +158,12 @@ export class BillingController {
   @HttpCode(HttpStatus.OK)
   public entitlements(
     @Request() request: RequestWithUser<JwtPayloadType>,
+    @Headers('X-Client-Platform') platform?: string,
   ): Promise<SubscriptionView> {
-    return this.service.entitlements(Number(request.user.id));
+    return this.service.entitlements(
+      Number(request.user.id),
+      platformFrom(platform),
+    );
   }
 
   /// docs/11 §7: charges the difference the quote named, and closes the period it replaces when
@@ -167,7 +174,9 @@ export class BillingController {
     @Request() request: RequestWithUser<JwtPayloadType>,
     @Body() dto: UpgradeDto,
     @Headers('Idempotency-Key') idempotencyKey?: string,
+    @Headers('X-Client-Platform') platform?: string,
   ): Promise<CheckoutView> {
+    this.refuseUnlessCashfreeOffered(platform);
     return this.checkout.upgrade({
       userId: Number(request.user.id),
       tier: dto.tier,
@@ -205,7 +214,9 @@ export class BillingController {
     @Request() request: RequestWithUser<JwtPayloadType>,
     @Body() dto: CheckoutDto,
     @Headers('Idempotency-Key') idempotencyKey?: string,
+    @Headers('X-Client-Platform') platform?: string,
   ): Promise<CheckoutView> {
+    this.refuseUnlessCashfreeOffered(platform);
     return this.checkout.checkout({
       userId: Number(request.user.id),
       tier: dto.tier,
@@ -214,6 +225,26 @@ export class BillingController {
       now: new Date(),
       couponCode: dto.coupon_code ?? null,
     });
+  }
+
+  /// D-249: the pay button is already absent where Cashfree may not be offered; this refuses the
+  /// request itself, because a hidden button does not stop a direct call.
+  private refuseUnlessCashfreeOffered(platform?: string): void {
+    if (
+      !cashfreeOffered(
+        this.cashfree.mode,
+        platformFrom(platform),
+        this.cashfree.androidEnabled,
+      )
+    ) {
+      throw new ForbiddenException({
+        status: HttpStatus.FORBIDDEN,
+        error: {
+          code: 'PAYMENTS_NOT_OFFERED',
+          user_message: PAYMENTS_NOT_OFFERED,
+        },
+      });
+    }
   }
 
   /**

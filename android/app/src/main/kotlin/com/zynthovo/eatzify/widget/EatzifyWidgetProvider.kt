@@ -1,4 +1,4 @@
-package app.eatzify.widget
+package com.zynthovo.eatzify.widget
 
 import android.appwidget.AppWidgetManager
 import android.appwidget.AppWidgetProvider
@@ -9,8 +9,8 @@ import android.os.Bundle
 import android.util.SizeF
 import android.view.View
 import android.widget.RemoteViews
-import app.eatzify.MainActivity
-import app.eatzify.R
+import com.zynthovo.eatzify.MainActivity
+import com.zynthovo.eatzify.R
 import es.antonborri.home_widget.HomeWidgetBackgroundIntent
 import es.antonborri.home_widget.HomeWidgetLaunchIntent
 import es.antonborri.home_widget.HomeWidgetPlugin

@@ -29,6 +29,12 @@ export type CashfreeConfig = {
    */
   secretKey: string | null;
   returnUrl: string | null;
+  /**
+   * Google Play has approved this app for User Choice Billing, so Android may offer Cashfree
+   * (D-249). Off unless set to exactly `true`: the safe default is not showing a way to pay that
+   * the store has not allowed.
+   */
+  androidEnabled: boolean;
 };
 
 const API_BASE: Record<CashfreeMode, string> = {
@@ -64,6 +70,10 @@ class CashfreeEnvValidator {
   @IsString()
   @IsOptional()
   CASHFREE_RETURN_URL: string;
+
+  @IsString()
+  @IsOptional()
+  CASHFREE_ANDROID_ENABLED: string;
 }
 
 /**
@@ -97,5 +107,6 @@ export default registerAs<CashfreeConfig>('cashfree', () => {
     appId: process.env.CASHFREE_APP_ID ?? null,
     secretKey: process.env.CASHFREE_SECRET_KEY ?? null,
     returnUrl: process.env.CASHFREE_RETURN_URL ?? null,
+    androidEnabled: process.env.CASHFREE_ANDROID_ENABLED === 'true',
   };
 });

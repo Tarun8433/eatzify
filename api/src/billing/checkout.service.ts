@@ -30,13 +30,12 @@ import {
   UNKNOWN_PRICE,
 } from './billing-copy';
 
-export type Duration = '1M' | '3M' | '6M' | '9M' | '12M';
+export type Duration = '1M' | '3M' | '6M' | '12M';
 
 const MONTHS: Record<Duration, number> = {
   '1M': 1,
   '3M': 3,
   '6M': 6,
-  '9M': 9,
   '12M': 12,
 };
 

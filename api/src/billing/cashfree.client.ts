@@ -42,6 +42,10 @@ export class CashfreeClient {
     return this.settings.mode;
   }
 
+  get androidEnabled(): boolean {
+    return this.settings.androidEnabled;
+  }
+
   /**
    * Rupees, as Cashfree's API wants them, from the paise we store.
    *

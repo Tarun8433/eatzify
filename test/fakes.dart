@@ -24,6 +24,7 @@ import 'package:health_pro/domain/repositories/diary_repository.dart';
 import 'package:health_pro/domain/repositories/health_repository.dart';
 import 'package:health_pro/domain/repositories/measurements_repository.dart';
 import 'package:health_pro/domain/repositories/notifications_repository.dart';
+import 'package:health_pro/domain/repositories/payment_gateway.dart';
 import 'package:health_pro/domain/repositories/plan_repository.dart';
 import 'package:health_pro/domain/repositories/privacy_repository.dart';
 import 'package:health_pro/domain/repositories/profile_repository.dart';
@@ -512,6 +513,8 @@ class FakeBillingRepository implements BillingRepository {
         amountPaise: 179900,
         tier: tier,
         mode: paymentsMode,
+        // A real gateway mode always comes with something to open; stub never does.
+        paymentSessionId: paymentsMode == 'stub' ? null : 'session_test_1',
       ),
     );
   }
@@ -542,12 +545,10 @@ const fullPriceMatrix = <TierPrice>[
   TierPrice(tier: 'BASIC', months: 1, pricePaise: 24900),
   TierPrice(tier: 'BASIC', months: 3, pricePaise: 69900),
   TierPrice(tier: 'BASIC', months: 6, pricePaise: 119900),
-  TierPrice(tier: 'BASIC', months: 9, pricePaise: 159900),
   TierPrice(tier: 'BASIC', months: 12, pricePaise: 209900),
   TierPrice(tier: 'PRO', months: 1, pricePaise: 64900),
   TierPrice(tier: 'PRO', months: 3, pricePaise: 179900),
   TierPrice(tier: 'PRO', months: 6, pricePaise: 279900),
-  TierPrice(tier: 'PRO', months: 9, pricePaise: 379900),
   TierPrice(tier: 'PRO', months: 12, pricePaise: 499900),
 ];
 
@@ -1007,4 +1008,24 @@ SessionController putFakeSession() {
     ),
     permanent: true,
   );
+}
+
+/// Cashfree's checkout, scripted. The real one opens a browser; this one answers.
+class FakePaymentGateway implements PaymentGateway {
+  FakePaymentGateway({this.result = const PaymentResult.submitted()});
+
+  final PaymentResult result;
+
+  /// Every order it was asked to open, with the mode it was told to open it in.
+  final List<({String orderId, String sessionId, String mode})> opened = [];
+
+  @override
+  Future<PaymentResult> open({
+    required String orderId,
+    required String paymentSessionId,
+    required String mode,
+  }) async {
+    opened.add((orderId: orderId, sessionId: paymentSessionId, mode: mode));
+    return result;
+  }
 }

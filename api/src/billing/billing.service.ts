@@ -10,6 +10,11 @@ import {
   type Entitlements,
   type Tier,
 } from './tiers';
+import {
+  cashfreeOffered,
+  type ClientPlatform,
+  PAYMENTS_UNAVAILABLE_MODE,
+} from './payment-rails';
 
 export type SubscriptionView = {
   tier: Tier;
@@ -35,7 +40,10 @@ export class BillingService {
   ///
   /// An expired or cancelled subscription resolves to FREE rather than to nothing — everyone has
   /// entitlements, and the free tier is a real tier, not an absence.
-  async entitlements(userId: number): Promise<SubscriptionView> {
+  async entitlements(
+    userId: number,
+    platform: ClientPlatform = 'unknown',
+  ): Promise<SubscriptionView> {
     const row = await this.subscriptions.findOne({ where: { userId } });
     const tier = this.effectiveTier(row);
 
@@ -44,7 +52,15 @@ export class BillingService {
       status: row?.status ?? 'active',
       current_period_end: row?.currentPeriodEnd?.toISOString() ?? null,
       entitlements: entitlementsFor(tier),
-      payments_mode: this.cashfree.mode,
+      // D-249: an app that may not offer Cashfree is told there is no way to pay here, so it draws
+      // no pay button — rather than one that the checkout route would then refuse.
+      payments_mode: cashfreeOffered(
+        this.cashfree.mode,
+        platform,
+        this.cashfree.androidEnabled,
+      )
+        ? this.cashfree.mode
+        : PAYMENTS_UNAVAILABLE_MODE,
     };
   }
 

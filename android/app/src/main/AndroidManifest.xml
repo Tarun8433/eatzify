@@ -178,6 +178,12 @@
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
         </intent>
+        <!-- Terms, privacy, refunds and contact open the website (url_launcher). Android 11+ hides
+             browsers from an app that does not declare it opens https links. -->
+        <intent>
+            <action android:name="android.intent.action.VIEW"/>
+            <data android:scheme="https"/>
+        </intent>
         <!--
           On Android 8–13 Health Connect is a separate Play Store app, and without these the system
           hides it from us: the app could not even tell whether it is installed.

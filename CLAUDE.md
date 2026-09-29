@@ -66,7 +66,9 @@ Structure: `core/` · `domain/{entities,repositories,usecases}` · `data/{models
     `HealthDataSource`. Never Google Fit — its APIs shut down at the end of 2026. Manual entry is
     always available as a fallback, and the data source label is always visible.
 11. **No localStorage-style ad-hoc persistence.** Hive boxes declared in `core/storage/hive_boxes.dart`.
-12. Touch targets >= 48 dp. Contrast >= 4.5:1. Must survive 200 % font scale without clipping.
+12. Touch targets >= 48 dp. Contrast >= 4.5:1. Text scale is locked at 100 % app-wide (D-247), so
+    the phone's font-size setting has no effect; layouts must still not clip at 200 % in tests,
+    so the lock stays reversible.
 
 ## Tone rules (non-negotiable — `docs/05` §6)
 

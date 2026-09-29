@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:get/get.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:health_pro/core/ads/rewarded_ad_gate.dart';
 import 'package:health_pro/core/home_widget/home_screen_widget.dart';
 import 'package:health_pro/core/home_widget/home_widget_actions.dart';
@@ -12,9 +13,11 @@ import 'package:health_pro/core/notifications/reminder_copy.dart';
 import 'package:health_pro/core/session/session_controller.dart';
 import 'package:health_pro/core/storage/secure_store.dart';
 import 'package:health_pro/core/theme/app_theme.dart';
+import 'package:health_pro/core/widgets/fixed_text_scale.dart';
 import 'package:health_pro/data/datasources/local/gym_local_data_source.dart';
 import 'package:health_pro/data/datasources/remote/auth_remote_data_source.dart';
 import 'package:health_pro/data/datasources/remote/billing_remote_data_source.dart';
+import 'package:health_pro/data/datasources/remote/cashfree_gateway.dart';
 import 'package:health_pro/data/datasources/remote/chat_remote_data_source.dart';
 import 'package:health_pro/data/datasources/remote/chat_socket.dart';
 import 'package:health_pro/data/datasources/remote/coach_remote_data_source.dart';
@@ -51,6 +54,7 @@ import 'package:health_pro/domain/repositories/gym_repository.dart';
 import 'package:health_pro/domain/repositories/health_repository.dart';
 import 'package:health_pro/domain/repositories/measurements_repository.dart';
 import 'package:health_pro/domain/repositories/notifications_repository.dart';
+import 'package:health_pro/domain/repositories/payment_gateway.dart';
 import 'package:health_pro/domain/repositories/plan_repository.dart';
 import 'package:health_pro/domain/repositories/privacy_repository.dart';
 import 'package:health_pro/domain/repositories/profile_repository.dart';
@@ -77,6 +81,10 @@ import 'package:home_widget/home_widget.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  // Inter ships in assets/google_fonts. Never fetch it: a phone that is still downloading, or
+  // cannot, draws its OWN font instead (SF, Roboto, One UI), and the same text comes out a
+  // different size on every device.
+  GoogleFonts.config.allowRuntimeFetching = false;
 
   // The home-screen widget (D-210). Failing to set this up must never stop the app starting — a
   // launcher that refused the app group is a widget nobody sees, not an app nobody can open.
@@ -269,7 +277,10 @@ class EatzifyApp extends StatelessWidget {
         // keyboard without swallowing the button the user was actually aiming for.
         behavior: HitTestBehavior.translucent,
         onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
-        child: child,
+        // D-247: text is drawn at the design size on every phone, ignoring the device's own
+        // font-size setting, so the app looks the same everywhere. This reverses rule 12's 200 %
+        // requirement — a deliberate product decision, see DECISIONS.md before changing it.
+        child: FixedTextScale(child: child!),
       ),
       home: const RootGate(),
     );
@@ -323,6 +334,9 @@ class EatzifyApp extends StatelessWidget {
         BillingRepositoryImpl(BillingRemoteDataSource(client.dio)),
         permanent: true,
       )
+      // Cashfree's hosted checkout. The server decides sandbox vs production and hands the session
+      // over per order; this only opens what it is given (docs/11 §5).
+      ..put<PaymentGateway>(CashfreeGateway(), permanent: true)
       // docs/13 §3 and §9: consents, a copy of everything, and the way out (D-233).
       ..put<PrivacyRepository>(
         PrivacyRepositoryImpl(PrivacyRemoteDataSource(client.dio)),

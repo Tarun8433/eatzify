@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 1.0.0+1
+version: 1.0.0+3
 
 environment:
   sdk: ^3.12.0
@@ -49,9 +49,12 @@ dependencies:
   health: ^13.3.1
 
   # Billing — see doc 20 §9 for the entitlement-ownership caveat
-  purchases_flutter: ^8.0.0    # RevenueCat
   # Cashfree is the payment provider (api/src/billing/cashfree.*). Razorpay was never wired into
-  # any Dart file and is gone; its Flutter SDK goes in here when checkout stops being a stub.
+  # any Dart file and is gone. Hosted web checkout only — no card fields in our process.
+  flutter_cashfree_pg_sdk: ^2.4.0
+  # Terms, privacy, refunds and contact open the website — one source of truth for legal text,
+  # so a policy fix never needs an app release.
+  url_launcher: ^6.3.1
 
   # UI
   flutter_screenutil: ^5.9.3
@@ -119,6 +122,10 @@ flutter:
 
   assets:
     # D-55: the Home walker. 38 palette PNGs, 492 KB total.
+    # Inter, bundled (the exact files google_fonts would download). Without them every phone
+    # fetches the font on first launch and shows its OWN font until then — SF, Roboto, One UI —
+    # which is why the same text looked a different size on different devices.
+    - assets/google_fonts/
     - assets/gym/
     - assets/walking/
     - assets/activity/

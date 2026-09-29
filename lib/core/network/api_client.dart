@@ -11,7 +11,16 @@ class ApiClient {
           connectTimeout: timeout,
           receiveTimeout: timeout,
           sendTimeout: timeout,
-          headers: const {'Accept': 'application/json'},
+          headers: {
+            'Accept': 'application/json',
+            // D-249: which store's rules apply. The server offers a way to pay per platform — never
+            // Cashfree on iPhone, and on Android only once Play has approved User Choice Billing.
+            'X-Client-Platform': switch (defaultTargetPlatform) {
+              TargetPlatform.iOS => 'ios',
+              TargetPlatform.android => 'android',
+              _ => 'unknown',
+            },
+          },
           // We handle every non-2xx through mapDioError rather than letting dio decide.
           validateStatus: (s) => s != null && s >= 200 && s < 300,
         ),

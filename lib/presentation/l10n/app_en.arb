@@ -2494,5 +2494,16 @@
   "gymHeaderTagline": "Stronger body, healthier you",
   "gymWeekTagline": "Keep showing up",
   "gymViewDetails": "View workout details",
-  "gymEnergySubtitle": "Today vs. this week"
+  "gymEnergySubtitle": "Today vs. this week",
+  "billingGatewayUnavailable": "Payments cannot be opened on this build yet. Nothing was charged.",
+  "accountLegal": "Legal & support",
+  "legalTerms": "Terms & conditions",
+  "legalPrivacy": "Privacy policy",
+  "legalRefunds": "Refunds & cancellations",
+  "legalContact": "Contact us",
+  "legalAnd": "and",
+  "legalOpensWebsite": "Opens the website",
+  "legalOpenFailed": "Could not open the page. Check your connection and try again.",
+  "legalAgreeSignIn": "By continuing, you agree to our",
+  "legalAgreePay": "By paying, you agree to our"
 }

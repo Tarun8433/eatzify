@@ -22,6 +22,8 @@ export const TRIAL_DAYS = 7;
 /// driver of chargebacks and Play complaints.
 export const TRIAL_REMINDER_HOURS = 48;
 
+/// Every duration a stored subscription may carry. `9M` is no longer SOLD (D-248) but stays here:
+/// a 9-month plan bought before then must still renew and end on the right date.
 export const MONTHS_PER_DURATION: Record<string, number> = {
   '1M': 1,
   '3M': 3,

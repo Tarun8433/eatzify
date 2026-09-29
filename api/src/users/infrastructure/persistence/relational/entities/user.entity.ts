@@ -29,8 +29,10 @@ export class UserEntity extends EntityRelationalHelper {
   @Column({ type: String, unique: true, nullable: true })
   email: string | null;
 
+  /// Contact number, collected at sign-up (Cashfree needs one per order). Not an identity any more:
+  /// email and password are the only way in (D-250), so two accounts may share a number.
   @Index()
-  @Column({ type: String, unique: true, nullable: true })
+  @Column({ type: String, nullable: true })
   phone: string | null;
 
   /// Seeded or demonstration data (`.claude/rules/database.md`: "`is_demo BOOLEAN` on every table

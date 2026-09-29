@@ -1599,5 +1599,16 @@
   "gymHeaderTagline": "मज़बूत शरीर, बेहतर सेहत",
   "gymWeekTagline": "आते रहिए",
   "gymViewDetails": "वर्कआउट का ब्योरा देखें",
-  "gymEnergySubtitle": "आज बनाम इस हफ़्ते"
+  "gymEnergySubtitle": "आज बनाम इस हफ़्ते",
+  "billingGatewayUnavailable": "इस बिल्ड में भुगतान अभी नहीं खुल सकता। कोई शुल्क नहीं लिया गया।",
+  "accountLegal": "कानूनी जानकारी और सहायता",
+  "legalTerms": "नियम और शर्तें",
+  "legalPrivacy": "गोपनीयता नीति",
+  "legalRefunds": "रिफ़ंड और रद्दीकरण",
+  "legalContact": "संपर्क करें",
+  "legalAnd": "और",
+  "legalOpensWebsite": "वेबसाइट खुलेगी",
+  "legalOpenFailed": "पेज नहीं खुल सका। अपना कनेक्शन जाँचें और फिर कोशिश करें।",
+  "legalAgreeSignIn": "आगे बढ़कर, आप हमारी इन शर्तों से सहमत होते हैं:",
+  "legalAgreePay": "भुगतान करके, आप हमारी इन शर्तों से सहमत होते हैं:"
 }

@@ -10,6 +10,11 @@ export const UNKNOWN_PRICE =
 export const PHONE_REQUIRED =
   'We need a mobile number on your account before you can pay. Sign in with your number to add one.';
 
+/// D-249: this app is not allowed to offer this way to pay — Apple's rules on iPhone, and Google
+/// Play's until User Choice Billing is approved. Nothing was charged; nothing was started.
+export const PAYMENTS_NOT_OFFERED =
+  'Payments are not available in this version of the app yet. Nothing has been charged.';
+
 export const CHECKOUT_UNAVAILABLE =
   'Payments are temporarily unavailable. Nothing has been charged — please try again shortly.';
 

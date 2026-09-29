@@ -16,12 +16,20 @@ class Entitlements {
   final String tier;
   final String status;
 
-  /// `stub` · `sandbox` · `production` (docs/11, D-194). The paywall asks so it can tell the truth
-  /// about whether this build can take a payment.
+  /// `stub` · `sandbox` · `production` (docs/11, D-194), or `unavailable` where this app may not
+  /// offer the gateway at all (D-249: iPhone always, Android until Play approves User Choice
+  /// Billing). The paywall asks so it can tell the truth about what the button would do.
   final String paymentsMode;
 
-  /// Whether a real gateway is behind the pay button.
-  bool get canTakePayment => paymentsMode != 'stub';
+  /// A real gateway is behind the pay button. Named modes only: anything the app does not know —
+  /// `unavailable`, or a mode added later — must not be read as permission to charge.
+  bool get canTakePayment => paymentsMode == 'sandbox' || paymentsMode == 'production';
+
+  /// Test purchases that move no money (D-194).
+  bool get isStubPayments => paymentsMode == 'stub';
+
+  /// Nothing can be bought in this app right now, so no pay button is drawn.
+  bool get paymentsUnavailable => !canTakePayment && !isStubPayments;
 
   /// The one question the UI asks: is there anything to sell this person? A paid tier, in any
   /// status the server still honours, means the upgrade surfaces stay away (docs/11 §10 names

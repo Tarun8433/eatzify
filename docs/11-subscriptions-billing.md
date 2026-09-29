@@ -14,6 +14,10 @@ warnings, referral screens and the disclaimer are free-tier. Restrict convenienc
 
 ## 2. Price matrix (from your spec, with duration discount enforced)
 
+> **Superseded in part (2026-09-29).** 9-month plans are no longer sold (D-248): Google Play and the
+> App Store cannot bill that term. The prices actually charged live in `api/src/billing/tiers.ts`,
+> which also records two cells that differ from this table (BASIC 12M ₹2,099, PRO 1M ₹649).
+
 Prices are GST-inclusive, in ₹.
 
 | Tier | 3 M | 6 M | 9 M | 12 M | Monthly equivalent (12M) |

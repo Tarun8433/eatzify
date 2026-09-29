@@ -6,6 +6,12 @@ import {
 } from '../src/billing/tiers';
 
 describe('tiers and entitlements — docs/11', () => {
+  it('sells only the durations Google Play and the App Store can bill (D-248)', () => {
+    for (const tier of ['BASIC', 'PRO'] as const) {
+      expect(Object.keys(PRICES[tier])).toEqual(['1M', '3M', '6M', '12M']);
+    }
+  });
+
   it('every tier defines every entitlement key', () => {
     const keys = Object.keys(TIER_ENTITLEMENTS.PRO);
 
@@ -53,7 +59,7 @@ describe('tiers and entitlements — docs/11', () => {
     // docs/11 §2 calls this out as a defect in the original matrix: "The ladder must be monotonic:
     // 3M base → 6M ≈ −12 % → 9M ≈ −18 % → 12M ≈ −25 % per month." A customer comparing quotes must
     // never see a longer term as worse value per month.
-    const months = { '1M': 1, '3M': 3, '6M': 6, '9M': 9, '12M': 12 } as const;
+    const months = { '1M': 1, '3M': 3, '6M': 6, '12M': 12 } as const;
 
     for (const tier of ['BASIC', 'PRO'] as const) {
       it(

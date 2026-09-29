@@ -27,8 +27,8 @@ import 'package:health_pro/presentation/features/account/account_controller.dart
 import 'package:health_pro/presentation/features/account/edit_sheets.dart';
 import 'package:health_pro/presentation/features/account/health_connect_page.dart';
 import 'package:health_pro/presentation/features/account/invite_friends.dart';
+import 'package:health_pro/presentation/features/account/legal_links_card.dart';
 import 'package:health_pro/presentation/features/account/notifications_controller.dart';
-import 'package:health_pro/presentation/features/coach/chat_page.dart';
 import 'package:health_pro/presentation/features/account/notifications_page.dart';
 import 'package:health_pro/presentation/features/account/privacy_page.dart';
 import 'package:health_pro/presentation/features/account/profile_details_sheet.dart';
@@ -38,6 +38,7 @@ import 'package:health_pro/presentation/features/account/tickets_page.dart';
 import 'package:health_pro/presentation/features/billing/subscription_page.dart';
 import 'package:health_pro/presentation/features/coach/become_partner_controller.dart';
 import 'package:health_pro/presentation/features/coach/become_partner_page.dart';
+import 'package:health_pro/presentation/features/coach/chat_page.dart';
 import 'package:health_pro/presentation/features/coach/data_access_controller.dart';
 import 'package:health_pro/presentation/features/coach/data_access_page.dart';
 import 'package:health_pro/presentation/features/gym/gym_page.dart';
@@ -230,6 +231,10 @@ class _Details extends StatelessWidget {
               // between the goals and here is one tap away in the Explore sheet (D-237).
               SectionHeader(title: l.accountQuickActions),
               _quickActions(context, l),
+              // Terms, privacy, refunds and contact — the pages the payment gateway and the Play
+              // listing point at, reachable from inside the app too.
+              SectionHeader(title: l.accountLegal),
+              const LegalLinksCard(),
               const SizedBox(height: AppSpacing.lg),
               const _SignOutButton(),
               // Clears the docked FAB, which otherwise sits on top of the button.

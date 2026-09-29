@@ -28,13 +28,13 @@ abstract final class HomeScreenWidget {
   /// The iOS name follows the Swift rather than the other way round: a placed widget is bound to
   /// its `kind`, so renaming it would orphan every widget already on somebody's home screen.
   static const androidProvider = 'EatzifyWidgetProvider';
-  static const androidQualified = 'app.eatzify.widget.EatzifyWidgetProvider';
+  static const androidQualified = 'com.zynthovo.eatzify.widget.EatzifyWidgetProvider';
 
   /// Every Android widget class — one per size in the picker (D-219). Each has to be told to
   /// redraw: an update names one provider, and the others would sit on yesterday's figures.
   /// [androidProvider] is the medium one and keeps its name so already-placed widgets stay bound.
   static const androidProviders = ['EatzifyWidgetSmall', androidProvider, 'EatzifyWidgetLarge'];
-  static const _androidPackage = 'app.eatzify.widget';
+  static const _androidPackage = 'com.zynthovo.eatzify.widget';
 
   /// Must equal `StaticConfiguration(kind:)` in `ios/HomeScreenWidget/HomeScreenWidget.swift`.
   static const iOSWidgetKind = 'HomeScreenWidget';

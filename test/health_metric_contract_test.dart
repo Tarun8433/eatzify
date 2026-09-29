@@ -91,14 +91,14 @@ void main() {
         matches(RegExp(r'<activity-alias[^>]*android:targetActivity="\.PrivacyPolicyActivity"')),
       );
       expect(
-        File('android/app/src/main/kotlin/app/eatzify/PrivacyPolicyActivity.kt').existsSync(),
+        File('android/app/src/main/kotlin/com/zynthovo/eatzify/PrivacyPolicyActivity.kt').existsSync(),
         isTrue,
       );
     });
 
     test('should host the permission flow in a fragment activity', () {
       final activity = File(
-        'android/app/src/main/kotlin/app/eatzify/MainActivity.kt',
+        'android/app/src/main/kotlin/com/zynthovo/eatzify/MainActivity.kt',
       ).readAsStringSync();
       expect(activity, contains('class MainActivity : FlutterFragmentActivity()'));
     });

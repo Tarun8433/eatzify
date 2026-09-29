@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:health_pro/core/config/site_links.dart';
 import 'package:health_pro/core/format/rupees.dart';
 import 'package:health_pro/core/theme/app_spacing.dart';
 import 'package:health_pro/core/widgets/app_card.dart';
@@ -11,6 +12,7 @@ import 'package:health_pro/presentation/features/billing/paywall_compare.dart';
 import 'package:health_pro/presentation/features/billing/paywall_plan_cards.dart';
 import 'package:health_pro/presentation/features/billing/tier_palette.dart';
 import 'package:health_pro/presentation/l10n/app_localizations.dart';
+import 'package:health_pro/presentation/widgets/site_link.dart';
 
 /// How much of the screen the sheet may take. Short of full height on purpose: the strip of the
 /// page left showing is what makes it a sheet you can dismiss rather than a screen you are stuck
@@ -186,6 +188,17 @@ class _Plans extends StatelessWidget {
           TierPlanCards(billing: billing),
           const SizedBox(height: AppSpacing.xl),
           PaywallCompare(billing: billing),
+          // What paying commits you to, read before the button rather than hunted for after. In
+          // the scrolling list, not the fixed footer: at 200 % text a footer line has nowhere to
+          // go and pushes the pay button off the sheet (rule 12).
+          const SizedBox(height: AppSpacing.lg),
+          AgreementLine(
+            lead: l.legalAgreePay,
+            links: [
+              (label: l.legalTerms, uri: SiteLinks.terms),
+              (label: l.legalRefunds, uri: SiteLinks.refunds),
+            ],
+          ),
         ],
       ),
     );
@@ -212,6 +225,9 @@ class _PayButton extends StatelessWidget {
       if (billing.priceState.value is! Ready<List<TierPrice>>) {
         return const SizedBox.shrink();
       }
+      // D-249: no way to pay in this app yet. The plans and the "coming soon" note stay; a pay
+      // button that the server would refuse does not.
+      if (billing.paymentsUnavailable) return const SizedBox.shrink();
 
       final chosen = billing.selectedPricePaise;
       final busy = billing.buying.value;
@@ -230,12 +246,20 @@ class _PayButton extends StatelessWidget {
               child: TextField(
                 onChanged: (value) => billing.couponCode.value = value,
                 textCapitalization: TextCapitalization.characters,
-                decoration: InputDecoration(
-                  labelText: l.premiumCouponLabel,
-                  isDense: true,
-                ),
+                decoration: InputDecoration(labelText: l.premiumCouponLabel, isDense: true),
               ),
             ),
+            // Not a refusal from the server: the order exists, the app just has no way to open
+            // checkout. Saying that beats a button that looks like it did nothing.
+            if (billing.gatewayUnavailable.value)
+              Padding(
+                padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+                child: Text(
+                  l.billingGatewayUnavailable,
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.error),
+                ),
+              ),
             // Rule 7: whatever the server refused with, in its own words.
             if (billing.buyError.value case final message?)
               Padding(

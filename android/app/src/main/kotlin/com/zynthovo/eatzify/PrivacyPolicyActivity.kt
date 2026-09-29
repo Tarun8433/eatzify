@@ -1,4 +1,4 @@
-package app.eatzify
+package com.zynthovo.eatzify
 
 import android.app.Activity
 import android.content.ActivityNotFoundException

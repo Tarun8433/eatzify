@@ -69,20 +69,18 @@ export type SubscriptionStatus =
 /// `test/tiers.spec.ts` fails if either ladder inverts again.
 export const PRICES: Record<
   Exclude<Tier, 'FREE'>,
-  Record<'1M' | '3M' | '6M' | '9M' | '12M', number>
+  Record<'1M' | '3M' | '6M' | '12M', number>
 > = {
   BASIC: {
     '1M': 24_900,
     '3M': 69_900,
     '6M': 119_900,
-    '9M': 159_900,
     '12M': 209_900,
   },
   PRO: {
     '1M': 64_900,
     '3M': 179_900,
     '6M': 279_900,
-    '9M': 379_900,
     '12M': 499_900,
   },
 };

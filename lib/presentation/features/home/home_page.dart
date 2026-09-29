@@ -15,6 +15,7 @@ import 'package:health_pro/core/widgets/view_state.dart';
 import 'package:health_pro/domain/entities/food.dart';
 import 'package:health_pro/domain/repositories/billing_repository.dart';
 import 'package:health_pro/domain/repositories/diary_repository.dart';
+import 'package:health_pro/domain/repositories/payment_gateway.dart';
 import 'package:health_pro/domain/repositories/plan_repository.dart';
 import 'package:health_pro/domain/usecases/plan_reminders.dart';
 import 'package:health_pro/domain/usecases/sync_health.dart';
@@ -56,7 +57,15 @@ class HomePage extends StatelessWidget {
     );
 
     final billing = Get.isRegistered<BillingRepository>()
-        ? Get.put(BillingController(billing: Get.find<BillingRepository>()), permanent: true)
+        ? Get.put(
+            BillingController(
+              billing: Get.find<BillingRepository>(),
+              // Absent in tests and in any build with no SDK linked; the controller then says
+              // checkout cannot be opened rather than leaving a dead button.
+              gateway: Get.isRegistered<PaymentGateway>() ? Get.find<PaymentGateway>() : null,
+            ),
+            permanent: true,
+          )
         : null;
 
     return Stack(

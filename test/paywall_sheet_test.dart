@@ -95,7 +95,7 @@ void main() {
     await openSheet(tester, fullMatrix);
 
     expect(find.text('₹200/month'), findsOneWidget); // BASIC 6M: 1,199 / 6
-    expect(find.text('₹178/month'), findsOneWidget); // BASIC 9M: 1,599 / 9
+    expect(find.text('₹175/month'), findsOneWidget); // BASIC 12M: 2,099 / 12 = 174.92
     expect(find.text('₹467/month'), findsOneWidget); // PRO 6M: 2,799 / 6
     expect(find.text('₹199/month'), findsNothing);
   });

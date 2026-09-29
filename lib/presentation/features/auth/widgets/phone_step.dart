@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:health_pro/core/config/site_links.dart';
 import 'package:health_pro/core/theme/app_spacing.dart';
 import 'package:health_pro/core/widgets/app_card.dart';
 import 'package:health_pro/presentation/features/auth/login_controller.dart';
 import 'package:health_pro/presentation/features/auth/widgets/auth_actions.dart';
 import 'package:health_pro/presentation/features/auth/widgets/google_button.dart';
 import 'package:health_pro/presentation/l10n/app_localizations.dart';
+import 'package:health_pro/presentation/widgets/site_link.dart';
 import 'package:intl_phone_field/intl_phone_field.dart';
 
 /// Step one: the number. docs/09 §3 — phone is primary auth in India, and there is no email or
@@ -104,6 +106,14 @@ class _PhoneStepState extends State<PhoneStep> {
             children: [
               AuthFailureText(failure: c.failure.value),
               AuthPrimaryButton(label: l.loginSendCode, onPressed: c.canSend ? c.sendCode : null),
+              const SizedBox(height: AppSpacing.sm),
+              AgreementLine(
+                lead: l.legalAgreeSignIn,
+                links: [
+                  (label: l.legalTerms, uri: SiteLinks.terms),
+                  (label: l.legalPrivacy, uri: SiteLinks.privacy),
+                ],
+              ),
               if (c.googleEnabled) ...[
                 const SizedBox(height: AppSpacing.lg),
                 _OrDivider(label: l.loginOr),

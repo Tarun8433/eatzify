@@ -6062,3 +6062,40 @@ than being hidden inside the total.
 target: nothing computes "kcal left" from this figure.
 **Reverses if** the double counting misleads in practice — then the app subtracts overlapping
 device energy, or returns to two figures.
+
+## D-247 — Inter is bundled, and text ignores the phone's font-size setting (reverses rule 12)
+**When** 2026-09-28 · **Decision** Two changes so text looks the same on every device.
+1. **Inter ships in the app** (`assets/google_fonts/`, the five weights the code uses, byte-identical
+   to what `google_fonts` downloads — verified against its pinned SHA-256s — with the OFL licence).
+   `GoogleFonts.config.allowRuntimeFetching = false`. Before this the font was fetched on first
+   launch, and until it arrived — or forever, offline — each phone drew its own system font (SF,
+   Roboto, One UI, MiSans) at different widths and heights. That was the visible inconsistency.
+2. **Text scale is locked at 100 %.** The root builder in `main.dart` sets
+   `TextScaler.noScaling`, so the phone's own font-size setting has no effect in the app.
+
+**Why** The product owner wants the app to look identical on every device, as it does on iPhone,
+and chose the lock over a 90–130 % clamp after the trade-off was laid out.
+**Cost** People who have enlarged text on their phone for low vision cannot enlarge it in Eatzify.
+This reverses CLAUDE.md rule 12 ("must survive 200 % font scale"), which is amended to point here.
+The existing 200 % widget tests are kept: they still pass, and they are what makes this reversible.
+**Reverses if** accessibility complaints, a store review finding, or an accessibility-law
+requirement — then replace the lock with `MediaQuery.withClampedTextScaling(maxScaleFactor: 1.3)`.
+
+## D-248 — 9-month plans are no longer sold
+**When** 2026-09-29 · **Decision** Plans are 1, 3, 6 and 12 months. `9M` is gone from the price
+list, from checkout and from the durations checkout accepts; the website's pricing page matches.
+`MONTHS_PER_DURATION` keeps `9M` so a 9-month plan bought earlier still renews and ends correctly.
+**Why** Google Play and the App Store can only bill weekly, 1, 3, 6 or 12 months, and the product
+owner chose one plan list on every way to pay over a Cashfree-only 9-month plan.
+
+## D-249 — Which app may be offered Cashfree
+**When** 2026-09-29 · **Decision** The app sends `X-Client-Platform` (`android` · `ios`). The server
+offers Cashfree only where it is allowed: **never on iPhone** (App Store guideline 3.1.1), and **on
+Android only with `CASHFREE_ANDROID_ENABLED=true`**, set once Google Play approves the app for User
+Choice Billing. An app that does not say what it is gets nothing. Stub mode is never gated.
+Elsewhere `payments_mode` is `unavailable` and the paywall draws no pay button; checkout and upgrade
+also refuse (`PAYMENTS_NOT_OFFERED`), because a hidden button does not stop a direct request.
+**Why** Selling a digital subscription through another processor without enrolment breaks Play's
+payments policy, and an app on open testing is reviewed against it.
+**Also fixed** The app read "anything but stub" as live, so an unknown mode would have drawn a pay
+button; it now takes payment only in `sandbox` or `production`. The rule is `api/src/billing/payment-rails.ts`.

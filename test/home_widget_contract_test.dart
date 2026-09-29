@@ -26,7 +26,7 @@ void main() {
   });
 
   test('should name the Android provider class that exists', () {
-    const path = 'android/app/src/main/kotlin/app/eatzify/widget/EatzifyWidgetProvider.kt';
+    const path = 'android/app/src/main/kotlin/com/zynthovo/eatzify/widget/EatzifyWidgetProvider.kt';
     final kotlin = File(path).readAsStringSync();
 
     expect(
@@ -37,14 +37,14 @@ void main() {
     // The qualified name is what the launcher looks up; package plus class, and both halves have
     // to be right or the reload silently reaches nothing.
     expect(HomeScreenWidget.androidQualified, endsWith(HomeScreenWidget.androidProvider));
-    expect(kotlin, contains('package app.eatzify.widget'));
+    expect(kotlin, contains('package com.zynthovo.eatzify.widget'));
   });
 
   /// D-219. Three sizes in the picker means three receivers, and Dart has to redraw all three.
   test('should declare and refresh every Android widget size', () {
     final manifest = File('android/app/src/main/AndroidManifest.xml').readAsStringSync();
     final kotlin = File(
-      'android/app/src/main/kotlin/app/eatzify/widget/EatzifyWidgetProvider.kt',
+      'android/app/src/main/kotlin/com/zynthovo/eatzify/widget/EatzifyWidgetProvider.kt',
     ).readAsStringSync();
 
     final declared = RegExp(
@@ -130,7 +130,7 @@ void main() {
   test('should send only taps Dart understands, marked as widget taps on iOS', () {
     final swift = File('ios/HomeScreenWidget/HomeScreenWidget.swift').readAsStringSync();
     final kotlin = File(
-      'android/app/src/main/kotlin/app/eatzify/widget/EatzifyWidgetProvider.kt',
+      'android/app/src/main/kotlin/com/zynthovo/eatzify/widget/EatzifyWidgetProvider.kt',
     ).readAsStringSync();
 
     final iosLinks = RegExp(r'URL\(string: "([^"]+)"\)').allMatches(swift).map((m) => m.group(1)!);

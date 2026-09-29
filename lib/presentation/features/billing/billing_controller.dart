@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import 'package:health_pro/core/widgets/view_state.dart';
 import 'package:health_pro/domain/entities/billing.dart';
 import 'package:health_pro/domain/repositories/billing_repository.dart';
+import 'package:health_pro/domain/repositories/payment_gateway.dart';
 
 /// What the server says this account may use, for the screens that sell the rest.
 ///
@@ -11,9 +12,13 @@ import 'package:health_pro/domain/repositories/billing_repository.dart';
 /// "upgrade CTA rendered while subscribed" as a shipped defect of the old build, and a network
 /// blip must not flash a sales banner at a paying customer.
 class BillingController extends GetxController {
-  BillingController({required this.billing});
+  BillingController({required this.billing, this.gateway});
 
   final BillingRepository billing;
+
+  /// Opens Cashfree's checkout for a real order. Absent in tests and on a build with no gateway
+  /// linked, where a non-stub purchase says so rather than pretending to have opened one.
+  final PaymentGateway? gateway;
 
   final entitlements = Rxn<Entitlements>();
 
@@ -39,6 +44,10 @@ class BillingController extends GetxController {
   /// not draw one, and a live build must not keep saying payments are coming soon.
   bool get canTakePayment => entitlements.value?.canTakePayment ?? false;
 
+  /// D-249: the server says this app may not take payment at all (iPhone until Apple in-app
+  /// purchase, Android until Play approves User Choice Billing). No pay button is drawn.
+  bool get paymentsUnavailable => entitlements.value?.paymentsUnavailable ?? false;
+
   /// The paise of the selected row, or null when nothing is selected. Read from the matrix the
   /// server sent — the app never computes a price (rule 2).
   int? get selectedPricePaise {
@@ -57,6 +66,11 @@ class BillingController extends GetxController {
 
   /// Whatever the server refused with, verbatim (rule 7).
   final buyError = RxnString();
+
+  /// Set when a real order was started but nothing could open it — no gateway linked into this
+  /// build, or a server that returned no session. The paywall says so in its own words (rule 5);
+  /// a controller has no l10n.
+  final gatewayUnavailable = false.obs;
 
   /// Set once a stub purchase has unlocked the tier, so the sheet can say what it actually did
   /// rather than looking like a real payment went through.
@@ -78,6 +92,7 @@ class BillingController extends GetxController {
 
     buying.value = true;
     buyError.value = null;
+    gatewayUnavailable.value = false;
 
     // One key per attempt. A double tap is already blocked above; this is for the retry that
     // happens below the app, where the same request is sent twice and must open one order.
@@ -108,9 +123,43 @@ class BillingController extends GetxController {
       });
       // The tier comes back from the server, never from what the app just did (rule 3).
       await load();
+      buying.value = false;
+      return;
     }
 
+    await _payAtGateway(session);
     buying.value = false;
+  }
+
+  /// Hands the server's session to Cashfree and waits for the person to come back.
+  ///
+  /// What returns from the gateway is NOT proof of payment: docs/11 §5 makes the verified webhook
+  /// the only thing that activates a subscription. So a completed checkout is followed by asking
+  /// the server what this account may use — never by unlocking anything here (rule 3).
+  Future<void> _payAtGateway(CheckoutSession session) async {
+    final sessionId = session.paymentSessionId;
+    final gateway = this.gateway;
+    if (gateway == null || sessionId == null || sessionId.isEmpty) {
+      // A real order with nothing to open it: say so plainly rather than leave a dead button.
+      gatewayUnavailable.value = true;
+      return;
+    }
+
+    final result = await gateway.open(
+      orderId: session.orderId,
+      paymentSessionId: sessionId,
+      mode: session.mode,
+    );
+
+    switch (result.outcome) {
+      case PaymentOutcome.submitted:
+        await load();
+      case PaymentOutcome.cancelled:
+        break;
+      case PaymentOutcome.failed:
+        buyError.value = result.message;
+        await load();
+    }
   }
 
   @override

@@ -1,4 +1,4 @@
-package app.eatzify
+package com.zynthovo.eatzify
 
 import io.flutter.embedding.android.FlutterFragmentActivity
 

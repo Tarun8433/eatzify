@@ -144,7 +144,6 @@ dependencies:
 
   # Billing — see §8 for the entitlement-ownership caveat
   purchases_flutter: ^8.0.0    # RevenueCat
-  razorpay_flutter: ^1.4.0     # web/UPI checkout
 
   # UI
   flutter_screenutil: ^5.9.3

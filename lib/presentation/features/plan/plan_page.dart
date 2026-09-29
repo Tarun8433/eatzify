@@ -12,6 +12,7 @@ import 'package:health_pro/domain/entities/food.dart';
 import 'package:health_pro/domain/entities/plan.dart';
 import 'package:health_pro/domain/repositories/billing_repository.dart';
 import 'package:health_pro/domain/repositories/diary_repository.dart';
+import 'package:health_pro/domain/repositories/payment_gateway.dart';
 import 'package:health_pro/domain/repositories/plan_repository.dart';
 import 'package:health_pro/presentation/features/billing/billing_controller.dart';
 import 'package:health_pro/presentation/features/billing/premium_widgets.dart';
@@ -36,7 +37,15 @@ class PlanPage extends StatelessWidget {
     // Absent in tests that are not about billing, and on any build where the repository is not
     // registered — every premium surface then simply stays away, which is also the failure mode.
     final billing = Get.isRegistered<BillingRepository>()
-        ? Get.put(BillingController(billing: Get.find<BillingRepository>()), permanent: true)
+        ? Get.put(
+            BillingController(
+              billing: Get.find<BillingRepository>(),
+              // Absent in tests and in any build with no SDK linked; the controller then says
+              // checkout cannot be opened rather than leaving a dead button.
+              gateway: Get.isRegistered<PaymentGateway>() ? Get.find<PaymentGateway>() : null,
+            ),
+            permanent: true,
+          )
         : null;
 
     return TabScaffold(
