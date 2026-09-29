@@ -74,13 +74,29 @@ class _FakeAuth implements AuthRepository {
   @override
   Future<Either<Failure, Unit>> logout(Session c) async => const Right(unit);
   @override
-  Future<Either<Failure, Unit>> requestOtp(String phone) async => const Right(unit);
-  @override
-  Future<Either<Failure, Session>> verifyOtp({
-    required String phoneE164,
-    required String otp,
-    required String deviceId,
+  Future<Either<Failure, Session>> signIn({
+    required String email,
+    required String password,
   }) async => const Left(ApiFailure('no', code: 'X', status: 401));
+
+  @override
+  Future<Either<Failure, Unit>> register({
+    required String email,
+    required String password,
+    required String phoneE164,
+  }) async => const Right(unit);
+
+  @override
+  Future<Either<Failure, Session>> verifyEmail({
+    required String email,
+    required String code,
+  }) async => const Left(ApiFailure('no', code: 'X', status: 401));
+
+  @override
+  Future<Either<Failure, Unit>> resendCode(String email) async => const Right(unit);
+
+  @override
+  Future<Either<Failure, Unit>> forgotPassword(String email) async => const Right(unit);
   @override
   Future<Either<Failure, Session>> signInWithGoogle({
     required String idToken,

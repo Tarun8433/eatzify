@@ -1,4 +1,5 @@
 import {
+  HttpException,
   HttpStatus,
   Injectable,
   NotFoundException,
@@ -28,6 +29,23 @@ import { Session } from '../session/domain/session';
 import { SessionService } from '../session/session.service';
 import { ProfileService } from '../profile/profile.service';
 import { StatusEnum } from '../statuses/statuses.enum';
+import { EmailOtpService } from './email-otp/email-otp.service';
+import {
+  CODE_EXPIRED,
+  CODE_INVALID,
+  CODE_LOCKED,
+  EMAIL_NOT_VERIFIED,
+  EMAIL_TAKEN,
+  INVALID_CREDENTIALS,
+} from './auth-copy';
+
+/// What every way in returns (docs/09 §3).
+export type AppSession = {
+  access: string;
+  refresh: string;
+  user: User;
+  onboarding_required: boolean;
+};
 import { User } from '../users/domain/user';
 
 @Injectable()
@@ -39,86 +57,56 @@ export class AuthService {
     private readonly profileService: ProfileService,
     private readonly mailService: MailService,
     private readonly configService: ConfigService<AllConfigType>,
+    private readonly emailOtp: EmailOtpService,
   ) {}
 
-  async validateLogin(loginDto: AuthEmailLoginDto): Promise<LoginResponseDto> {
-    const user = await this.usersService.findByEmail(loginDto.email);
-
-    if (!user) {
-      throw this.invalidLoginException({
-        email: 'notFound',
-      });
-    }
-
-    if (user.provider !== AuthProvidersEnum.email) {
-      throw this.invalidLoginException({
-        email: `needLoginViaProvider:${user.provider}`,
-      });
-    }
-
-    if (!user.password) {
-      throw this.invalidLoginException({
-        password: 'incorrectPassword',
-      });
-    }
-
-    const isValidPassword = await bcrypt.compare(
-      loginDto.password,
-      user.password,
+  /// D-250: email and password are the way in. One message for an unknown email and a wrong
+  /// password, so this route cannot be used to test which addresses have accounts.
+  async validateLogin(loginDto: AuthEmailLoginDto): Promise<AppSession> {
+    const user = await this.usersService.findByEmail(
+      loginDto.email.trim().toLowerCase(),
     );
-
-    if (!isValidPassword) {
-      throw this.invalidLoginException({
-        password: 'incorrectPassword',
-      });
+    const passwordOk =
+      !!user?.password &&
+      (await bcrypt.compare(loginDto.password, user.password));
+    if (!user || user.provider !== AuthProvidersEnum.email || !passwordOk) {
+      throw this.refuse(
+        HttpStatus.UNAUTHORIZED,
+        'INVALID_CREDENTIALS',
+        INVALID_CREDENTIALS,
+      );
     }
 
-    const hash = crypto
-      .createHash('sha256')
-      .update(randomStringGenerator())
-      .digest('hex');
+    // Right password, email never confirmed: send a fresh code and send them to the code screen.
+    if (user.status?.id?.toString() === StatusEnum.inactive.toString()) {
+      await this.emailOtp
+        .issue(Number(user.id), user.email!)
+        // Over the hourly limit: the code already sent still works, and the 403 below routes there.
+        .catch(() => undefined);
+      throw this.refuse(
+        HttpStatus.FORBIDDEN,
+        'EMAIL_NOT_VERIFIED',
+        EMAIL_NOT_VERIFIED,
+      );
+    }
 
-    const session = await this.sessionService.create({
-      user,
-      hash,
-    });
-
-    const { token, refreshToken, tokenExpires } = await this.getTokensData({
-      id: user.id,
-      role: user.role,
-      sessionId: session.id,
-      hash,
-    });
-
-    return {
-      refreshToken,
-      token,
-      tokenExpires,
-      user,
-    };
+    return this.issueSession(user);
   }
 
-  /// docs/09 §3. Find-or-create by phone, then issue a session exactly as the email flow does.
-  async validatePhoneLogin(phone: string): Promise<{
-    access: string;
-    refresh: string;
-    user: User;
-    onboarding_required: boolean;
-  }> {
-    let user = await this.usersService.findByPhone(phone);
+  private refuse(
+    status: HttpStatus,
+    code: string,
+    userMessage: string,
+  ): HttpException {
+    return new HttpException(
+      { status, error: { code, user_message: userMessage } },
+      status,
+    );
+  }
 
-    if (!user) {
-      user = await this.usersService.create({
-        email: null,
-        phone,
-        firstName: null,
-        lastName: null,
-        provider: AuthProvidersEnum.phone,
-        role: { id: RoleEnum.user },
-        status: { id: StatusEnum.active },
-      });
-    }
-
+  /// One session shape for every way in (docs/09 §3): the app stores `access` and `refresh` and
+  /// asks the server, never itself, whether onboarding is done.
+  async issueSession(user: User): Promise<AppSession> {
     const hash = crypto
       .createHash('sha256')
       .update(randomStringGenerator())
@@ -137,7 +125,6 @@ export class AuthService {
       access: token,
       refresh: refreshToken,
       user,
-      // docs/09 §3: the server is the authority. A stored profile row IS onboarding completion.
       onboarding_required: !(await this.profileService.hasCompletedOnboarding(
         Number(user.id),
       )),
@@ -245,38 +232,92 @@ export class AuthService {
     };
   }
 
+  /// D-250: an account starts inactive and becomes usable once the emailed code is entered.
   async register(dto: AuthRegisterLoginDto): Promise<void> {
-    const user = await this.usersService.create({
-      ...dto,
-      email: dto.email,
-      role: {
-        id: RoleEnum.user,
-      },
-      status: {
-        id: StatusEnum.inactive,
-      },
-    });
+    const email = dto.email.trim().toLowerCase();
+    const existing = await this.usersService.findByEmail(email);
 
-    const hash = await this.jwtService.signAsync(
-      {
-        confirmEmailUserId: user.id,
-      },
-      {
-        secret: this.configService.getOrThrow('auth.confirmEmailSecret', {
-          infer: true,
-        }),
-        expiresIn: this.configService.getOrThrow('auth.confirmEmailExpires', {
-          infer: true,
-        }),
-      },
+    if (
+      existing &&
+      existing.status?.id?.toString() !== StatusEnum.inactive.toString()
+    ) {
+      throw this.refuse(HttpStatus.CONFLICT, 'EMAIL_TAKEN', EMAIL_TAKEN);
+    }
+
+    // Signing up again before confirming replaces the password and number — whoever confirms the
+    // code owns the inbox, so only they can finish it.
+    const user = existing
+      ? await this.usersService.update(existing.id, {
+          password: dto.password,
+          phone: dto.phone_e164,
+        })
+      : await this.usersService.create({
+          email,
+          password: dto.password,
+          phone: dto.phone_e164,
+          firstName: dto.firstName ?? null,
+          lastName: dto.lastName ?? null,
+          provider: AuthProvidersEnum.email,
+          role: { id: RoleEnum.user },
+          status: { id: StatusEnum.inactive },
+        });
+
+    await this.emailOtp.issue(Number(user!.id), email);
+  }
+
+  /// The code from the email. Right → the account opens and a session starts.
+  async verifyEmail(emailRaw: string, code: string): Promise<AppSession> {
+    const user = await this.usersService.findByEmail(
+      emailRaw.trim().toLowerCase(),
     );
+    if (!user)
+      throw this.refuse(
+        HttpStatus.UNPROCESSABLE_ENTITY,
+        'CODE_INVALID',
+        CODE_INVALID,
+      );
 
-    await this.mailService.userSignUp({
-      to: dto.email,
-      data: {
-        hash,
-      },
-    });
+    const result = await this.emailOtp.verify(Number(user.id), code);
+    if (result === 'expired') {
+      throw this.refuse(
+        HttpStatus.UNPROCESSABLE_ENTITY,
+        'CODE_EXPIRED',
+        CODE_EXPIRED,
+      );
+    }
+    if (result === 'locked') {
+      throw this.refuse(
+        HttpStatus.UNPROCESSABLE_ENTITY,
+        'CODE_LOCKED',
+        CODE_LOCKED,
+      );
+    }
+    if (result !== 'ok') {
+      throw this.refuse(
+        HttpStatus.UNPROCESSABLE_ENTITY,
+        'CODE_INVALID',
+        CODE_INVALID,
+      );
+    }
+
+    const active =
+      (await this.usersService.update(user.id, {
+        status: { id: StatusEnum.active },
+      })) ?? user;
+    return this.issueSession(active);
+  }
+
+  /// Always answers the same way whether or not the email exists (only the hourly limit speaks).
+  async resendCode(emailRaw: string): Promise<void> {
+    const user = await this.usersService.findByEmail(
+      emailRaw.trim().toLowerCase(),
+    );
+    if (
+      user?.email &&
+      user.status?.id?.toString() === StatusEnum.inactive.toString()
+    ) {
+      await this.emailOtp.issue(Number(user.id), user.email);
+    }
   }
 
   async confirmEmail(hash: string): Promise<void> {
@@ -364,28 +405,11 @@ export class AuthService {
     await this.usersService.update(user.id, user);
   }
 
-  async forgotPassword(email: string): Promise<void> {
+  /// D-250: answers the same whether or not the email is registered.
+  async forgotPassword(emailRaw: string): Promise<void> {
+    const email = emailRaw.trim().toLowerCase();
     const user = await this.usersService.findByEmail(email);
-
-    if (!user) {
-      const uniformErrors = this.configService.getOrThrow(
-        'auth.uniformErrors',
-        { infer: true },
-      );
-
-      // With uniform errors enabled we do not reveal whether the email is
-      // registered: respond exactly like the success case and skip the mail.
-      if (uniformErrors) {
-        return;
-      }
-
-      throw new UnprocessableEntityException({
-        status: HttpStatus.UNPROCESSABLE_ENTITY,
-        errors: {
-          email: 'emailNotExists',
-        },
-      });
-    }
+    if (!user) return;
 
     const tokenExpiresIn = this.configService.getOrThrow('auth.forgotExpires', {
       infer: true,

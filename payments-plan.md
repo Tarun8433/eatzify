@@ -40,7 +40,7 @@ A box is ticked only after its check has actually passed.
 
 ### Phase 1 — Open testing (Play Console)
 - [x] Hide the Cashfree option on Android until UCB enrolment is approved (server flag)
-- [ ] Reviewer access: a documented way to sign in (the OTP flow needs a real SMS provider first — see "Blocking")
+- [ ] Reviewer access: a confirmed test account (email + password) given to Play in App access
 - [ ] Open testing track: countries, release, rollout
 
 > **Phases 1–2 verified 2026-09-29:** API `npx jest` 708/708 (a table test pins every platform × mode × switch); app `flutter test` 902/902.
@@ -79,5 +79,5 @@ A box is ticked only after its check has actually passed.
 
 ## Blocking, before any public release
 
-- **OTP `000000` signs in as anyone** — no SMS provider is wired. Open testing makes the app public; this must be fixed first.
+- ~~**OTP `000000` signs in as anyone**~~ — fixed by D-250: phone OTP removed, email + password with an emailed code.
 - **The Android app sells through Cashfree today without UCB enrolment** — a Play payments-policy violation once the app is public. Phase 1's server flag hides it until enrolment is approved.

@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Reset password · Eatzify</title>
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<header><a class="brand" href="/">Eatzify</a></header>
+<main>
+
+<h1>Choose a new password</h1>
+<div class="card">
+<form id="reset" novalidate>
+<p><label for="pw">New password (at least 8 characters)</label><br>
+<input id="pw" type="password" autocomplete="new-password" minlength="8" required></p>
+<p><label for="pw2">Type it again</label><br>
+<input id="pw2" type="password" autocomplete="new-password" minlength="8" required></p>
+<p><button type="submit">Save password</button></p>
+</form>
+<p id="msg" role="status" aria-live="polite"></p>
+</div>
+
+</main>
+<script>
+(function () {
+  var API = 'https://eatzify-api.zynthovo.com/api/v1/auth/reset/password';
+  var params = new URLSearchParams(location.search);
+  var hash = params.get('hash');
+  var expires = Number(params.get('expires'));
+  var form = document.getElementById('reset');
+  var msg = document.getElementById('msg');
+  function say(text) { msg.textContent = text; }
+  function done(text) { form.hidden = true; say(text); }
+
+  if (!hash) return done('This link is incomplete. Open the app and tap "Forgot password?" again.');
+  if (expires && Date.now() > expires) return done('This link has expired. Open the app and tap "Forgot password?" again.');
+
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+    var pw = document.getElementById('pw').value;
+    if (pw.length < 8) return say('Use at least 8 characters.');
+    if (pw !== document.getElementById('pw2').value) return say('The two passwords are different.');
+    form.querySelector('button').disabled = true;
+    say('Saving…');
+    fetch(API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ hash: hash, password: pw })
+    }).then(function (r) {
+      if (r.ok) return done('Password changed. Go back to the app and sign in with your new password.');
+      form.querySelector('button').disabled = false;
+      say(r.status === 422 || r.status === 404
+        ? 'This link has already been used or has expired. Ask for a new one from the app.'
+        : 'Something went wrong. Please try again.');
+    }).catch(function () {
+      form.querySelector('button').disabled = false;
+      say('Could not reach Eatzify. Check your connection and try again.');
+    });
+  });
+})();
+</script>
+</body>
+</html>

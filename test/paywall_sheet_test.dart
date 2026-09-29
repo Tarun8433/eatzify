@@ -136,7 +136,11 @@ void main() {
   group('the comparison table describes real entitlements', () {
     testWidgets('it names the gaps the backend actually has', (tester) async {
       await openSheet(tester, fullMatrix);
-      await tester.scrollUntilVisible(find.text('Compare Features'), 200, scrollable: find.byType(Scrollable).first);
+      await tester.scrollUntilVisible(
+        find.text('Compare Features'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
       await tester.pumpAndSettle();
 
       expect(find.text('PDF export'), findsOneWidget);
@@ -148,7 +152,11 @@ void main() {
 
     testWidgets('it promises nothing the tier table does not gate', (tester) async {
       await openSheet(tester, fullMatrix);
-      await tester.scrollUntilVisible(find.text('Compare Features'), 200, scrollable: find.byType(Scrollable).first);
+      await tester.scrollUntilVisible(
+        find.text('Compare Features'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
       await tester.pumpAndSettle();
 
       // None of these is an entitlement key; a paywall that lists them is selling vapour.

@@ -8,10 +8,8 @@ import 'fakes.dart';
 /// webhook does, so every branch here ends by asking the server again — or by saying nothing
 /// happened.
 void main() {
-  BillingController controllerFor(
-    FakeBillingRepository repo, {
-    PaymentGateway? gateway,
-  }) => BillingController(billing: repo, gateway: gateway);
+  BillingController controllerFor(FakeBillingRepository repo, {PaymentGateway? gateway}) =>
+      BillingController(billing: repo, gateway: gateway);
 
   Future<void> buy(BillingController c) async {
     c.select('PRO', 1);

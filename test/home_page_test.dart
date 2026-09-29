@@ -764,9 +764,7 @@ void main() {
     ) async {
       await tester.pumpWidget(
         homeUnderTest(
-          FakeDiaryRepository(
-            dayResult: Right(dayWith(energyBurnedKcal: 300, workoutKcal: 240)),
-          ),
+          FakeDiaryRepository(dayResult: Right(dayWith(energyBurnedKcal: 300, workoutKcal: 240))),
         ),
       );
       await settle(tester);

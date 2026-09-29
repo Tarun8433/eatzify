@@ -43,7 +43,10 @@ void main() {
       GlobalCupertinoLocalizations.delegate,
     ],
     supportedLocales: AppLocalizations.supportedLocales,
-    home: MediaQuery(data: MediaQueryData(textScaler: scaler), child: home),
+    home: MediaQuery(
+      data: MediaQueryData(textScaler: scaler),
+      child: home,
+    ),
   );
 
   Widget page({TextScaler scaler = TextScaler.noScaling}) {

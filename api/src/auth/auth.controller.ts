@@ -15,16 +15,16 @@ import { AuthService } from './auth.service';
 import { MeService, type MeView } from './me.service';
 import { ApiBearerAuth, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import { AuthEmailLoginDto } from './dto/auth-email-login.dto';
-import { AuthOtpRequestDto } from './dto/auth-otp-request.dto';
-import { AuthOtpVerifyDto } from './dto/auth-otp-verify.dto';
-import { OtpService } from './otp.service';
 import { AuthForgotPasswordDto } from './dto/auth-forgot-password.dto';
 import { AuthConfirmEmailDto } from './dto/auth-confirm-email.dto';
 import { AuthResetPasswordDto } from './dto/auth-reset-password.dto';
 import { AuthUpdateDto } from './dto/auth-update.dto';
 import { AuthGuard } from '@nestjs/passport';
+import {
+  AuthResendCodeDto,
+  AuthVerifyEmailDto,
+} from './dto/auth-verify-email.dto';
 import { AuthRegisterLoginDto } from './dto/auth-register-login.dto';
-import { LoginResponseDto } from './dto/login-response.dto';
 import { NullableType } from '../utils/types/nullable.type';
 import { User } from '../users/domain/user';
 import { RefreshResponseDto } from './dto/refresh-response.dto';
@@ -41,40 +41,36 @@ export class AuthController {
   constructor(
     private readonly service: AuthService,
     private readonly meService: MeService,
-    private readonly otpService: OtpService,
   ) {}
 
   @SerializeOptions({
     groups: ['me'],
   })
   @Post('email/login')
-  @ApiOkResponse({
-    type: LoginResponseDto,
-  })
   @HttpCode(HttpStatus.OK)
-  public login(@Body() loginDto: AuthEmailLoginDto): Promise<LoginResponseDto> {
+  public login(@Body() loginDto: AuthEmailLoginDto) {
     return this.service.validateLogin(loginDto);
   }
 
-  @Post('otp/request')
-  @HttpCode(HttpStatus.NO_CONTENT)
-  public requestOtp(@Body() dto: AuthOtpRequestDto): void {
-    // docs/09 §3: always 204, never reveal whether the number exists.
-    this.otpService.issue(dto.phone_e164, Date.now());
-  }
-
-  @SerializeOptions({ groups: ['me'] })
-  @Post('otp/verify')
-  @HttpCode(HttpStatus.OK)
-  public verifyOtp(@Body() dto: AuthOtpVerifyDto) {
-    this.otpService.consume(dto.phone_e164, dto.otp, Date.now());
-    return this.service.validatePhoneLogin(dto.phone_e164);
-  }
-
+  /// D-250: creates an inactive account and emails a 6-digit code.
   @Post('email/register')
   @HttpCode(HttpStatus.NO_CONTENT)
   async register(@Body() createUserDto: AuthRegisterLoginDto): Promise<void> {
     return this.service.register(createUserDto);
+  }
+
+  /// The code from the email. Answers with a session, exactly as login does.
+  @SerializeOptions({ groups: ['me'] })
+  @Post('email/verify')
+  @HttpCode(HttpStatus.OK)
+  verifyEmail(@Body() dto: AuthVerifyEmailDto) {
+    return this.service.verifyEmail(dto.email, dto.code);
+  }
+
+  @Post('email/resend')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async resendCode(@Body() dto: AuthResendCodeDto): Promise<void> {
+    return this.service.resendCode(dto.email);
   }
 
   @Post('email/confirm')

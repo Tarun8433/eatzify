@@ -443,13 +443,33 @@
   "welcomeStart": "Get started",
   "loginSecureBadge": "100% secure",
   "loginPhoneHint": "Enter your phone number",
-  "loginPrivacyNote": "We'll never share your number with anyone.",
+  "loginPrivacyNote": "Your number is for receipts and support. You sign in with your email.",
   "loginOr": "or",
   "loginGoogle": "Continue with Google",
-  "loginGoogleFailed": "Google sign-in didn't finish. You can use your phone number instead.",
+  "loginGoogleFailed": "Google sign-in didn't finish. You can use your email instead.",
   "loginImportantTitle": "Important",
   "loginFooter": "Made with care for your health",
   "loginBack": "Back",
+  "loginEmailLabel": "Email",
+  "loginEmailHint": "you@example.com",
+  "loginPasswordLabel": "Password",
+  "loginPasswordHint": "At least 8 characters",
+  "loginShowPassword": "Show password",
+  "loginHidePassword": "Hide password",
+  "loginSignIn": "Sign in",
+  "loginForgot": "Forgot password?",
+  "loginNoAccount": "New to Eatzify?",
+  "loginCreateAccount": "Create account",
+  "signUpTitle": "Create your account",
+  "signUpSubtitle": "We'll email you a 6-digit code to confirm it's you.",
+  "signUpHaveAccount": "Already have an account?",
+  "otpChangeEmail": "Change email",
+  "forgotTitle": "Reset your password",
+  "forgotSubtitle": "Enter your account email and we'll send you a link to choose a new password.",
+  "forgotSend": "Send reset link",
+  "forgotSentTitle": "Check your inbox",
+  "forgotSentBody": "If {email} has an Eatzify account, a link to choose a new password is on its way. Open it on this phone, then come back and sign in.",
+  "forgotBackToSignIn": "Back to sign in",
   "otpDigit": "Digit {position} of {total}",
   "@otpDigit": {
     "placeholders": {
@@ -461,24 +481,22 @@
       }
     }
   },
-  "loginTitle": "Your phone number",
-  "loginSubtitle": "We'll text you a 6-digit code. No password to forget.",
+  "loginTitle": "Welcome back",
+  "loginSubtitle": "Sign in with your email and password.",
   "loginPhoneLabel": "Phone number",
-  "loginSendCode": "Send code",
-  "otpTitle": "Enter the code",
-  "otpSubtitle": "Sent to {phone}. It expires in 5 minutes.",
+  "otpTitle": "Check your email",
+  "otpSubtitle": "Enter the 6-digit code sent to {email}. It expires in 10 minutes.",
   "otpLabel": "6-digit code",
   "otpVerify": "Verify",
   "otpResend": "Send a new code",
   "otpResendIn": "You can ask for a new code in {seconds}s",
-  "otpChangeNumber": "Change number",
   "loginInvalidPhone": "Enter a 10-digit Indian mobile number.",
   "loginInvalidOtp": "Enter the 6-digit code.",
   "signOut": "Sign out",
   "notConnectedBackend": "The server isn't connected yet, so signing in can't complete. Everything else in the app works.",
   "@otpSubtitle": {
     "placeholders": {
-      "phone": {
+      "email": {
         "type": "String"
       }
     }
@@ -1948,7 +1966,6 @@
   "helpClosedNote": "This conversation is closed. Start a new one and we will pick it up.",
   "helpFromSupport": "Support",
   "helpFromYou": "You",
-  "accountHelp": "Help",
   "privacyTitle": "Privacy & data",
   "privacyRetry": "Try again",
   "privacyConsentsTitle": "What we may do with your data",
@@ -1964,19 +1981,33 @@
   "privacyExportAction": "Build my copy",
   "privacyExportReady": "Your copy is ready.",
   "privacyExportRows": "{table}: {count} rows",
-  "@privacyExportRows": {"placeholders": {"table": {"type": "String"}, "count": {"type": "String"}}},
+  "@privacyExportRows": {
+    "placeholders": {
+      "table": {
+        "type": "String"
+      },
+      "count": {
+        "type": "String"
+      }
+    }
+  },
   "privacyDeleteTitle": "Closing your account",
   "privacyDeleteBody": "Your health data is deleted for good after seven days. Payment records are kept as long as the law requires.",
   "privacyDeletePendingBody": "Your account is scheduled for deletion. You can stop it any time before it runs.",
   "privacyDeleteOn": "Scheduled for {date}",
-  "@privacyDeleteOn": {"placeholders": {"date": {"type": "String"}}},
+  "@privacyDeleteOn": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
   "privacyDeleteAction": "Delete my account",
   "privacyDeleteKeep": "Keep my account",
   "privacyDeleteConfirmTitle": "Delete your account?",
   "privacyDeleteConfirmBody": "We will delete your health data seven days from now. You can stop it before then.",
   "privacyDeleteConfirmNo": "Not now",
   "privacyDeleteConfirmYes": "Delete",
-  "accountPrivacy": "Privacy & data",
   "messagesInviteForChat": "Invite a client",
   "coachingAgreementTitle": "Coaching agreement",
   "coachingAgreementBody": "You are verified. Accepting the coaching agreement is the next step to becoming a Coaching Partner, which is the level that can message clients and help with their plan.",
@@ -2013,30 +2044,66 @@
   "logFatShort": "F",
   "logNutritionTitle": "What you'll get",
   "logNutritionPortion": "for {amount} g",
-  "@logNutritionPortion": {"placeholders": {"amount": {"type": "String"}}},
+  "@logNutritionPortion": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
   "logFibre": "Fibre",
   "logSodium": "Sodium",
   "logAddedSugar": "Added sugar",
   "logSaturatedFat": "Saturated fat",
   "logAddTo": "Add to {meal}",
-  "@logAddTo": {"placeholders": {"meal": {"type": "String"}}},
+  "@logAddTo": {
+    "placeholders": {
+      "meal": {
+        "type": "String"
+      }
+    }
+  },
   "logAddedTo": "Added to {meal}",
-  "@logAddedTo": {"placeholders": {"meal": {"type": "String"}}},
+  "@logAddedTo": {
+    "placeholders": {
+      "meal": {
+        "type": "String"
+      }
+    }
+  },
   "logUndo": "Undo",
   "scanFood": "Scan",
   "scanUnavailable": "Meal scanning isn't available right now. Search for your food instead.",
   "scanAdTitle": "A free scan",
   "scanAdBody": "Watch a short ad to scan this meal. {count} free scans left today.",
-  "@scanAdBody": {"placeholders": {"count": {"type": "int"}}},
+  "@scanAdBody": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "scanAdWatch": "Watch ad",
   "scanAdSkipped": "Watch the whole ad to scan your meal.",
   "scanAdUnavailable": "We couldn't load an ad right now. Please try again in a moment.",
   "scanAnalysing": "Looking at your meal…",
   "scanConfirmTitle": "Are you having this?",
   "scanLooksLike": "Looks like {food}",
-  "@scanLooksLike": {"placeholders": {"food": {"type": "String"}}},
+  "@scanLooksLike": {
+    "placeholders": {
+      "food": {
+        "type": "String"
+      }
+    }
+  },
   "scanYes": "Yes, add to {meal}",
-  "@scanYes": {"placeholders": {"meal": {"type": "String"}}},
+  "@scanYes": {
+    "placeholders": {
+      "meal": {
+        "type": "String"
+      }
+    }
+  },
   "scanNo": "No",
   "scanNoMatchTitle": "We couldn't recognise this",
   "scanNoMatchBody": "Try another photo, or search for your food.",
@@ -2053,7 +2120,14 @@
   "gymSettings": "Gym settings",
   "gymOffline": "No connection — showing your plan as it was last loaded.",
   "gymPending": "{count, plural, =1{1 workout is waiting to be sent.} other{{count} workouts are waiting to be sent.}}",
-  "@gymPending": {"placeholders": {"count": {"type": "int", "format": "decimalPattern"}}},
+  "@gymPending": {
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
   "gymSendNow": "Send now",
   "gymAccountTile": "Gym",
   "gymAccountTileBody": "Routines, workouts and what they burn",
@@ -2065,31 +2139,102 @@
   "gymStart": "Start Workout",
   "gymResume": "Resume workout",
   "gymResumeBody": "{name} · {done}/{total} sets",
-  "@gymResumeBody": {"placeholders": {"name": {"type": "String"}, "done": {"type": "int", "format": "decimalPattern"}, "total": {"type": "int", "format": "decimalPattern"}}},
+  "@gymResumeBody": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "done": {
+        "type": "int",
+        "format": "decimalPattern"
+      },
+      "total": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
   "gymStartOther": "Start a different workout",
   "gymFreestyle": "Freestyle workout",
   "gymFreestyleBody": "Pick exercises as you go",
   "gymExerciseCount": "{count, plural, =1{1 exercise} other{{count} exercises}}",
-  "@gymExerciseCount": {"placeholders": {"count": {"type": "int", "format": "decimalPattern"}}},
+  "@gymExerciseCount": {
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
   "gymWelcomeTitle": "Build your training week",
   "gymWelcomeBody": "Start from a push / pull / legs plan and change anything, or build your own.",
   "gymLoadStarter": "Load a starter plan",
   "gymBuildOwn": "Build my own",
   "gymKcalTitle": "Workout energy",
   "gymKcalValue": "~{kcal} kcal",
-  "@gymKcalValue": {"placeholders": {"kcal": {"type": "int", "format": "decimalPattern"}}},
+  "@gymKcalValue": {
+    "placeholders": {
+      "kcal": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
   "gymKcalExplainer": "An estimate of what your workouts burned above resting, from your body weight and the time and kind of each set. It is kept apart from calories burned and never changes what you have left to eat.",
   "gymStreak": "{weeks, plural, =0{No week streak yet} =1{1 week streak} other{{weeks} week streak}}",
-  "@gymStreak": {"placeholders": {"weeks": {"type": "int", "format": "decimalPattern"}}},
+  "@gymStreak": {
+    "placeholders": {
+      "weeks": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
   "gymWeekProgress": "{done} of {planned} this week · {total} in all",
-  "@gymWeekProgress": {"placeholders": {"done": {"type": "int", "format": "decimalPattern"}, "planned": {"type": "int", "format": "decimalPattern"}, "total": {"type": "int", "format": "decimalPattern"}}},
+  "@gymWeekProgress": {
+    "placeholders": {
+      "done": {
+        "type": "int",
+        "format": "decimalPattern"
+      },
+      "planned": {
+        "type": "int",
+        "format": "decimalPattern"
+      },
+      "total": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
   "gymRecent": "Recent workouts",
   "gymSeeAll": "See all",
   "gymNoWorkoutsYet": "No workouts yet.",
   "gymWorkoutMeta": "{date} · {minutes} min · {sets} sets",
-  "@gymWorkoutMeta": {"placeholders": {"date": {"type": "String"}, "minutes": {"type": "int", "format": "decimalPattern"}, "sets": {"type": "int", "format": "decimalPattern"}}},
+  "@gymWorkoutMeta": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      },
+      "minutes": {
+        "type": "int",
+        "format": "decimalPattern"
+      },
+      "sets": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
   "gymRecordCount": "{count, plural, =1{1 record} other{{count} records}}",
-  "@gymRecordCount": {"placeholders": {"count": {"type": "int", "format": "decimalPattern"}}},
+  "@gymRecordCount": {
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
   "gymCalendar": "Calendar",
   "gymHomeCardTitle": "Today's workout",
   "gymOpen": "Open Gym",
@@ -2099,9 +2244,21 @@
   "gymNewRoutine": "New routine",
   "gymNoRoutines": "No routines yet",
   "gymPlanFor": "Plan for {day}",
-  "@gymPlanFor": {"placeholders": {"day": {"type": "String"}}},
+  "@gymPlanFor": {
+    "placeholders": {
+      "day": {
+        "type": "String"
+      }
+    }
+  },
   "gymEveryDay": "Every {day}",
-  "@gymEveryDay": {"placeholders": {"day": {"type": "String"}}},
+  "@gymEveryDay": {
+    "placeholders": {
+      "day": {
+        "type": "String"
+      }
+    }
+  },
   "gymDayRest": "Rest / skip this day",
   "gymDayBackToWeekly": "Back to the weekly plan",
   "gymDayNote": "Changes this date only. Your weekly plan stays as it is.",
@@ -2126,17 +2283,70 @@
   "gymDiscardChanges": "Discard your changes?",
   "gymDiscard": "Discard",
   "gymSetsReps": "{sets} × {reps}",
-  "@gymSetsReps": {"placeholders": {"sets": {"type": "int", "format": "decimalPattern"}, "reps": {"type": "int", "format": "decimalPattern"}}},
+  "@gymSetsReps": {
+    "placeholders": {
+      "sets": {
+        "type": "int",
+        "format": "decimalPattern"
+      },
+      "reps": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
   "gymPerSide": "{reps} per side",
-  "@gymPerSide": {"placeholders": {"reps": {"type": "int", "format": "decimalPattern"}}},
+  "@gymPerSide": {
+    "placeholders": {
+      "reps": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
   "gymKg": "{kg} kg",
-  "@gymKg": {"placeholders": {"kg": {"type": "String"}}},
+  "@gymKg": {
+    "placeholders": {
+      "kg": {
+        "type": "String"
+      }
+    }
+  },
   "gymAddedKg": "+{kg} kg",
-  "@gymAddedKg": {"placeholders": {"kg": {"type": "String"}}},
+  "@gymAddedKg": {
+    "placeholders": {
+      "kg": {
+        "type": "String"
+      }
+    }
+  },
   "gymSetsTime": "{sets} × {time}",
-  "@gymSetsTime": {"placeholders": {"sets": {"type": "int", "format": "decimalPattern"}, "time": {"type": "String"}}},
+  "@gymSetsTime": {
+    "placeholders": {
+      "sets": {
+        "type": "int",
+        "format": "decimalPattern"
+      },
+      "time": {
+        "type": "String"
+      }
+    }
+  },
   "gymSetsCardio": "{sets} × {minutes} min at {speed} km/h",
-  "@gymSetsCardio": {"placeholders": {"sets": {"type": "int", "format": "decimalPattern"}, "minutes": {"type": "String"}, "speed": {"type": "String"}}},
+  "@gymSetsCardio": {
+    "placeholders": {
+      "sets": {
+        "type": "int",
+        "format": "decimalPattern"
+      },
+      "minutes": {
+        "type": "String"
+      },
+      "speed": {
+        "type": "String"
+      }
+    }
+  },
   "gymModeReps": "Reps",
   "gymModeTime": "Time",
   "gymModeCardio": "Cardio",
@@ -2158,7 +2368,13 @@
   "gymStep": "Step",
   "gymRule": "Rule",
   "gymFollowRoutine": "Follow the routine ({rule})",
-  "@gymFollowRoutine": {"placeholders": {"rule": {"type": "String"}}},
+  "@gymFollowRoutine": {
+    "placeholders": {
+      "rule": {
+        "type": "String"
+      }
+    }
+  },
   "gymRuleOff": "Off",
   "gymRuleLinear": "Linear",
   "gymRuleGreyskull": "Greyskull LP",
@@ -2172,64 +2388,201 @@
   "gymWhyBaseline": "First time — this session sets your baseline.",
   "gymWhyOff": "Progression is off for this exercise.",
   "gymWhyUpWeight": "Every rep last time — {step} kg more.",
-  "@gymWhyUpWeight": {"placeholders": {"step": {"type": "String"}}},
+  "@gymWhyUpWeight": {
+    "placeholders": {
+      "step": {
+        "type": "String"
+      }
+    }
+  },
   "gymWhyUpWeightDouble": "Big last set — {step} kg more.",
-  "@gymWhyUpWeightDouble": {"placeholders": {"step": {"type": "String"}}},
+  "@gymWhyUpWeightDouble": {
+    "placeholders": {
+      "step": {
+        "type": "String"
+      }
+    }
+  },
   "gymWhyHold": "Same weight — every rep moves you up.",
   "gymWhyDeload": "A few sessions short — {kg} kg to build back up.",
-  "@gymWhyDeload": {"placeholders": {"kg": {"type": "String"}}},
+  "@gymWhyDeload": {
+    "placeholders": {
+      "kg": {
+        "type": "String"
+      }
+    }
+  },
   "gymWhyDoubleUp": "Top of the range on every set — {step} kg more, back to {reps} reps.",
-  "@gymWhyDoubleUp": {"placeholders": {"step": {"type": "String"}, "reps": {"type": "int", "format": "decimalPattern"}}},
+  "@gymWhyDoubleUp": {
+    "placeholders": {
+      "step": {
+        "type": "String"
+      },
+      "reps": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
   "gymWhyDoubleReps": "Aim for {reps} reps on every set.",
-  "@gymWhyDoubleReps": {"placeholders": {"reps": {"type": "int", "format": "decimalPattern"}}},
+  "@gymWhyDoubleReps": {
+    "placeholders": {
+      "reps": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
   "gymWhyDoubleDeload": "Lighter for a while — {kg} kg for {reps} reps.",
-  "@gymWhyDoubleDeload": {"placeholders": {"kg": {"type": "String"}, "reps": {"type": "int", "format": "decimalPattern"}}},
+  "@gymWhyDoubleDeload": {
+    "placeholders": {
+      "kg": {
+        "type": "String"
+      },
+      "reps": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
   "gymWhyBwUpReps": "Every rep last time — aim for {reps}.",
-  "@gymWhyBwUpReps": {"placeholders": {"reps": {"type": "int", "format": "decimalPattern"}}},
+  "@gymWhyBwUpReps": {
+    "placeholders": {
+      "reps": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
   "gymWhyBwAddSet": "Top of your range — one more set ({sets}).",
-  "@gymWhyBwAddSet": {"placeholders": {"sets": {"type": "int", "format": "decimalPattern"}}},
+  "@gymWhyBwAddSet": {
+    "placeholders": {
+      "sets": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
   "gymWhyBwMax": "Six sets at the top — time for added weight or a harder variation.",
   "gymWhyBwHold": "Same reps — every rep moves you up.",
   "gymWhyTimeUp": "Every hold last time — {step} s longer.",
-  "@gymWhyTimeUp": {"placeholders": {"step": {"type": "String"}}},
+  "@gymWhyTimeUp": {
+    "placeholders": {
+      "step": {
+        "type": "String"
+      }
+    }
+  },
   "gymWhyTimeHold": "Same hold — completing every set moves you up.",
   "gymWhyTimeDeload": "Shorter for a while — {seconds} s.",
-  "@gymWhyTimeDeload": {"placeholders": {"seconds": {"type": "String"}}},
+  "@gymWhyTimeDeload": {
+    "placeholders": {
+      "seconds": {
+        "type": "String"
+      }
+    }
+  },
   "gymSearchHint": "Search exercises",
   "gymAll": "All",
   "gymAnyEquipment": "Any equipment",
   "gymChosen": "Chosen ({count})",
-  "@gymChosen": {"placeholders": {"count": {"type": "int", "format": "decimalPattern"}}},
+  "@gymChosen": {
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
   "gymCreateExercise": "Create your own exercise",
   "gymCreateExerciseBody": "A name and a body part is enough",
   "gymShowMore": "Show more",
   "gymNoMatches": "No exercise matches",
   "gymNoMatchesBody": "Try another word, or clear a filter.",
   "gymLibraryCount": "{count, plural, =1{1 exercise} other{{count} exercises}}",
-  "@gymLibraryCount": {"placeholders": {"count": {"type": "int", "format": "decimalPattern"}}},
+  "@gymLibraryCount": {
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
   "gymCustomTag": "Yours",
   "gymBestKg": "Best {kg} kg",
-  "@gymBestKg": {"placeholders": {"kg": {"type": "String"}}},
+  "@gymBestKg": {
+    "placeholders": {
+      "kg": {
+        "type": "String"
+      }
+    }
+  },
   "gymAdd": "Add",
   "gymPickExerciseTitle": "Choose an exercise",
   "gymHowTo": "How to",
   "gymWorks": "Works",
   "gymTargetTag": "Target: {muscle}",
-  "@gymTargetTag": {"placeholders": {"muscle": {"type": "String"}}},
+  "@gymTargetTag": {
+    "placeholders": {
+      "muscle": {
+        "type": "String"
+      }
+    }
+  },
   "gymLastTime": "Last time ({date})",
-  "@gymLastTime": {"placeholders": {"date": {"type": "String"}}},
+  "@gymLastTime": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
   "gymLastTimeSets": "Last time ({date}): {sets}",
-  "@gymLastTimeSets": {"placeholders": {"date": {"type": "String"}, "sets": {"type": "String"}}},
+  "@gymLastTimeSets": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      },
+      "sets": {
+        "type": "String"
+      }
+    }
+  },
   "gymOneRm": "Estimated one-rep max",
   "gymOneRmBest": "{kg} kg — from {weight} kg × {reps}",
-  "@gymOneRmBest": {"placeholders": {"kg": {"type": "String"}, "weight": {"type": "String"}, "reps": {"type": "int", "format": "decimalPattern"}}},
+  "@gymOneRmBest": {
+    "placeholders": {
+      "kg": {
+        "type": "String"
+      },
+      "weight": {
+        "type": "String"
+      },
+      "reps": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
   "gymOneRmResult": "≈ {kg} kg",
-  "@gymOneRmResult": {"placeholders": {"kg": {"type": "String"}}},
+  "@gymOneRmResult": {
+    "placeholders": {
+      "kg": {
+        "type": "String"
+      }
+    }
+  },
   "gymOneRmLimit": "The estimate works up to 12 reps.",
   "gymAddToRoutine": "Add to a routine",
   "gymAlreadyIn": "Already in",
   "gymAddedTo": "Added to {routine}",
-  "@gymAddedTo": {"placeholders": {"routine": {"type": "String"}}},
+  "@gymAddedTo": {
+    "placeholders": {
+      "routine": {
+        "type": "String"
+      }
+    }
+  },
   "gymEditExercise": "Edit exercise",
   "gymDeleteExercise": "Delete exercise",
   "gymDeleteExerciseConfirm": "Delete this exercise? It leaves your routines; past workouts keep it.",
@@ -2239,7 +2592,13 @@
   "gymDescription": "How to do it (optional)",
   "gymCardioNote": "Logged as time and speed.",
   "gymMuscleMapLabel": "Body diagram. Worked: {muscles}.",
-  "@gymMuscleMapLabel": {"placeholders": {"muscles": {"type": "String"}}},
+  "@gymMuscleMapLabel": {
+    "placeholders": {
+      "muscles": {
+        "type": "String"
+      }
+    }
+  },
   "gymMuscleMapNone": "Body diagram. Nothing trained yet.",
   "gymWeighInTitle": "Quick check-in",
   "gymWeighInBody": "Your weight today prices this workout's energy estimate and goes on your weight chart.",
@@ -2247,20 +2606,71 @@
   "gymStartWithout": "Start without weighing in",
   "gymChooseOther": "Choose a different workout",
   "gymExerciseOf": "Exercise {n} of {total}",
-  "@gymExerciseOf": {"placeholders": {"n": {"type": "int", "format": "decimalPattern"}, "total": {"type": "int", "format": "decimalPattern"}}},
+  "@gymExerciseOf": {
+    "placeholders": {
+      "n": {
+        "type": "int",
+        "format": "decimalPattern"
+      },
+      "total": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
   "gymSupersetOf": "Superset {n} of {total}",
-  "@gymSupersetOf": {"placeholders": {"n": {"type": "int", "format": "decimalPattern"}, "total": {"type": "int", "format": "decimalPattern"}}},
+  "@gymSupersetOf": {
+    "placeholders": {
+      "n": {
+        "type": "int",
+        "format": "decimalPattern"
+      },
+      "total": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
   "gymSetsProgress": "{done}/{total} sets",
-  "@gymSetsProgress": {"placeholders": {"done": {"type": "int", "format": "decimalPattern"}, "total": {"type": "int", "format": "decimalPattern"}}},
+  "@gymSetsProgress": {
+    "placeholders": {
+      "done": {
+        "type": "int",
+        "format": "decimalPattern"
+      },
+      "total": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
   "gymPrev": "Previous",
   "gymNext": "Next",
   "gymFinish": "Finish workout",
   "gymFinishEarly": "Finish early · {done}/{total} exercises",
-  "@gymFinishEarly": {"placeholders": {"done": {"type": "int", "format": "decimalPattern"}, "total": {"type": "int", "format": "decimalPattern"}}},
+  "@gymFinishEarly": {
+    "placeholders": {
+      "done": {
+        "type": "int",
+        "format": "decimalPattern"
+      },
+      "total": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
   "gymAddSet": "Add set",
   "gymRemoveSet": "Remove set",
   "gymSetN": "Set {n}",
-  "@gymSetN": {"placeholders": {"n": {"type": "int", "format": "decimalPattern"}}},
+  "@gymSetN": {
+    "placeholders": {
+      "n": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
   "gymColKg": "kg",
   "gymColReps": "Reps",
   "gymColSeconds": "Seconds",
@@ -2282,7 +2692,13 @@
   "gymWorkingWeightTitle": "Working weight",
   "gymWorkingWeightBody": "What you can lift for these reps now. Next time starts from it.",
   "gymPreviousBest": "Previous best {kg} kg",
-  "@gymPreviousBest": {"placeholders": {"kg": {"type": "String"}}},
+  "@gymPreviousBest": {
+    "placeholders": {
+      "kg": {
+        "type": "String"
+      }
+    }
+  },
   "gymNewRecord": "New record!",
   "gymSaveNext": "Save and next exercise",
   "gymJustClose": "Just close",
@@ -2291,7 +2707,14 @@
   "gymContinue": "Keep going",
   "gymNothingDone": "Nothing logged yet. Finish anyway?",
   "gymUncheckedLeft": "{count, plural, =1{1 set is still unchecked. Finish anyway?} other{{count} sets are still unchecked. Finish anyway?}}",
-  "@gymUncheckedLeft": {"placeholders": {"count": {"type": "int", "format": "decimalPattern"}}},
+  "@gymUncheckedLeft": {
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
   "gymDiscardWorkout": "Discard this workout?",
   "gymDiscardWorkoutBody": "Nothing from it will be saved.",
   "gymAboutExercise": "About this exercise",
@@ -2303,27 +2726,90 @@
   "gymRecords": "Records",
   "gymEnergy": "Energy",
   "gymNewPr": "New record: {name}, {kg} kg",
-  "@gymNewPr": {"placeholders": {"name": {"type": "String"}, "kg": {"type": "String"}}},
+  "@gymNewPr": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "kg": {
+        "type": "String"
+      }
+    }
+  },
   "gymNewE1rm": "Best estimated max: {name}, {kg} kg",
-  "@gymNewE1rm": {"placeholders": {"name": {"type": "String"}, "kg": {"type": "String"}}},
+  "@gymNewE1rm": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "kg": {
+        "type": "String"
+      }
+    }
+  },
   "gymWhatYouTrained": "What you trained",
   "gymNice": "Nice!",
   "gymSavedOffline": "Saved on your phone — it will be sent when you're back online.",
   "gymEnergyWeighIn": "Estimated at today's weigh-in, {kg} kg.",
-  "@gymEnergyWeighIn": {"placeholders": {"kg": {"type": "String"}}},
+  "@gymEnergyWeighIn": {
+    "placeholders": {
+      "kg": {
+        "type": "String"
+      }
+    }
+  },
   "gymEnergyMeasurement": "Estimated at your last logged weight, {kg} kg.",
-  "@gymEnergyMeasurement": {"placeholders": {"kg": {"type": "String"}}},
+  "@gymEnergyMeasurement": {
+    "placeholders": {
+      "kg": {
+        "type": "String"
+      }
+    }
+  },
   "gymEnergyProfile": "Estimated at your profile weight, {kg} kg.",
-  "@gymEnergyProfile": {"placeholders": {"kg": {"type": "String"}}},
+  "@gymEnergyProfile": {
+    "placeholders": {
+      "kg": {
+        "type": "String"
+      }
+    }
+  },
   "gymEnergyNone": "Not estimated — log your weight to see this.",
   "gymDurationValue": "{minutes} min",
-  "@gymDurationValue": {"placeholders": {"minutes": {"type": "int", "format": "decimalPattern"}}},
+  "@gymDurationValue": {
+    "placeholders": {
+      "minutes": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
   "gymEditValue": "Edit {field}",
-  "@gymEditValue": {"placeholders": {"field": {"type": "String"}}},
+  "@gymEditValue": {
+    "placeholders": {
+      "field": {
+        "type": "String"
+      }
+    }
+  },
   "gymMarkDone": "Mark set {n} done",
-  "@gymMarkDone": {"placeholders": {"n": {"type": "int", "format": "decimalPattern"}}},
+  "@gymMarkDone": {
+    "placeholders": {
+      "n": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
   "gymMarkNotDone": "Mark set {n} not done",
-  "@gymMarkNotDone": {"placeholders": {"n": {"type": "int", "format": "decimalPattern"}}},
+  "@gymMarkNotDone": {
+    "placeholders": {
+      "n": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
   "gymStatWorkouts": "Workouts",
   "gymStatThisMonth": "This month",
   "gymStatStreak": "Week streak",
@@ -2332,7 +2818,14 @@
   "gymLessTime": "Less time",
   "gymMoreTime": "More time",
   "gymHeatmapLabel": "{count, plural, =1{1 day trained in the last year} other{{count} days trained in the last year}}",
-  "@gymHeatmapLabel": {"placeholders": {"count": {"type": "int", "format": "decimalPattern"}}},
+  "@gymHeatmapLabel": {
+    "placeholders": {
+      "count": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
   "gymMuscleBalance": "Muscle balance",
   "gymWindowWeek": "Week",
   "gymWindow30": "30 days",
@@ -2343,12 +2836,29 @@
   "gymNotTrained": "Not trained in this period",
   "gymNoWorkoutsWindow": "No workouts in this period.",
   "gymMuscleSets": "{sets} sets",
-  "@gymMuscleSets": {"placeholders": {"sets": {"type": "String"}}},
+  "@gymMuscleSets": {
+    "placeholders": {
+      "sets": {
+        "type": "String"
+      }
+    }
+  },
   "gymEffort": "Effort",
   "gymEffortAverage": "Average",
   "gymEffortHard": "Hard sets (3 or fewer reps left)",
   "gymEffortRated": "{rated} of {finished} finished sets rated",
-  "@gymEffortRated": {"placeholders": {"rated": {"type": "int", "format": "decimalPattern"}, "finished": {"type": "int", "format": "decimalPattern"}}},
+  "@gymEffortRated": {
+    "placeholders": {
+      "rated": {
+        "type": "int",
+        "format": "decimalPattern"
+      },
+      "finished": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
   "gymEffortTooFew": "Rate at least five sets to see an average.",
   "gymExerciseProgress": "Exercise progress",
   "gymMetricTop": "Top set",
@@ -2356,23 +2866,58 @@
   "gymMetricEffort": "Effort",
   "gymLastSessions": "Last sessions",
   "gymBest": "Best: {value}",
-  "@gymBest": {"placeholders": {"value": {"type": "String"}}},
+  "@gymBest": {
+    "placeholders": {
+      "value": {
+        "type": "String"
+      }
+    }
+  },
   "gymNeedsTwoSessions": "A chart appears after two sessions.",
   "gymEnergyDays": "Workout energy, last 30 days",
   "gymStatsEmptyTitle": "No workouts yet",
   "gymStatsEmptyBody": "Finish a workout and your stats start here.",
   "gymSecondsValue": "{seconds} s",
-  "@gymSecondsValue": {"placeholders": {"seconds": {"type": "String"}}},
+  "@gymSecondsValue": {
+    "placeholders": {
+      "seconds": {
+        "type": "String"
+      }
+    }
+  },
   "gymSpeedValue": "{speed} km/h",
-  "@gymSpeedValue": {"placeholders": {"speed": {"type": "String"}}},
+  "@gymSpeedValue": {
+    "placeholders": {
+      "speed": {
+        "type": "String"
+      }
+    }
+  },
   "gymHistory": "History",
   "gymLoadMore": "Load more",
   "gymDeleteWorkout": "Delete workout",
   "gymDeleteWorkoutConfirm": "Delete this workout? This cannot be undone.",
   "gymBodyWeight": "Body weight {kg} kg",
-  "@gymBodyWeight": {"placeholders": {"kg": {"type": "String"}}},
+  "@gymBodyWeight": {
+    "placeholders": {
+      "kg": {
+        "type": "String"
+      }
+    }
+  },
   "gymCalendarSummary": "{workouts} workouts · {minutes} min",
-  "@gymCalendarSummary": {"placeholders": {"workouts": {"type": "int", "format": "decimalPattern"}, "minutes": {"type": "int", "format": "decimalPattern"}}},
+  "@gymCalendarSummary": {
+    "placeholders": {
+      "workouts": {
+        "type": "int",
+        "format": "decimalPattern"
+      },
+      "minutes": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
   "gymPrevMonth": "Previous month",
   "gymNextMonth": "Next month",
   "gymLegendTrained": "Trained",
@@ -2392,14 +2937,33 @@
   "gymReminder": "Workout-day reminder",
   "gymReminderBody": "A nudge at this time on days a workout is planned.",
   "gymReminderAt": "At {time} on days a workout is planned.",
-  "@gymReminderAt": {"placeholders": {"time": {"type": "String"}}},
+  "@gymReminderAt": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
   "gymReminderTitle": "Workout today",
   "gymReminderText": "{routine} is planned for today.",
-  "@gymReminderText": {"placeholders": {"routine": {"type": "String"}}},
+  "@gymReminderText": {
+    "placeholders": {
+      "routine": {
+        "type": "String"
+      }
+    }
+  },
   "gymCredits": "Exercise data: exercises-dataset (MIT). Body diagram: MuscleMap (MIT).",
   "gymEnergyInfoTitle": "About workout energy",
   "homeWorkoutKcal": "Includes workouts · ~{kcal} kcal",
-  "@homeWorkoutKcal": {"placeholders": {"kcal": {"type": "int", "format": "decimalPattern"}}},
+  "@homeWorkoutKcal": {
+    "placeholders": {
+      "kcal": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
   "gymBpBack": "Back",
   "gymBpCardio": "Cardio",
   "gymBpChest": "Chest",
@@ -2490,7 +3054,13 @@
   "gymIconYoga": "Mobility",
   "gymStartWorkout": "Start a workout",
   "gymMediaLabel": "Animation showing how to do {name}",
-  "@gymMediaLabel": { "placeholders": { "name": { "type": "String" } } },
+  "@gymMediaLabel": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "gymHeaderTagline": "Stronger body, healthier you",
   "gymWeekTagline": "Keep showing up",
   "gymViewDetails": "View workout details",
@@ -2505,5 +3075,12 @@
   "legalOpensWebsite": "Opens the website",
   "legalOpenFailed": "Could not open the page. Check your connection and try again.",
   "legalAgreeSignIn": "By continuing, you agree to our",
-  "legalAgreePay": "By paying, you agree to our"
+  "legalAgreePay": "By paying, you agree to our",
+  "@forgotSentBody": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  }
 }

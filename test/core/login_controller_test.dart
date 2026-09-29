@@ -9,37 +9,63 @@ import 'package:health_pro/presentation/features/auth/login_controller.dart';
 
 import '../fakes.dart';
 
+/// Records what left the app, and answers what each test sets.
 class _RecordingAuth implements AuthRepository {
-  int otpRequests = 0;
-  String? lastPhone;
-  Either<Failure, Unit> otpResult = const Right(unit);
+  final calls = <String>[];
+  Map<String, String>? lastBody;
+
+  Either<Failure, Session> signInResult = const Left(
+    ApiFailure('Email or password is incorrect.', code: 'INVALID_CREDENTIALS', status: 401),
+  );
+  Either<Failure, Unit> registerResult = const Right(unit);
+  Either<Failure, Session> verifyResult = const Left(ApiFailure('bad code', code: 'CODE_INVALID'));
 
   @override
-  Future<Either<Failure, Unit>> requestOtp(String phoneE164) async {
-    otpRequests++;
-    lastPhone = phoneE164;
-    return otpResult;
+  Future<Either<Failure, Session>> signIn({required String email, required String password}) async {
+    calls.add('signIn');
+    lastBody = {'email': email, 'password': password};
+    return signInResult;
   }
 
   @override
-  Future<Either<Failure, Session>> verifyOtp({
+  Future<Either<Failure, Unit>> register({
+    required String email,
+    required String password,
     required String phoneE164,
-    required String otp,
-    required String deviceId,
-  }) async => const Left(ApiFailure('bad code', code: 'OTP_INVALID'));
+  }) async {
+    calls.add('register');
+    lastBody = {'email': email, 'password': password, 'phone': phoneE164};
+    return registerResult;
+  }
 
-  /// Records the exchange so a test can assert the token actually left the app.
-  String? lastGoogleIdToken;
-  Either<Failure, Session> googleResult = const Left(ApiFailure('no google', code: 'X'));
+  @override
+  Future<Either<Failure, Session>> verifyEmail({
+    required String email,
+    required String code,
+  }) async {
+    calls.add('verify');
+    lastBody = {'email': email, 'code': code};
+    return verifyResult;
+  }
+
+  @override
+  Future<Either<Failure, Unit>> resendCode(String email) async {
+    calls.add('resend');
+    return const Right(unit);
+  }
+
+  @override
+  Future<Either<Failure, Unit>> forgotPassword(String email) async {
+    calls.add('forgot');
+    lastBody = {'email': email};
+    return const Right(unit);
+  }
 
   @override
   Future<Either<Failure, Session>> signInWithGoogle({
     required String idToken,
     required String deviceId,
-  }) async {
-    lastGoogleIdToken = idToken;
-    return googleResult;
-  }
+  }) async => const Left(ApiFailure('no google', code: 'X'));
 
   @override
   Future<Either<Failure, Session>> refresh(Session current) async =>
@@ -62,160 +88,156 @@ void main() {
 
   tearDown(() => c.onClose());
 
-  group('phone validation — India by default (docs/01), any country on request', () {
-    test('accepts a 10-digit number starting 6-9', () {
-      for (final n in ['9876543210', '6000000000', '7012345678', '8123456789']) {
-        c.phone.value = n;
-        expect(c.isPhoneValid, isTrue, reason: n);
-      }
+  void fillSignUp() => c
+    ..email.value = ' Asha@Example.com '
+    ..password.value = 'longenough'
+    ..phone.value = '9876543210';
+
+  group('sign in (D-250)', () {
+    test('needs an email and a password before it will ask', () async {
+      c.email.value = 'not-an-email';
+      c.password.value = 'whatever';
+      await c.signIn();
+      expect(auth.calls, isEmpty);
     });
 
-    test('rejects the wrong length, a leading 0-5, and anything non-numeric', () {
-      for (final n in ['987654321', '98765432101', '5876543210', '0876543210', '98765abcde']) {
-        c.phone.value = n;
-        expect(c.isPhoneValid, isFalse, reason: n);
-      }
-    });
-
-    test('sends E.164', () async {
-      c.phone.value = '9876543210';
-      await c.sendCode();
-      expect(auth.lastPhone, '+919876543210');
-    });
-
-    test('another country brings its own length, and its own dialling code', () async {
-      // Spain: nine digits, and none of India's 6-9 first-digit rule.
-      c.setCountry(dial: '+34', minLength: 9, maxLength: 9);
-
-      c.phone.value = '123456789';
-      expect(c.isPhoneValid, isTrue, reason: 'nine digits is a whole Spanish number');
-
-      c.phone.value = '1234567890';
-      expect(c.isPhoneValid, isFalse, reason: 'and ten is not');
-
-      c.phone.value = '123456789';
-      await c.sendCode();
-      expect(auth.lastPhone, '+34123456789');
-    });
-
-    test('changing country clears the number', () {
-      // Nine digits typed for Spain is not a valid Indian number, and leaving it in the field
-      // would disable the button with nothing on screen explaining why.
-      c.phone.value = '123456789';
-      c.setCountry(dial: '+91', minLength: 10, maxLength: 10);
-      expect(c.phone.value, isEmpty);
-    });
-
-    test('a sign-out returns the country to the default too', () {
+    test('sends the email trimmed and lowercased', () async {
       c
-        ..setCountry(dial: '+34', minLength: 9, maxLength: 9)
-        ..reset();
-      expect(c.dialCode.value, '+91');
-      expect(c.phoneMaxLength.value, 10);
+        ..email.value = ' Asha@Example.com '
+        ..password.value = 'pw';
+      await c.signIn();
+      expect(auth.lastBody, {'email': 'asha@example.com', 'password': 'pw'});
+    });
+
+    test('shows the server message verbatim (rule 7)', () async {
+      c
+        ..email.value = 'asha@example.com'
+        ..password.value = 'wrong';
+      await c.signIn();
+      expect(c.failure.value!.userMessage, 'Email or password is incorrect.');
+      expect(c.step.value, AuthStep.signIn);
+    });
+
+    test('an unconfirmed address goes to the code step, not an error', () async {
+      auth.signInResult = const Left(
+        ApiFailure('Confirm your email', code: LoginController.emailNotVerified, status: 403),
+      );
+      c
+        ..email.value = 'asha@example.com'
+        ..password.value = 'longenough';
+      await c.signIn();
+
+      expect(c.step.value, AuthStep.verify);
+      expect(c.failure.value, isNull);
+      expect(
+        c.resendIn.value,
+        LoginController.resendCooldownSeconds,
+        reason: 'a code was just sent',
+      );
     });
   });
 
-  group('OTP cost control (docs/18 §9)', () {
-    test('will not send to an invalid number at all', () async {
-      c.phone.value = '123';
-      await c.sendCode();
-      expect(auth.otpRequests, 0, reason: 'every send is money — docs/18 §9');
+  group('sign up', () {
+    test('needs a password of at least 8 and a real phone number', () {
+      fillSignUp();
+      expect(c.canSignUp, isTrue);
+
+      c.password.value = 'short';
+      expect(c.canSignUp, isFalse);
+
+      c
+        ..password.value = 'longenough'
+        ..phone.value = '5876543210';
+      expect(c.canSignUp, isFalse, reason: 'an Indian mobile starts 6-9');
     });
 
-    test('a cooldown blocks an immediate resend', () async {
-      c.phone.value = '9876543210';
-      await c.sendCode();
-      expect(auth.otpRequests, 1);
-      expect(c.resendIn.value, LoginController.resendCooldownSeconds);
-      expect(c.canSend, isFalse);
+    test('sends the phone as E.164 and moves to the code step', () async {
+      fillSignUp();
+      await c.signUp();
 
-      await c.sendCode();
-      expect(auth.otpRequests, 1, reason: 'the second tap must not reach the API');
+      expect(auth.lastBody, {
+        'email': 'asha@example.com',
+        'password': 'longenough',
+        'phone': '+919876543210',
+      });
+      expect(c.step.value, AuthStep.verify);
     });
 
-    test('a failed request does not start a cooldown or advance the screen', () async {
-      auth.otpResult = const Left(OfflineFailure('no connection'));
-      c.phone.value = '9876543210';
-      await c.sendCode();
+    test('a refused sign-up stays put and says why', () async {
+      auth.registerResult = const Left(ApiFailure('Already registered', code: 'EMAIL_TAKEN'));
+      c.goTo(AuthStep.signUp);
+      fillSignUp();
+      await c.signUp();
 
-      expect(c.codeSent.value, isFalse);
-      expect(c.resendIn.value, 0, reason: 'the user must be able to retry immediately');
-      expect(c.failure.value, isA<OfflineFailure>());
+      expect(c.step.value, AuthStep.signUp);
+      expect(c.failure.value!.userMessage, 'Already registered');
+      expect(c.resendIn.value, 0);
+    });
+
+    test('another country brings its own length', () {
+      c.setCountry(dial: '+34', minLength: 9, maxLength: 9);
+      c.phone.value = '123456789';
+      expect(c.isPhoneValid, isTrue);
+      expect(c.phoneE164, '+34123456789');
     });
   });
 
-  group('verify', () {
-    test('requires a full 6-digit code', () {
-      c.otp.value = '12345';
+  group('the emailed code', () {
+    test('requires six digits', () {
+      c.code.value = '12345';
       expect(c.canVerify, isFalse);
-      c.otp.value = '123456';
+      c.code.value = '123456';
       expect(c.canVerify, isTrue);
     });
 
-    test('surfaces the server message verbatim (CLAUDE.md rule 7)', () async {
-      c.otp.value = '123456';
+    test('a wrong code shows the server message', () async {
+      c
+        ..email.value = 'asha@example.com'
+        ..code.value = '123456';
       await c.verify();
+      expect(auth.lastBody, {'email': 'asha@example.com', 'code': '123456'});
       expect(c.failure.value!.userMessage, 'bad code');
     });
-  });
 
-  group('a mistyped number is recoverable', () {
-    test('editPhone returns to phone entry with the number kept for editing', () async {
-      c.phone.value = '8433145573';
-      await c.sendCode();
-      c.otp.value = '123';
-
-      c.editPhone();
-
-      expect(c.codeSent.value, isFalse, reason: 'the OTP step must not be a dead end');
-      expect(c.phone.value, '8433145573', reason: 'a one-digit typo is not a reason to retype ten');
-      expect(c.otp.value, isEmpty, reason: 'the old code belongs to the old number');
-      expect(c.failure.value, isNull);
-    });
-
-    test('the resend cooldown does not block the FIRST send to a corrected number', () async {
-      c.phone.value = '8433145573';
-      await c.sendCode();
-      expect(c.resendIn.value, LoginController.resendCooldownSeconds);
-      expect(c.canSend, isFalse, reason: 'resending to the same number is still on cooldown');
-
-      c.editPhone();
-      c.phone.value = '8433145574';
-
-      expect(c.canSend, isTrue, reason: 'a different number has never been sent to');
-      await c.sendCode();
-      expect(auth.otpRequests, 2);
-      expect(auth.lastPhone, '+918433145574');
+    test('resend waits out its cooldown', () async {
+      fillSignUp();
+      await c.signUp();
+      await c.resendCode();
+      expect(auth.calls.where((x) => x == 'resend'), isEmpty);
     });
   });
 
-  group('signing out clears the form', () {
-    test('a sign-out returns the page to phone entry with no stale number', () {
+  group('forgot password', () {
+    test('sends the email and shows the same answer whatever the server knows', () async {
       c
-        ..phone.value = '9876543210'
-        ..otp.value = '123456'
-        ..codeSent.value = true
-        ..resendIn.value = 25;
+        ..goTo(AuthStep.forgot)
+        ..email.value = 'Asha@example.com';
+      await c.sendReset();
 
-      // What the user sees after tapping Sign out on the You tab.
-      session.status.value = AuthStatus.signedOut;
-
-      expect(c.phone.value, isEmpty);
-      expect(c.otp.value, isEmpty);
-      expect(c.codeSent.value, isFalse, reason: 'must open on phone entry, not the OTP step');
-      expect(c.resendIn.value, 0, reason: 'the cooldown belonged to the previous number');
-      expect(c.failure.value, isNull);
+      expect(auth.lastBody, {'email': 'asha@example.com'});
+      expect(c.step.value, AuthStep.forgotSent);
     });
+  });
 
-    test('signing in does not clear the form mid-flow', () {
-      c
-        ..phone.value = '9876543210'
-        ..codeSent.value = true;
+  test('moving between steps keeps the email and drops the password', () {
+    c
+      ..email.value = 'asha@example.com'
+      ..password.value = 'secret123'
+      ..goTo(AuthStep.forgot);
 
-      session.status.value = AuthStatus.signedIn;
+    expect(c.email.value, 'asha@example.com');
+    expect(c.password.value, isEmpty);
+  });
 
-      expect(c.phone.value, '9876543210');
-      expect(c.codeSent.value, isTrue);
-    });
+  test('a sign-out returns the page to a clean sign-in', () async {
+    fillSignUp();
+    await c.signUp();
+
+    session.status.value = AuthStatus.signedOut;
+
+    expect(c.step.value, AuthStep.signIn);
+    expect(c.email.value, isEmpty);
+    expect(c.resendIn.value, 0);
+    expect(c.dialCode.value, LoginController.defaultDialCode);
   });
 }

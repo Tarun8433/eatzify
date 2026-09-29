@@ -4,24 +4,34 @@ import 'package:health_pro/domain/entities/session.dart';
 
 /// docs/09 §3. `Either` out of every use case, per docs/14's stack.
 abstract class AuthRepository {
-  /// `POST /auth/otp/request`. Returns unit on success — docs/09: never reveal whether a number
-  /// exists, so a valid and an unknown number look identical from here.
-  Future<Either<Failure, Unit>> requestOtp(String phoneE164);
+  /// `POST /auth/email/login` (D-250). An unknown email and a wrong password fail the same way, and
+  /// an address never confirmed fails with `EMAIL_NOT_VERIFIED` after a fresh code is emailed.
+  Future<Either<Failure, Session>> signIn({required String email, required String password});
 
-  /// `POST /auth/otp/verify`.
-  Future<Either<Failure, Session>> verifyOtp({
+  /// `POST /auth/email/register`. The account starts inactive; the emailed code opens it. The phone
+  /// number is contact information only (Cashfree needs one per order), never a way in.
+  Future<Either<Failure, Unit>> register({
+    required String email,
+    required String password,
     required String phoneE164,
-    required String otp,
-    required String deviceId,
   });
+
+  /// `POST /auth/email/verify`. The emailed code, answered with a session.
+  Future<Either<Failure, Session>> verifyEmail({required String email, required String code});
+
+  /// `POST /auth/email/resend`. Answers the same whether or not the address has an account.
+  Future<Either<Failure, Unit>> resendCode(String email);
+
+  /// `POST /auth/forgot/password`. Emails a reset link; answers the same for unknown addresses.
+  Future<Either<Failure, Unit>> forgotPassword(String email);
 
   /// `POST /auth/google`. Exchanges a Google ID token for a session.
   ///
-  /// NOT in docs/09 §3, which knows only phone + OTP. It is here because the sign-in screen offers
+  /// NOT in docs/09 §3. It is here because the sign-in screen offers
   /// the button, and the shape is the one every provider-token exchange has: the app never trusts
   /// the token, the server verifies it against Google's keys and decides who the user is.
   ///
-  /// Returns the same [Session] as [verifyOtp] on purpose — a Google user and a phone user are the
+  /// Returns the same [Session] as [signIn] on purpose — a Google user and an email user are the
   /// same user to every screen after this one.
   Future<Either<Failure, Session>> signInWithGoogle({
     required String idToken,

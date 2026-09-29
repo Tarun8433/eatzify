@@ -17,7 +17,7 @@ class Session {
   final String userId;
   final List<String> roles;
 
-  /// From `/auth/otp/verify`. The server decides whether onboarding is still needed — the app must
+  /// From sign-in. The server decides whether onboarding is still needed — the app must
   /// not infer it from whether a profile happens to be cached.
   final bool onboardingRequired;
 

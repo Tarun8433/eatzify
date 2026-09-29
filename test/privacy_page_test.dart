@@ -48,7 +48,10 @@ void main() {
         GlobalCupertinoLocalizations.delegate,
       ],
       supportedLocales: AppLocalizations.supportedLocales,
-      home: MediaQuery(data: MediaQueryData(textScaler: scaler), child: const PrivacyPage()),
+      home: MediaQuery(
+        data: MediaQueryData(textScaler: scaler),
+        child: const PrivacyPage(),
+      ),
     );
   }
 

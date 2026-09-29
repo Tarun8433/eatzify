@@ -40,6 +40,14 @@ void main() {
     expect(out, isNot(contains('123456')));
   });
 
+  test('redacts the email, password and emailed code (D-250)', () {
+    final out = logOf({'email': 'asha@example.com', 'password': 'hunter22', 'code': '654321'});
+
+    expect(out, isNot(contains('asha@example.com')));
+    expect(out, isNot(contains('hunter22')));
+    expect(out, isNot(contains('654321')));
+  });
+
   test('redacts declared health data (docs/13)', () {
     final out = logOf({
       'health_profile': {

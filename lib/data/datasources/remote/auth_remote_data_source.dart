@@ -4,35 +4,48 @@ import 'package:health_pro/core/errors/failures.dart';
 import 'package:health_pro/core/network/error_mapper.dart';
 import 'package:health_pro/domain/entities/session.dart';
 
-/// docs/09 §3 over dio.
-///
-/// `otp/request` and `otp/verify` are live in `api/src/auth`. OTP delivery is a dev stub today —
-/// every number gets the fixed `OTP_DEV_CODE` — so this works end to end without an SMS provider.
+/// docs/09 §3 over dio. Email and password in, with a 6-digit code emailed to confirm the address
+/// the first time (D-250).
 class AuthRemoteDataSource {
   const AuthRemoteDataSource(this._dio);
 
   final Dio _dio;
 
-  Future<Either<Failure, Unit>> requestOtp(String phoneE164) async {
+  Future<Either<Failure, Session>> signIn({required String email, required String password}) =>
+      _session('/auth/email/login', {'email': email, 'password': password});
+
+  Future<Either<Failure, Unit>> register({
+    required String email,
+    required String password,
+    required String phoneE164,
+  }) => _noContent('/auth/email/register', {
+    'email': email,
+    'password': password,
+    'phone_e164': phoneE164,
+  });
+
+  Future<Either<Failure, Session>> verifyEmail({required String email, required String code}) =>
+      _session('/auth/email/verify', {'email': email, 'code': code});
+
+  Future<Either<Failure, Unit>> resendCode(String email) =>
+      _noContent('/auth/email/resend', {'email': email});
+
+  Future<Either<Failure, Unit>> forgotPassword(String email) =>
+      _noContent('/auth/forgot/password', {'email': email});
+
+  Future<Either<Failure, Session>> _session(String path, Map<String, String> body) async {
     try {
-      await _dio.post<void>('/auth/otp/request', data: {'phone_e164': phoneE164});
-      return const Right(unit);
+      final res = await _dio.post<Map<String, dynamic>>(path, data: body);
+      return Right(_sessionFrom(res.data!));
     } on DioException catch (e) {
       return Left(mapDioError(e));
     }
   }
 
-  Future<Either<Failure, Session>> verifyOtp({
-    required String phoneE164,
-    required String otp,
-    required String deviceId,
-  }) async {
+  Future<Either<Failure, Unit>> _noContent(String path, Map<String, String> body) async {
     try {
-      final res = await _dio.post<Map<String, dynamic>>(
-        '/auth/otp/verify',
-        data: {'phone_e164': phoneE164, 'otp': otp, 'device': deviceId},
-      );
-      return Right(_sessionFrom(res.data!));
+      await _dio.post<void>(path, data: body);
+      return const Right(unit);
     } on DioException catch (e) {
       return Left(mapDioError(e));
     }
@@ -62,7 +75,7 @@ class AuthRemoteDataSource {
   /// user is signed out the moment their access token ages out.
   ///
   /// The response is the boilerplate's `RefreshResponseDto` — `token` / `refreshToken`, not the
-  /// `access` / `refresh` pair that `/auth/otp/verify` returns.
+  /// `access` / `refresh` pair that sign-in returns.
   Future<Either<Failure, Session>> refresh(Session current) async {
     try {
       final res = await _dio.post<Map<String, dynamic>>(

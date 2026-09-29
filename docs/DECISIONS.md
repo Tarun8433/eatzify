@@ -6099,3 +6099,19 @@ also refuse (`PAYMENTS_NOT_OFFERED`), because a hidden button does not stop a di
 payments policy, and an app on open testing is reviewed against it.
 **Also fixed** The app read "anything but stub" as live, so an unknown mode would have drawn a pay
 button; it now takes payment only in `sandbox` or `production`. The rule is `api/src/billing/payment-rails.ts`.
+
+## D-250 — Email and password replace phone OTP
+**When** 2026-09-29 · **Decision** Product owner: sign in with **email + password**; the first time,
+a **6-digit code is emailed** to confirm the address; **Forgot password** emails a link to
+`eatzify.zynthovo.com/reset-password/`. **Phone login is removed.** The phone number is still asked
+for at sign-up — Cashfree needs one per order — but it is contact information: not verified, no
+longer unique, never a way in. Google sign-in is unchanged.
+**How** `email_otp` stores only a SHA-256 of the code; 10-minute expiry, 5 wrong tries lock it, 5
+sends an hour. Login gives one message for an unknown email and a wrong password; `forgot/password`
+and `email/resend` answer the same whether or not the address exists. Signing in to an unconfirmed
+account sends a fresh code and answers `EMAIL_NOT_VERIFIED`, which the app turns into the code step.
+Mail goes through Gmail SMTP with an app password for testing (~500/day); move to Brevo or SES
+before real volume.
+**Supersedes** docs/09 §3 and docs/14 §6 "phone/OTP is primary auth". `otp/request`, `otp/verify`
+and the fixed dev code are gone — which also closes the payments-plan blocker "OTP `000000` signs in
+as anyone". Accounts that only ever signed in by phone must register again (no public users yet).

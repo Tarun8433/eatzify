@@ -6,9 +6,9 @@ import 'package:health_pro/presentation/features/auth/login_controller.dart';
 import 'package:health_pro/presentation/features/auth/widgets/auth_actions.dart';
 import 'package:health_pro/presentation/l10n/app_localizations.dart';
 
-/// Step two: the code. Same chrome as the number, a different question.
-class OtpStep extends StatelessWidget {
-  const OtpStep({required this.controller, super.key});
+/// The 6-digit code emailed at sign-up, or after signing in to an address never confirmed (D-250).
+class CodeStep extends StatelessWidget {
+  const CodeStep({required this.controller, super.key});
 
   final LoginController controller;
 
@@ -31,8 +31,8 @@ class OtpStep extends StatelessWidget {
                 onPressed: controller.canVerify ? controller.verify : null,
               ),
               const SizedBox(height: AppSpacing.sm),
-              // Resending is useless to someone who typed the wrong number — the code is arriving
-              // on a phone they do not have — so the way back to the number sits beside it.
+              // Resending is useless to someone who mistyped their email — the code is going to an
+              // inbox they do not have — so the way back to it sits beside it.
               // Expanded, not Flexible: a loose fit lets a TextButton keep its one-line intrinsic
               // width, and at 200 % font scale the pair overflowed the row by 71 pt rather than
               // wrapping (rule 12).
@@ -41,9 +41,7 @@ class OtpStep extends StatelessWidget {
                 children: [
                   Expanded(
                     child: TextButton(
-                      onPressed: controller.resendIn.value == 0 && !controller.busy.value
-                          ? controller.sendCode
-                          : null,
+                      onPressed: controller.canResend ? controller.resendCode : null,
                       child: Text(
                         controller.resendIn.value == 0
                             ? l.otpResend
@@ -54,8 +52,10 @@ class OtpStep extends StatelessWidget {
                   ),
                   Expanded(
                     child: TextButton(
-                      onPressed: controller.busy.value ? null : controller.editPhone,
-                      child: Text(l.otpChangeNumber, textAlign: TextAlign.center),
+                      onPressed: controller.busy.value
+                          ? null
+                          : () => controller.goTo(AuthStep.signUp),
+                      child: Text(l.otpChangeEmail, textAlign: TextAlign.center),
                     ),
                   ),
                 ],
@@ -70,7 +70,7 @@ class OtpStep extends StatelessWidget {
 
 /// Six boxes with one field behind them.
 ///
-/// The field is real and invisible: it owns the focus, the keyboard, autofill's SMS one-time-code
+/// The field is real and invisible: it owns the focus, the keyboard, autofill's one-time-code
 /// suggestion and every paste and backspace, and the boxes only draw what it holds. Six separate
 /// fields is the version that loses a pasted code, fights the OS autofill and has to hand focus
 /// around by hand — six ways to get wrong what one `TextField` already gets right.
@@ -85,7 +85,7 @@ class _CodeCells extends StatefulWidget {
 
 class _CodeCellsState extends State<_CodeCells> {
   final _focus = FocusNode();
-  late final _text = TextEditingController(text: widget.controller.otp.value);
+  late final _text = TextEditingController(text: widget.controller.code.value);
 
   @override
   void dispose() {
@@ -109,11 +109,11 @@ class _CodeCellsState extends State<_CodeCells> {
               focusNode: _focus,
               autofocus: true,
               keyboardType: TextInputType.number,
-              maxLength: LoginController.otpLength,
-              // The OS reads the code out of the SMS and offers it above the keyboard.
+              maxLength: LoginController.codeLength,
+              // iOS offers a code from Mail above the keyboard; elsewhere it is a harmless hint.
               autofillHints: const [AutofillHints.oneTimeCode],
               inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-              onChanged: (v) => setState(() => widget.controller.otp.value = v),
+              onChanged: (v) => setState(() => widget.controller.code.value = v),
               decoration: const InputDecoration(counterText: ''),
             ),
           ),
@@ -122,7 +122,7 @@ class _CodeCellsState extends State<_CodeCells> {
           onTap: _focus.requestFocus,
           child: Row(
             children: [
-              for (var i = 0; i < LoginController.otpLength; i++) ...[
+              for (var i = 0; i < LoginController.codeLength; i++) ...[
                 if (i > 0) const SizedBox(width: AppSpacing.sm),
                 Expanded(
                   child: _Cell(
@@ -131,8 +131,8 @@ class _CodeCellsState extends State<_CodeCells> {
                     // full — not a seventh box that does not exist.
                     active:
                         _focus.hasFocus &&
-                        i == _text.text.length.clamp(0, LoginController.otpLength - 1),
-                    label: l.otpDigit(LoginController.otpLength, i + 1),
+                        i == _text.text.length.clamp(0, LoginController.codeLength - 1),
+                    label: l.otpDigit(LoginController.codeLength, i + 1),
                   ),
                 ),
               ],

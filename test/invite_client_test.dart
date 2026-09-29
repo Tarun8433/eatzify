@@ -61,6 +61,7 @@ class FakeCoachRepository implements CoachRepository {
       ),
     );
   }
+
   @override
   Future<Either<Failure, CoachApplication>> acceptAgreement(String v) async =>
       throw UnimplementedError();

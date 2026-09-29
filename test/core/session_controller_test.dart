@@ -81,14 +81,29 @@ class _FakeAuth implements AuthRepository {
   }
 
   @override
-  Future<Either<Failure, Unit>> requestOtp(String phoneE164) async => const Right(unit);
+  Future<Either<Failure, Session>> signIn({
+    required String email,
+    required String password,
+  }) async => Right(session());
 
   @override
-  Future<Either<Failure, Session>> verifyOtp({
+  Future<Either<Failure, Unit>> register({
+    required String email,
+    required String password,
     required String phoneE164,
-    required String otp,
-    required String deviceId,
+  }) async => const Right(unit);
+
+  @override
+  Future<Either<Failure, Session>> verifyEmail({
+    required String email,
+    required String code,
   }) async => Right(session());
+
+  @override
+  Future<Either<Failure, Unit>> resendCode(String email) async => const Right(unit);
+
+  @override
+  Future<Either<Failure, Unit>> forgotPassword(String email) async => const Right(unit);
 
   @override
   Future<Either<Failure, Session>> signInWithGoogle({

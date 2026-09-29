@@ -120,7 +120,7 @@ void main() {
         ..dio.httpClientAdapter = adapter
         ..attachAuth(accessToken: () => null, onRefresh: () async => null);
 
-      await client.dio.post<dynamic>('/auth/otp/request');
+      await client.dio.post<dynamic>('/auth/email/login');
 
       expect(adapter.captured!.headers.containsKey('Authorization'), isFalse);
     });

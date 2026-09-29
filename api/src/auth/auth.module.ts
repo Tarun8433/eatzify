@@ -1,7 +1,9 @@
 import { Module } from '@nestjs/common';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
-import { OtpService } from './otp.service';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { EmailOtpEntity } from './email-otp/email-otp.entity';
+import { EmailOtpService } from './email-otp/email-otp.service';
 import { MeService } from './me.service';
 import { BillingModule } from '../billing/billing.module';
 import { PlansModule } from '../plans/plans.module';
@@ -26,11 +28,12 @@ import { UsersModule } from '../users/users.module';
     SessionModule,
     PassportModule,
     MailModule,
+    TypeOrmModule.forFeature([EmailOtpEntity]),
     JwtModule.register({}),
   ],
   controllers: [AuthController],
   providers: [
-    OtpService,
+    EmailOtpService,
     MeService,
     AuthService,
     JwtStrategy,

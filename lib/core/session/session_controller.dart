@@ -127,7 +127,7 @@ class SessionController extends GetxController {
   /// Whether the SERVER thinks onboarding is done, for a session cached as needing it.
   ///
   /// The cached flag may let a user IN, but it must never be the only thing keeping them OUT.
-  /// `onboarding_required` is written once, at `/auth/otp/verify`, and every refresh copies it
+  /// `onboarding_required` is written once, at sign-in, and every refresh copies it
   /// forward — nothing has ever re-read it. So anything that completes onboarding away from this
   /// copy of the app (killed between the successful POST and the local write, a second device, a
   /// support agent) leaves the flag true here for good, and a person with a perfectly real account

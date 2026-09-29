@@ -4,16 +4,16 @@ import 'package:health_pro/core/theme/app_assets.dart';
 import 'package:health_pro/core/theme/app_colors.dart';
 import 'package:health_pro/core/theme/app_spacing.dart';
 import 'package:health_pro/presentation/features/auth/login_controller.dart';
-import 'package:health_pro/presentation/features/auth/widgets/otp_step.dart';
-import 'package:health_pro/presentation/features/auth/widgets/phone_step.dart';
+import 'package:health_pro/presentation/features/auth/widgets/code_step.dart';
+import 'package:health_pro/presentation/features/auth/widgets/forgot_step.dart';
+import 'package:health_pro/presentation/features/auth/widgets/sign_in_step.dart';
+import 'package:health_pro/presentation/features/auth/widgets/sign_up_step.dart';
 import 'package:health_pro/presentation/l10n/app_localizations.dart';
 
-/// docs/14 §6: phone/OTP is the first screen. Phone is primary auth in India (docs/09 §3) — there
-/// is no email or password anywhere in this flow.
+/// The first screen: email and password, with a code emailed the first time (D-250).
 ///
-/// Two steps on one page rather than two routes: the OTP step is the same screen with the question
-/// changed, and pushing a route for it would put a system back button next to the app's own way
-/// back to the number.
+/// Every step on one page rather than a route each: each is the same screen with the question
+/// changed, and pushing routes would put a system back button beside the app's own way back.
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
 
@@ -29,9 +29,9 @@ class _LoginPageState extends State<LoginPage> {
   void initState() {
     super.initState();
     // Changing step swaps the page's content but not its scroll offset. The disclaimer makes this
-    // page taller than a small phone, so someone who scrolled to reach "Send code" was dropped into
-    // the middle of the OTP step — past the six boxes they were just asked to fill in.
-    _stepChanges = ever(Get.find<LoginController>().codeSent, (_) {
+    // page taller than a small phone, so someone who scrolled to reach a button was dropped into
+    // the middle of the next step — past the fields they were just asked to fill in.
+    _stepChanges = ever(Get.find<LoginController>().step, (_) {
       if (_scroll.hasClients) _scroll.jumpTo(0);
     });
   }
@@ -50,11 +50,18 @@ class _LoginPageState extends State<LoginPage> {
 
     return Scaffold(
       body: SafeArea(
-        // Only `codeSent` is read here. Everything else reactive belongs to a step, which wraps its
+        // Only `step` is read here. Everything else reactive belongs to a step, which wraps its
         // own `Obx` — a value read in this closure but rendered by a child widget's `build` is read
         // outside the reactive scope and never rebuilds. That bug shipped once already (D-88).
         child: Obx(() {
-          final sent = c.codeSent.value;
+          final step = c.step.value;
+          final (title, subtitle) = switch (step) {
+            AuthStep.signIn => (l.loginTitle, l.loginSubtitle),
+            AuthStep.signUp => (l.signUpTitle, l.signUpSubtitle),
+            AuthStep.verify => (l.otpTitle, l.otpSubtitle(c.email.value.trim())),
+            AuthStep.forgot => (l.forgotTitle, l.forgotSubtitle),
+            AuthStep.forgotSent => (l.forgotSentTitle, ''),
+          };
 
           return ListView(
             controller: _scroll,
@@ -66,20 +73,22 @@ class _LoginPageState extends State<LoginPage> {
             ),
             children: [
               _TopRow(
-                // Only on the OTP step, where "back" means something: return to the number. On the
-                // phone step there is nothing behind this screen, and an arrow that does nothing is
+                // Not on sign-in: there is nothing behind it, and an arrow that does nothing is
                 // worse than no arrow.
-                onBack: sent ? c.editPhone : null,
+                onBack: step == AuthStep.signIn ? null : () => c.goTo(AuthStep.signIn),
                 secureLabel: l.loginSecureBadge,
                 backLabel: l.loginBack,
               ),
               const SizedBox(height: AppSpacing.xl),
-              _Heading(
-                title: sent ? l.otpTitle : l.loginTitle,
-                subtitle: sent ? l.otpSubtitle(c.phoneE164) : l.loginSubtitle,
-              ),
+              _Heading(title: title, subtitle: subtitle),
               const SizedBox(height: AppSpacing.xl),
-              if (sent) OtpStep(controller: c) else PhoneStep(controller: c),
+              switch (step) {
+                AuthStep.signIn => SignInStep(controller: c),
+                AuthStep.signUp => SignUpStep(controller: c),
+                AuthStep.verify => CodeStep(controller: c),
+                AuthStep.forgot => ForgotStep(controller: c),
+                AuthStep.forgotSent => ForgotSentStep(controller: c),
+              },
               const SizedBox(height: AppSpacing.xxl),
               _ImportantCard(title: l.loginImportantTitle, body: l.copyDisclaimer),
               const SizedBox(height: AppSpacing.xl),
@@ -125,7 +134,7 @@ class _TopRow extends StatelessWidget {
         Expanded(
           child: Align(
             alignment: Alignment.centerRight,
-            child: // Not a claim about cryptography — the answer to "is it safe to type my number in here",
+            child: // Not a claim about cryptography — the answer to "is it safe to type this in here",
                 // asked at the moment someone is deciding whether to.
                 Container(
                   padding: const EdgeInsets.symmetric(
@@ -217,14 +226,15 @@ class _Heading extends StatelessWidget {
                         height: 1.15,
                       ),
                     ),
-                    const SizedBox(height: AppSpacing.md),
-                    Text(
-                      subtitle,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
-                        height: 1.5,
+                    if (subtitle.isNotEmpty) const SizedBox(height: AppSpacing.md),
+                    if (subtitle.isNotEmpty)
+                      Text(
+                        subtitle,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                          height: 1.5,
+                        ),
                       ),
-                    ),
                   ],
                 ),
               ),

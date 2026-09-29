@@ -35,6 +35,9 @@ class ApiLogInterceptor extends Interceptor {
     'oldPassword',
     'hash',
     'otp',
+    // The emailed sign-up code (D-250). Also hides error-envelope codes in debug logs; the
+    // `user_message` beside them still shows.
+    'code',
     'phone_e164',
     'phone',
     'conditions',

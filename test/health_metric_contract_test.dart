@@ -91,7 +91,9 @@ void main() {
         matches(RegExp(r'<activity-alias[^>]*android:targetActivity="\.PrivacyPolicyActivity"')),
       );
       expect(
-        File('android/app/src/main/kotlin/com/zynthovo/eatzify/PrivacyPolicyActivity.kt').existsSync(),
+        File(
+          'android/app/src/main/kotlin/com/zynthovo/eatzify/PrivacyPolicyActivity.kt',
+        ).existsSync(),
         isTrue,
       );
     });
