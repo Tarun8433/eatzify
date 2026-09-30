@@ -1,6 +1,7 @@
 import 'package:dartz/dartz.dart';
 import 'package:health_pro/core/errors/failures.dart';
 import 'package:health_pro/domain/entities/billing.dart';
+import 'package:health_pro/domain/entities/invoice.dart';
 
 /// docs/09 §7. Entitlements, prices, and starting a purchase (D-194).
 ///
@@ -49,4 +50,18 @@ abstract class BillingRepository {
   /// Stub builds only, and the server refuses it anywhere else. Stands in for the gateway's
   /// webhook so the activation path is exercisable before Cashfree credentials exist.
   Future<Either<Failure, Unit>> completeStubPayment(String orderId);
+
+  /// Payments plan, Phase 4: a Google Play purchase token, checked with Google by the SERVER before
+  /// anything is granted. Answers with the plan as it now stands.
+  Future<Either<Failure, SubscriptionState>> verifyPlay(String purchaseToken);
+
+  /// Payments plan, Phase 5: StoreKit 2's signed transaction, checked with Apple by the SERVER.
+  Future<Either<Failure, SubscriptionState>> verifyAppStore(String signedTransaction);
+
+  /// D-255: this account's GST invoices and credit notes, newest first. Empty until the business
+  /// is GST-registered.
+  Future<Either<Failure, List<Invoice>>> invoices();
+
+  /// One invoice as PDF bytes, to hand to the share sheet.
+  Future<Either<Failure, List<int>>> invoicePdf(String id);
 }

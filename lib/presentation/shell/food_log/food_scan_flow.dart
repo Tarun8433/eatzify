@@ -10,6 +10,7 @@ import 'package:health_pro/domain/entities/food_scan.dart';
 import 'package:health_pro/domain/repositories/billing_repository.dart';
 import 'package:health_pro/domain/repositories/payment_gateway.dart';
 import 'package:health_pro/domain/repositories/scan_repository.dart';
+import 'package:health_pro/domain/repositories/store_gateway.dart';
 import 'package:health_pro/presentation/features/billing/billing_controller.dart';
 import 'package:health_pro/presentation/features/billing/paywall_sheet.dart';
 import 'package:health_pro/presentation/l10n/app_localizations.dart';
@@ -125,6 +126,7 @@ class FoodScanFlow {
               // Absent in tests and in any build with no SDK linked; the controller then says
               // checkout cannot be opened rather than leaving a dead button.
               gateway: Get.isRegistered<PaymentGateway>() ? Get.find<PaymentGateway>() : null,
+              store: Get.isRegistered<StoreGateway>() ? Get.find<StoreGateway>() : null,
             ),
             permanent: true,
           );

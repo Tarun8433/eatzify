@@ -7,8 +7,9 @@ import 'package:health_pro/core/errors/failures.dart';
 import 'package:health_pro/core/theme/app_theme.dart';
 import 'package:health_pro/core/widgets/state_views.dart';
 import 'package:health_pro/domain/entities/coach_client.dart';
-import 'package:health_pro/domain/entities/food.dart';
 import 'package:health_pro/domain/entities/coach_dashboard.dart';
+import 'package:health_pro/domain/entities/food.dart';
+import 'package:health_pro/domain/entities/payout_kyc.dart';
 import 'package:health_pro/domain/entities/sent_invite.dart';
 import 'package:health_pro/domain/repositories/coach_repository.dart';
 import 'package:health_pro/presentation/features/coach/coach_dashboard_page.dart';
@@ -33,7 +34,15 @@ class FakeCoachRepository implements CoachRepository {
     this.code,
     this.failure,
     this.earningsFail = false,
+    this.kyc,
   });
+
+  /// D-255: payout details. Null answers 404, which hides the card like a failed read would.
+  final PayoutKyc? kyc;
+
+  @override
+  Future<Either<Failure, PayoutKyc>> payoutKyc() async =>
+      kyc == null ? const Left(ApiFailure('none', code: 'X', status: 404)) : Right(kyc!);
 
   final CoachDashboard? summary;
   final List<CoachClient> roster;
@@ -319,5 +328,57 @@ void main() {
     // A long absence is stated as a fact about the diary, never as a verdict on the person.
     expect(find.text('No recent logs'), findsWidgets);
     expect(find.text('Inactive'), findsNothing);
+  });
+
+  /// D-255: payout details are asked for only once money is waiting, and never before.
+  group('payout details', () {
+    FakeCoachRepository withKyc(PayoutKyc? kyc) => FakeCoachRepository(
+      summary: const CoachDashboard(
+        totalClients: 1,
+        activeClients: 1,
+        atRiskClients: 0,
+        pendingInvites: 0,
+        renewalsDue30d: 0,
+        needsAttention: [],
+      ),
+      roster: const [_full],
+      kyc: kyc,
+    );
+
+    Future<void> scrollToEnd(WidgetTester tester) async {
+      await tester.drag(find.byType(Scrollable).first, const Offset(0, -2000));
+      await settle(tester);
+    }
+
+    testWidgets('should ask for details once a payout is due', (tester) async {
+      await tester.pumpWidget(
+        pageWith(withKyc(const PayoutKyc(required: true, status: 'none', duePaise: 150000))),
+      );
+      await settle(tester);
+      await scrollToEnd(tester);
+
+      expect(find.text('Add your payout details'), findsWidgets);
+      expect(find.textContaining('₹1,500'), findsOneWidget);
+    });
+
+    testWidgets('should not ask while nothing is due', (tester) async {
+      await tester.pumpWidget(
+        pageWith(withKyc(const PayoutKyc(required: false, status: 'none', duePaise: 50000))),
+      );
+      await settle(tester);
+      await scrollToEnd(tester);
+
+      expect(find.text('Add your payout details'), findsNothing);
+    });
+
+    testWidgets('should say the details are under review once sent', (tester) async {
+      await tester.pumpWidget(
+        pageWith(withKyc(const PayoutKyc(required: false, status: 'pending', duePaise: 150000))),
+      );
+      await settle(tester);
+      await scrollToEnd(tester);
+
+      expect(find.text('Payout details under review'), findsOneWidget);
+    });
   });
 }

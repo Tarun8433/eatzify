@@ -32,6 +32,11 @@ export const AUDIT_ACTIONS = [
   'coach_reject',
   'read_pii',
   'rule_pack_activate',
+  // docs/12 §5 (Phase 6): the money actions on partner payouts.
+  'payout_paid',
+  'payout_cancel',
+  'kyc_update',
+  'tds_rate_add',
 ] as const;
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];
 

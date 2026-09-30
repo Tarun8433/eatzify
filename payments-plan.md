@@ -50,9 +50,9 @@ A box is ticked only after its check has actually passed.
 - [x] Paywall, the website's pricing page, `docs/11`
 
 ### Phase 3 — Cashfree prices from the admin panel
-- [ ] `tier_price` table, migration seeded from today's prices
-- [ ] AdminJS resource; checkout charges the stored price; cache with a short TTL
-- [ ] Tests: a price changed in the admin is what the next checkout charges
+- [x] `tier_price` table (`1759000000000-TierPrice`), seeded from today's prices; CHECKs pin the grid and a ₹1 minimum. *Not yet run against a real Postgres — runs on the next deploy*
+- [x] AdminJS resource (edit only); checkout, upgrade quote, `GET /billing/prices` and renewal notices read `PriceService` (60 s cache)
+- [x] Tests: `test/price-service.spec.ts` — the admin's price is charged, reaches checkout after the cache ages out, missing cells fall back. API `npx jest` 729/729
 
 ### Phase 4 — Server: verifying store purchases
 - [ ] `subscription.source` (`cashfree` · `play` · `app_store`) and store transaction ids

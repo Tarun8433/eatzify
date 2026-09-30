@@ -51,3 +51,11 @@ export const STUB_MODE =
 /// D-236. One message for every way a code can fail — which check failed is not checkout copy.
 export const COUPON_INVALID =
   "That offer code isn't valid, has expired, or has been fully used.";
+
+/// Payments plan, Phase 4: store purchases.
+export const PURCHASE_NOT_ACTIVE =
+  "That purchase isn't complete yet. If you were charged, it will appear shortly.";
+export const PURCHASE_OTHER_ACCOUNT =
+  'This purchase belongs to another Eatzify account. Sign in with that account to use it.';
+export const STORE_NOT_CONFIGURED =
+  "Store purchases aren't available yet. Nothing has been charged.";

@@ -240,15 +240,17 @@ class _PayButton extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             // D-236: the offer code, priced server-side. Deliberately NOT read back into this
-            // Obx — typing must not rebuild the sheet under the keyboard.
-            Padding(
-              padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-              child: TextField(
-                onChanged: (value) => billing.couponCode.value = value,
-                textCapitalization: TextCapitalization.characters,
-                decoration: InputDecoration(labelText: l.premiumCouponLabel, isDense: true),
+            // Obx — typing must not rebuild the sheet under the keyboard. Not in a store, whose sheet
+            // has its own codes and never sees ours.
+            if (!billing.isStoreBilling)
+              Padding(
+                padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+                child: TextField(
+                  onChanged: (value) => billing.couponCode.value = value,
+                  textCapitalization: TextCapitalization.characters,
+                  decoration: InputDecoration(labelText: l.premiumCouponLabel, isDense: true),
+                ),
               ),
-            ),
             // Not a refusal from the server: the order exists, the app just has no way to open
             // checkout. Saying that beats a button that looks like it did nothing.
             if (billing.gatewayUnavailable.value)

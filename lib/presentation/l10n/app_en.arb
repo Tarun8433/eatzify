@@ -1855,6 +1855,42 @@
   },
   "subscriptionSeePlans": "See all plans",
   "subscriptionTrialUsed": "Your free week has been used.",
+  "subscriptionInvoices": "Invoices",
+  "invoicesTitle": "Invoices",
+  "invoicesEmpty": "No invoices yet",
+  "invoicesEmptyBody": "Tax invoices for plans you buy here will appear in this list.",
+  "invoicesRefresh": "Refresh",
+  "invoiceCreditNote": "Credit note",
+  "invoiceDownload": "Download invoice {number}",
+  "@invoiceDownload": {
+    "placeholders": {
+      "number": {
+        "type": "String"
+      }
+    }
+  },
+  "kycCardTitle": "Add your payout details",
+  "kycCardBody": "{amount} is ready to be paid to you. Add your bank details so we can send it.",
+  "@kycCardBody": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
+  },
+  "kycRejectedBody": "We couldn't verify your details. Please check them and send them again.",
+  "kycPendingTitle": "Payout details under review",
+  "kycPendingBody": "We're checking your details. Payouts start once they're verified.",
+  "kycFormTitle": "Payout details",
+  "kycHolderName": "Account holder name",
+  "kycPan": "PAN",
+  "kycAccount": "Bank account number",
+  "kycIfsc": "IFSC code",
+  "kycGstin": "GSTIN (optional)",
+  "kycInvalid": "Please check this",
+  "kycPrivacyNote": "Your full PAN and account number are stored encrypted and are seen only by our payouts team.",
+  "kycSubmit": "Send for review",
+  "kycSaved": "Details sent for review",
   "checkinsTitle": "Check-ins",
   "checkinsEmpty": "Nothing to review yet",
   "checkinsEmptyBody": "Reviews appear here once a client shares their progress with you.",

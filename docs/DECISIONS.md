@@ -6115,3 +6115,85 @@ before real volume.
 **Supersedes** docs/09 §3 and docs/14 §6 "phone/OTP is primary auth". `otp/request`, `otp/verify`
 and the fixed dev code are gone — which also closes the payments-plan blocker "OTP `000000` signs in
 as anyone". Accounts that only ever signed in by phone must register again (no public users yet).
+
+## D-251 — Cashfree prices live in the database, edited in the admin panel
+**When** 2026-09-29 · **Decision** Product owner: "admin can select from admin panel". `tier_price`
+(tier × 1/3/6/12 months, BIGINT paise, GST-inclusive) is seeded from `tiers.ts` and edited in
+AdminJS (edit only; the grid is fixed). Everything that **charges or quotes** reads `PriceService`:
+checkout, the upgrade quote, `GET /billing/prices` (the paywall) and renewal notices. A change reaches
+checkout within 60 s. Ranking tiers (upgrade vs downgrade) and "is this a real tier" still read
+`tiers.ts`, which stays the fallback for a missing row.
+**Not enforced** The monotonic-ladder rule `test/tiers.spec.ts` checks on the shipped defaults is not
+checked on admin edits — an admin can make 3 months cheaper per month than 12. Play and App Store
+prices are set in their consoles, not here.
+
+## D-252 — The app buys Play subscriptions through `in_app_purchase`; the server is the only judge
+**When** 2026-09-30 · **Decision** With `payments_mode: play` the paywall's pay button opens Google
+Play for the base plan the SERVER named (`play_products`), attaching `store_account_token` as the
+obfuscated account id. Every token Play reports goes to `POST /billing/play/verify`; the tier is
+re-read from the server, never assumed. `PlayStoreGateway` listens from launch so a pending (UPI)
+purchase that clears later is still verified, and re-sends unacknowledged purchases once per run.
+The offer-code field is hidden on Play — Play's sheet has its own codes. The button still shows the
+server's rupee price; Play's sheet shows the store's own price before the person confirms.
+**Not done** A device purchase against the Play sandbox (needs Play Console products and a service
+account), and iOS (Phase 5).
+
+## D-253 — iPhone pays through Apple in-app purchase (Phase 5), verified with Apple's own library
+**When** 2026-09-30 · **Decision** Rather than ship iOS with no way to pay (D-249), iOS gets
+`payments_mode: app_store` once the App Store keys are set, and still `unavailable` until then. The
+app buys through StoreKit 2 (`in_app_purchase`, same `InAppStoreGateway` as Play) and posts the
+signed transaction to `POST /billing/appstore/verify`. The server checks Apple's signature with
+`@apple/app-store-server-library` (Apple's official package, a new payments dependency), then re-reads
+the subscription with the App Store Server API before `StoreGrantService` touches the account.
+App Store Server Notifications v2 land on `POST /billing/appstore/notifications`, signature-checked,
+and are re-read the same way. Products are `eatzify.<basic|pro>.<p1m|p3m|p6m|p1y>`, one
+subscription group. `storeAccountToken` is now UUID-shaped, because Apple's `appAccountToken`
+accepts nothing else; Play takes it unchanged, and nothing has been sold on Play yet.
+Apple status 1→active, 2→expired, 3 (billing retry)→past_due, 4 (grace)→grace, 5 or any
+revocation→expired.
+**Not done** App Store Connect products and API key, Apple root certificates on the server, the
+notification URL in App Store Connect, and a sandbox purchase on a device.
+
+## D-254 — Partner payouts: prepared by the server, paid by a human, TDS rate left to the CA
+**When** 2026-09-30 · **Decision** Product owner chose "build, TDS rate blank". Migration
+`1759200000000-PartnerPayouts` adds `payout`, `partner_kyc` (last four of PAN and bank only),
+`tds_rate` (dated, **seeded empty**) and a nullable `commission_entry.payoutId`. On the 1st at 06:00
+IST the run turns every partner's settleable balance (past its hold, no payout yet, month ≤ the run's)
+into a `pending_approval` payout. It skips a balance under ₹1,000 (it rolls forward), missing or
+unverified KYC, or a bank account changed in the last 7 days. With no TDS rate it refuses to run.
+An admin sends the money outside this server and marks it paid with the UTR (TOTP + audit row).
+Cancelling returns the rows to the ledger. Partners get `GET /coach/payouts` and a CSV statement per
+payout, with no client line. The nightly check is keyed on `payoutId`, not on `status='paid'` as
+docs/12 §4 writes it, because a paid row that is later refunded becomes `reversed` and would drop
+out of the doc's sum.
+**Fixed on the way** `reverseForOrder` only looked for `payable` rows, and no row is ever stored
+that way (entries are `accrued`; payable is derived), so a refund never reversed a commission. It
+now reverses accrued, payable and paid rows. A reversal of an unpaid row keeps the original's hold
+date, so a payout takes both or neither.
+**Not done** The 194H annual threshold (flat rate per payout until the CA says otherwise), GST on
+partner commission, a partner-side KYC form in the app, and a Postgres test of the new constraints.
+
+## D-255 — Partner KYC in the app, asked only when a payout is due; GST invoices for Cashfree sales
+**When** 2026-09-30 · **Decision** Product owner: "KYC and GST invoice, but the user does KYC only
+when a payout is due."
+**KYC.** `GET /coach/payouts/kyc` returns `required: true` only when the partner's settleable
+balance is ≥ ₹1,000 and there is no KYC on file or it was rejected. The Clients tab shows a card
+only then, or "under review" while pending. `PUT /coach/payouts/kyc` takes holder name, PAN,
+account number, IFSC and optional GSTIN, and sets `pending`. **This departs from docs/12 §5**
+("PAN: last 4 only in the app DB"): if partners enter KYC in the app, the full numbers have to live
+somewhere the payout desk can read them. So the full PAN and account number are **sealed with
+AES-256-GCM** (`utils/field-crypto.ts`, key `KYC_FIELD_KEY` outside the database), and only the last
+four digits are stored in clear. An admin opens them with `GET /admin/partners/:id/kyc` (TOTP +
+`read_pii` audit row), then `POST .../kyc/review` verified|rejected. A changed account or IFSC
+restarts the 7-day payout freeze. This replaces D-254's admin-typed `PUT /admin/partners/:id/kyc`.
+**Invoices.** A Cashfree payment issues a GST tax invoice (`EZ2627-000001`); a refund issues a
+credit note (`CN2627-…`) against it. Numbers are consecutive per financial year (April–March IST)
+and kind, from `invoice_sequence`, inside the insert's transaction. Prices are GST-inclusive at
+18 %: taxable value is rounded to the nearest paisa, and the tax is split CGST+SGST (B2C with no
+address = supplied where the seller is). The seller's details are copied into each invoice.
+**Nothing is issued until** `GST_SELLER_GSTIN`, `_LEGAL_NAME`, `_ADDRESS`, `_STATE_CODE` and
+`GST_SAC_CODE` are all set, because an unregistered seller cannot issue a tax invoice. PDFs come from
+`pdfkit` (new dependency) at `GET /billing/invoices/:id/pdf`. The app lists them under "Your plan"
+and hands the PDF to the share sheet. Play and App Store sales are invoiced by the stores.
+**Not done** B2B invoices (buyer GSTIN, IGST by place of supply), the SAC code and GST registration
+(CA), and a Postgres test of the new constraints.

@@ -10,6 +10,7 @@ import 'package:health_pro/domain/entities/coach_discipline.dart';
 import 'package:health_pro/domain/entities/coach_invite.dart';
 import 'package:health_pro/domain/entities/data_access.dart';
 import 'package:health_pro/domain/entities/food.dart';
+import 'package:health_pro/domain/entities/payout_kyc.dart';
 import 'package:health_pro/domain/entities/sent_invite.dart';
 
 /// `GET|POST /coach/application*` (docs/12 §6).
@@ -78,6 +79,29 @@ class CoachRemoteDataSource {
     try {
       final res = await _dio.get<Map<String, dynamic>>('/coach/referral');
       return Right(CoachReferral.fromJson(res.data ?? const {}));
+    } on DioException catch (e) {
+      return Left(mapDioError(e));
+    }
+  }
+
+  /// `GET /coach/payouts/kyc` (D-255).
+  Future<Either<Failure, PayoutKyc>> payoutKyc() async {
+    try {
+      final res = await _dio.get<Map<String, dynamic>>('/coach/payouts/kyc');
+      return Right(PayoutKyc.fromJson(res.data ?? const {}));
+    } on DioException catch (e) {
+      return Left(mapDioError(e));
+    }
+  }
+
+  /// `PUT /coach/payouts/kyc` (D-255).
+  Future<Either<Failure, PayoutKyc>> submitPayoutKyc(PayoutKycSubmission details) async {
+    try {
+      final res = await _dio.put<Map<String, dynamic>>(
+        '/coach/payouts/kyc',
+        data: details.toJson(),
+      );
+      return Right(PayoutKyc.fromJson(res.data ?? const {}));
     } on DioException catch (e) {
       return Left(mapDioError(e));
     }

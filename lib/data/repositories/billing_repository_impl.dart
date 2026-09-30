@@ -2,6 +2,7 @@ import 'package:dartz/dartz.dart';
 import 'package:health_pro/core/errors/failures.dart';
 import 'package:health_pro/data/datasources/remote/billing_remote_data_source.dart';
 import 'package:health_pro/domain/entities/billing.dart';
+import 'package:health_pro/domain/entities/invoice.dart';
 import 'package:health_pro/domain/repositories/billing_repository.dart';
 
 class BillingRepositoryImpl implements BillingRepository {
@@ -52,4 +53,18 @@ class BillingRepositoryImpl implements BillingRepository {
   @override
   Future<Either<Failure, Unit>> completeStubPayment(String orderId) =>
       _remote.completeStubPayment(orderId);
+
+  @override
+  Future<Either<Failure, SubscriptionState>> verifyPlay(String purchaseToken) =>
+      _remote.verifyPlay(purchaseToken);
+
+  @override
+  Future<Either<Failure, SubscriptionState>> verifyAppStore(String signedTransaction) =>
+      _remote.verifyAppStore(signedTransaction);
+
+  @override
+  Future<Either<Failure, List<Invoice>>> invoices() => _remote.invoices();
+
+  @override
+  Future<Either<Failure, List<int>>> invoicePdf(String id) => _remote.invoicePdf(id);
 }

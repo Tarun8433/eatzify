@@ -6,12 +6,16 @@ import {
   Headers,
   HttpCode,
   HttpStatus,
+  Param,
+  ParseUUIDPipe,
   Post,
   Request,
+  Res,
   UseGuards,
 } from '@nestjs/common';
 import { IsIn, IsOptional, IsString, MaxLength } from 'class-validator';
 import { AuthGuard } from '@nestjs/passport';
+import type { Response } from 'express';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { BillingService, type SubscriptionView } from './billing.service';
 import {
@@ -28,7 +32,11 @@ import { RefundService, type RefundView } from './refund.service';
 import { CashfreeClient } from './cashfree.client';
 import { CashfreeMode } from './cashfree.config';
 import { PAYMENTS_NOT_OFFERED, STUB_MODE } from './billing-copy';
-import { PRICES, type Tier } from './tiers';
+import { type Tier } from './tiers';
+import { type PriceMatrix } from './price.service';
+import { PlayBillingService } from './store/play-billing.service';
+import { AppStoreBillingService } from './store/app-store-billing.service';
+import { InvoiceService, type InvoiceView } from './invoice/invoice.service';
 import type { RequestWithUser } from '../utils/types/request-with-user.type';
 import type { JwtPayloadType } from '../auth/strategies/types/jwt-payload.type';
 import { cashfreeOffered, platformFrom } from './payment-rails';
@@ -49,6 +57,25 @@ class CheckoutDto {
   @IsOptional()
   @IsString()
   coupon_code?: string;
+
+  /// User Choice Billing: Play's token when the person chose Cashfree on Play's choice screen.
+  @IsOptional()
+  @IsString()
+  @MaxLength(1024)
+  external_transaction_token?: string;
+}
+
+class PlayVerifyDto {
+  @IsString()
+  @MaxLength(1024)
+  purchase_token: string;
+}
+
+class AppStoreVerifyDto {
+  /// StoreKit 2's `jwsRepresentation` of the transaction.
+  @IsString()
+  @MaxLength(16384)
+  signed_transaction: string;
 }
 
 class SimulateDto {
@@ -98,6 +125,9 @@ export class BillingController {
     private readonly subscriptions: SubscriptionService,
     private readonly refunds: RefundService,
     private readonly cashfree: CashfreeClient,
+    private readonly play: PlayBillingService,
+    private readonly appStore: AppStoreBillingService,
+    private readonly invoices: InvoiceService,
   ) {}
 
   /// docs/09 §7: the current state, its renewal date, and whether renewing needs AFA.
@@ -224,7 +254,63 @@ export class BillingController {
       idempotencyKey: idempotencyKey ?? null,
       now: new Date(),
       couponCode: dto.coupon_code ?? null,
+      externalTransactionToken: dto.external_transaction_token ?? null,
     });
+  }
+
+  /// Payments plan, Phase 4: a Google Play purchase, checked with Google before anything is
+  /// granted. Answers with the subscription as it now stands.
+  @Post('play/verify')
+  @HttpCode(HttpStatus.OK)
+  public async verifyPlay(
+    @Request() request: RequestWithUser<JwtPayloadType>,
+    @Body() dto: PlayVerifyDto,
+  ): Promise<SubscriptionStateView> {
+    const userId = Number(request.user.id);
+    const now = new Date();
+    await this.play.verify(userId, dto.purchase_token, now);
+    return this.subscriptions.state(userId, now);
+  }
+
+  /// D-255: this account's GST invoices and credit notes, newest first. Empty until the business
+  /// is GST-registered and the seller details are configured.
+  @Get('invoices')
+  public invoiceList(
+    @Request() request: RequestWithUser<JwtPayloadType>,
+  ): Promise<InvoiceView[]> {
+    return this.invoices.listFor(Number(request.user.id));
+  }
+
+  /// One invoice as a PDF, the caller's own only.
+  @Get('invoices/:id/pdf')
+  public async invoicePdf(
+    @Request() request: RequestWithUser<JwtPayloadType>,
+    @Param('id', ParseUUIDPipe) id: string,
+    @Res() res: Response,
+  ): Promise<void> {
+    const { number, pdf } = await this.invoices.pdfFor(
+      Number(request.user.id),
+      id,
+    );
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `attachment; filename="${number}.pdf"`,
+    });
+    res.send(pdf);
+  }
+
+  /// Payments plan, Phase 5: an App Store purchase. Apple's signature is checked and the
+  /// subscription re-read from Apple before anything is granted.
+  @Post('appstore/verify')
+  @HttpCode(HttpStatus.OK)
+  public async verifyAppStore(
+    @Request() request: RequestWithUser<JwtPayloadType>,
+    @Body() dto: AppStoreVerifyDto,
+  ): Promise<SubscriptionStateView> {
+    const userId = Number(request.user.id);
+    const now = new Date();
+    await this.appStore.verify(userId, dto.signed_transaction, now);
+    return this.subscriptions.state(userId, now);
   }
 
   /// D-249: the pay button is already absent where Cashfree may not be offered; this refuses the
@@ -279,7 +365,7 @@ export class BillingController {
   /// The price matrix, so no price is ever hardcoded in the app (docs/11 §2).
   @Get('prices')
   @HttpCode(HttpStatus.OK)
-  public prices(): typeof PRICES {
+  public prices(): Promise<PriceMatrix> {
     return this.service.prices();
   }
 }

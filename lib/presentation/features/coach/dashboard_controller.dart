@@ -3,6 +3,7 @@ import 'package:health_pro/core/errors/failures.dart';
 import 'package:health_pro/core/widgets/view_state.dart';
 import 'package:health_pro/domain/entities/coach_client.dart';
 import 'package:health_pro/domain/entities/coach_dashboard.dart';
+import 'package:health_pro/domain/entities/payout_kyc.dart';
 import 'package:health_pro/domain/entities/sent_invite.dart';
 import 'package:health_pro/domain/repositories/coach_repository.dart';
 
@@ -17,6 +18,7 @@ class CoachDesk {
     required this.invites,
     this.earnings,
     this.referral,
+    this.kyc,
   });
 
   final CoachDashboard summary;
@@ -30,6 +32,9 @@ class CoachDesk {
   /// whose ledger is briefly unreachable has not lost their client list.
   final CoachEarnings? earnings;
   final CoachReferral? referral;
+
+  /// D-255: payout details, asked for only once money is waiting. Null when the read failed.
+  final PayoutKyc? kyc;
 
   bool get isEmpty => summary.isEmpty && clients.isEmpty && invites.isEmpty;
 }
@@ -56,12 +61,13 @@ class CoachDashboardController extends GetxController {
   Future<void> load({bool quiet = false}) async {
     if (!quiet) state.value = const Loading();
 
-    final (summary, roster, sent, money, code) = await (
+    final (summary, roster, sent, money, code, kyc) = await (
       coach.dashboard(),
       coach.clients(),
       coach.sentInvites(),
       coach.earnings(),
       coach.referral(),
+      coach.payoutKyc(),
     ).wait;
 
     /// A failure in the three reads the screen is ABOUT fails the screen. Rendering half of it
@@ -84,6 +90,7 @@ class CoachDashboardController extends GetxController {
       invites: sent.getOrElse(() => const []),
       earnings: money.fold((_) => null, (e) => e),
       referral: code.fold((_) => null, (r) => r),
+      kyc: kyc.fold((_) => null, (k) => k),
     );
 
     state.value = desk.isEmpty ? const Empty() : Ready(desk);

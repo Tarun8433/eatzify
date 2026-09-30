@@ -1,7 +1,12 @@
 /// What the server says this account may use. docs/11 §4: entitlements are resolved SERVER-side —
 /// the app renders them and never computes one (CLAUDE.md rule 3).
 class Entitlements {
-  const Entitlements({required this.tier, required this.status, this.paymentsMode = 'stub'});
+  const Entitlements({
+    required this.tier,
+    required this.status,
+    this.paymentsMode = 'stub',
+    this.storeProducts = const [],
+  });
 
   Entitlements.fromJson(Map<String, dynamic> json)
     : this(
@@ -10,6 +15,13 @@ class Entitlements {
         // Defaults to the mode that sells nothing. A build that cannot read the field must not
         // assume it can take money.
         paymentsMode: json['payments_mode']?.toString() ?? 'stub',
+        storeProducts: [
+          for (final row in [
+            ...json['play_products'] as List<dynamic>? ?? const [],
+            ...json['appstore_products'] as List<dynamic>? ?? const [],
+          ])
+            if (row is Map<String, dynamic>) StoreProduct.fromJson(row),
+        ],
       );
 
   /// FREE / BASIC / PRO — the server's vocabulary, shown through l10n (rule 4).
@@ -23,7 +35,29 @@ class Entitlements {
 
   /// A real gateway is behind the pay button. Named modes only: anything the app does not know —
   /// `unavailable`, or a mode added later — must not be read as permission to charge.
-  bool get canTakePayment => paymentsMode == 'sandbox' || paymentsMode == 'production';
+  bool get canTakePayment =>
+      isStoreBilling || paymentsMode == 'sandbox' || paymentsMode == 'production';
+
+  /// Payments plan, Phase 4: this Android build pays through Google Play Billing, not Cashfree.
+  bool get isPlayBilling => paymentsMode == 'play';
+
+  /// Payments plan, Phase 5: this iPhone build pays through Apple in-app purchase.
+  bool get isAppStoreBilling => paymentsMode == 'app_store';
+
+  /// Paid for through the platform store rather than Cashfree.
+  bool get isStoreBilling => isPlayBilling || isAppStoreBilling;
+
+  /// With `payments_mode: play` or `app_store`: the store product per cell of the price matrix.
+  /// The server names them so the app never builds a product id itself.
+  final List<StoreProduct> storeProducts;
+
+  /// The store product for one cell of the matrix, or null when the server sent none for it.
+  StoreProduct? storeProductFor(String tier, int months) {
+    for (final p in storeProducts) {
+      if (p.tier == tier && p.months == months) return p;
+    }
+    return null;
+  }
 
   /// Test purchases that move no money (D-194).
   bool get isStubPayments => paymentsMode == 'stub';
@@ -35,6 +69,31 @@ class Entitlements {
   /// status the server still honours, means the upgrade surfaces stay away (docs/11 §10 names
   /// "upgrade CTA while subscribed" as a shipped defect of the old build).
   bool get isFree => tier == 'FREE';
+}
+
+/// One cell of the price matrix as a store sells it. Play: subscription [productId] (`basic`/`pro`)
+/// and [basePlanId] (`p1m`...`p1y`). App Store: [productId] alone (`eatzify.pro.p3m`).
+/// Server-named, never built on the phone.
+class StoreProduct {
+  const StoreProduct({
+    required this.tier,
+    required this.months,
+    required this.productId,
+    this.basePlanId,
+  });
+
+  StoreProduct.fromJson(Map<String, dynamic> json)
+    : this(
+        tier: json['tier']?.toString() ?? '',
+        months: int.tryParse((json['duration']?.toString() ?? '').replaceAll('M', '')) ?? 0,
+        productId: json['product_id']?.toString() ?? '',
+        basePlanId: json['base_plan_id']?.toString(),
+      );
+
+  final String tier;
+  final int months;
+  final String productId;
+  final String? basePlanId;
 }
 
 /// A started purchase, as `POST /billing/checkout` reports it (D-194).
@@ -96,6 +155,7 @@ class SubscriptionState {
     this.trialEndsAt,
     this.cancelledAt,
     this.trialAvailable = false,
+    this.storeAccountToken,
   });
 
   SubscriptionState.fromJson(Map<String, dynamic> json)
@@ -109,6 +169,7 @@ class SubscriptionState {
         trialEndsAt: DateTime.tryParse(json['trial_ends_at']?.toString() ?? '')?.toLocal(),
         cancelledAt: DateTime.tryParse(json['cancelled_at']?.toString() ?? '')?.toLocal(),
         trialAvailable: json['trial_available'] == true,
+        storeAccountToken: json['store_account_token']?.toString(),
       );
 
   final String tier;
@@ -132,6 +193,10 @@ class SubscriptionState {
 
   /// docs/11 §6: one free week per number, for life.
   final bool trialAvailable;
+
+  /// Opaque id the app hands the store at purchase, so a token bought here can't be claimed by
+  /// another account (Payments plan, Phase 4).
+  final String? storeAccountToken;
 
   bool get isFree => tier == 'FREE';
   bool get isTrial => status == 'trialing';

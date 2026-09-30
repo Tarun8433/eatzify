@@ -8,6 +8,7 @@ import 'package:health_pro/domain/entities/coach_discipline.dart';
 import 'package:health_pro/domain/entities/coach_invite.dart';
 import 'package:health_pro/domain/entities/data_access.dart';
 import 'package:health_pro/domain/entities/food.dart';
+import 'package:health_pro/domain/entities/payout_kyc.dart';
 import 'package:health_pro/domain/entities/sent_invite.dart';
 
 /// Coach onboarding (docs/12 §6). Nothing about clients: an applicant has none, and the surfaces
@@ -52,6 +53,12 @@ abstract class CoachRepository {
 
   /// The code and link a partner shares. Minted on first ask and stable afterwards.
   Future<Either<Failure, CoachReferral>> referral();
+
+  /// D-255: whether payout details are needed yet. Asked for only once money is waiting.
+  Future<Either<Failure, PayoutKyc>> payoutKyc();
+
+  /// Sends payout details for review. The server seals the full PAN and account number.
+  Future<Either<Failure, PayoutKyc>> submitPayoutKyc(PayoutKycSubmission details);
 
   /// The people who ACCEPTED (docs/10 §1). Driven by consent grants, not by a role: a coach with
   /// no grant has an empty roster whatever their level.

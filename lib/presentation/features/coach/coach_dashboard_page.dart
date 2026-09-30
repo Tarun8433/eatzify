@@ -16,6 +16,7 @@ import 'package:health_pro/presentation/features/coach/dashboard_controller.dart
 import 'package:health_pro/presentation/features/coach/dashboard_widgets.dart';
 import 'package:health_pro/presentation/features/coach/data_access_page.dart' show scopeLabel;
 import 'package:health_pro/presentation/features/coach/invite_client_sheet.dart';
+import 'package:health_pro/presentation/features/coach/payout_kyc_card.dart';
 import 'package:health_pro/presentation/features/onboarding/enum_labels.dart';
 import 'package:health_pro/presentation/l10n/app_localizations.dart';
 
@@ -127,6 +128,11 @@ class _Body extends StatelessWidget {
         if (desk.clients.isEmpty && desk.summary.pendingInvites > 0) ...[
           const SizedBox(height: AppSpacing.lg),
           HintCard(icon: Icons.lock_outline, title: l.coachDashLocked, text: l.coachDashLockedBody),
+        ],
+
+        if (desk.kyc case final kyc? when PayoutKycCard.shows(kyc)) ...[
+          const SizedBox(height: AppSpacing.lg),
+          PayoutKycCard(kyc: kyc, onSent: () => controller.load(quiet: true)),
         ],
 
         if (desk.earnings case final earnings?) ...[

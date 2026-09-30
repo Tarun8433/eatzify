@@ -20,6 +20,8 @@ import databaseConfig from './database/config/database.config';
 import authConfig from './auth/config/auth.config';
 import appConfig from './config/app.config';
 import cashfreeConfig from './billing/cashfree.config';
+import storeConfig from './billing/store/store.config';
+import invoiceConfig from './billing/invoice/invoice.config';
 import mailConfig from './mail/config/mail.config';
 import fileConfig from './files/config/file.config';
 import path from 'path';
@@ -52,6 +54,8 @@ const infrastructureDatabaseModule = TypeOrmModule.forRootAsync({
         mailConfig,
         fileConfig,
         cashfreeConfig,
+        storeConfig,
+        invoiceConfig,
       ],
       envFilePath: ['.env'],
     }),

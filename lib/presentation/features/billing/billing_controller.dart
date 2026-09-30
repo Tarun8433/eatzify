@@ -5,6 +5,7 @@ import 'package:health_pro/core/widgets/view_state.dart';
 import 'package:health_pro/domain/entities/billing.dart';
 import 'package:health_pro/domain/repositories/billing_repository.dart';
 import 'package:health_pro/domain/repositories/payment_gateway.dart';
+import 'package:health_pro/domain/repositories/store_gateway.dart';
 
 /// What the server says this account may use, for the screens that sell the rest.
 ///
@@ -12,13 +13,20 @@ import 'package:health_pro/domain/repositories/payment_gateway.dart';
 /// "upgrade CTA rendered while subscribed" as a shipped defect of the old build, and a network
 /// blip must not flash a sales banner at a paying customer.
 class BillingController extends GetxController {
-  BillingController({required this.billing, this.gateway});
+  BillingController({required this.billing, this.gateway, this.store});
 
   final BillingRepository billing;
 
   /// Opens Cashfree's checkout for a real order. Absent in tests and on a build with no gateway
   /// linked, where a non-stub purchase says so rather than pretending to have opened one.
   final PaymentGateway? gateway;
+
+  /// Google Play (Phase 4) or the App Store (Phase 5). Used only when the server says
+  /// `payments_mode: play` or `app_store`.
+  final StoreGateway? store;
+
+  /// Store mode sells through the store's own sheet, where the server's offer codes do not apply.
+  bool get isStoreBilling => entitlements.value?.isStoreBilling ?? false;
 
   final entitlements = Rxn<Entitlements>();
 
@@ -94,6 +102,12 @@ class BillingController extends GetxController {
     buyError.value = null;
     gatewayUnavailable.value = false;
 
+    if (isStoreBilling) {
+      await _payAtStore(tier, months);
+      buying.value = false;
+      return;
+    }
+
     // One key per attempt. A double tap is already blocked above; this is for the retry that
     // happens below the app, where the same request is sent twice and must open one order.
     final key = '${DateTime.now().microsecondsSinceEpoch}-${Random().nextInt(1 << 32)}';
@@ -150,7 +164,39 @@ class BillingController extends GetxController {
       paymentSessionId: sessionId,
       mode: session.mode,
     );
+    await _afterGateway(result);
+  }
 
+  /// Buys the row through the platform store. The token goes to the server, which re-reads it from the store
+  /// before granting anything; the tier is then re-read, never assumed (rule 3).
+  Future<void> _payAtStore(String tier, int months) async {
+    final store = this.store;
+    final product = entitlements.value?.storeProductFor(tier, months);
+    if (store == null || product == null) {
+      gatewayUnavailable.value = true;
+      return;
+    }
+
+    // The account id Play stores with the purchase, so no other account can claim the token.
+    final state = await billing.subscription();
+    final accountToken = state.fold((f) {
+      buyError.value = f.userMessage;
+      return null;
+    }, (s) => s.storeAccountToken);
+    if (accountToken == null) {
+      if (buyError.value == null) gatewayUnavailable.value = true;
+      return;
+    }
+
+    final result = await store.buy(
+      productId: product.productId,
+      basePlanId: product.basePlanId,
+      accountToken: accountToken,
+    );
+    await _afterGateway(result);
+  }
+
+  Future<void> _afterGateway(PaymentResult result) async {
     switch (result.outcome) {
       case PaymentOutcome.submitted:
         await load();
@@ -171,6 +217,8 @@ class BillingController extends GetxController {
   Future<void> load() async {
     final result = await billing.entitlements();
     result.fold((_) => entitlements.value = null, (e) => entitlements.value = e);
+    // A store purchase whose verify never landed (bad network, pending payment that cleared later).
+    if (isStoreBilling) await store?.resumePending();
   }
 
   /// Fetched when the paywall opens, not before — the tab needs the tier, not the price matrix.

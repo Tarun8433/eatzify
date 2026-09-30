@@ -31,3 +31,26 @@ export function cashfreeOffered(
 
 /// What `payments_mode` reports to an app that may not use Cashfree. The app draws no pay button.
 export const PAYMENTS_UNAVAILABLE_MODE = 'unavailable';
+
+/// Payments plan, Phase 4: Android pays through Google Play Billing where Cashfree is not offered.
+export const PAYMENTS_PLAY_MODE = 'play';
+
+/// Payments plan, Phase 5: an iPhone pays through Apple in-app purchase (guideline 3.1.1).
+export const PAYMENTS_APP_STORE_MODE = 'app_store';
+
+/// What `payments_mode` tells the app: Cashfree's mode where Cashfree is offered, Play on Android
+/// where it is not and Play is configured, the App Store on an iPhone once it is configured,
+/// otherwise nothing. Builds from before `play` existed
+/// read an unknown mode as "no pay button", so this is safe to ship ahead of the app.
+export function paymentsMode(
+  mode: CashfreeMode,
+  platform: ClientPlatform,
+  androidEnabled: boolean,
+  playConfigured: boolean,
+  appStoreConfigured = false,
+): string {
+  if (cashfreeOffered(mode, platform, androidEnabled)) return mode;
+  if (platform === 'android' && playConfigured) return PAYMENTS_PLAY_MODE;
+  if (platform === 'ios' && appStoreConfigured) return PAYMENTS_APP_STORE_MODE;
+  return PAYMENTS_UNAVAILABLE_MODE;
+}

@@ -1,3 +1,4 @@
+import { PriceService } from '../src/billing/price.service';
 import { type Repository } from 'typeorm';
 import { SubscriptionEntity } from '../src/billing/entities/subscription.entity';
 import {
@@ -35,7 +36,11 @@ function sweepOver(rows: Sub[], already: string[] = []) {
   return {
     sent,
     run: () =>
-      new SubscriptionSweepService(subscriptions, notifications).run(NOW),
+      new SubscriptionSweepService(
+        subscriptions,
+        notifications,
+        new PriceService({ find: () => Promise.resolve([]) } as never),
+      ).run(NOW),
   };
 }
 
@@ -253,6 +258,7 @@ describe('the sweep itself', () => {
     const report = await new SubscriptionSweepService(
       subscriptions,
       notifications,
+      new PriceService({ find: () => Promise.resolve([]) } as never),
     ).run(NOW);
 
     expect(report.checked).toBe(2);

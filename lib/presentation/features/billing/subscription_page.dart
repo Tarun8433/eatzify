@@ -8,6 +8,7 @@ import 'package:health_pro/core/widgets/view_state.dart';
 import 'package:health_pro/domain/entities/billing.dart';
 import 'package:health_pro/domain/repositories/billing_repository.dart';
 import 'package:health_pro/presentation/features/billing/billing_controller.dart';
+import 'package:health_pro/presentation/features/billing/invoices_page.dart';
 import 'package:health_pro/presentation/features/billing/paywall_sheet.dart';
 import 'package:health_pro/presentation/features/billing/subscription_controller.dart';
 import 'package:health_pro/presentation/features/billing/tier_palette.dart';
@@ -160,6 +161,13 @@ class _Body extends StatelessWidget {
             const SizedBox(height: AppSpacing.lg),
             Text(l.subscriptionFreeBody, style: muted),
           ],
+          // D-255: GST invoices and credit notes for plans bought here.
+          const SizedBox(height: AppSpacing.sm),
+          TextButton.icon(
+            onPressed: InvoicesPage.open,
+            icon: const Icon(Icons.receipt_long_outlined),
+            label: Text(l.subscriptionInvoices),
+          ),
         ],
       ),
     );

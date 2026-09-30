@@ -10,6 +10,7 @@ import 'package:health_pro/domain/entities/app_notification.dart';
 import 'package:health_pro/domain/entities/billing.dart';
 import 'package:health_pro/domain/entities/food.dart';
 import 'package:health_pro/domain/entities/health_metric.dart';
+import 'package:health_pro/domain/entities/invoice.dart';
 import 'package:health_pro/domain/entities/measurement.dart';
 import 'package:health_pro/domain/entities/onboarding_submission.dart';
 import 'package:health_pro/domain/entities/plan.dart';
@@ -29,6 +30,7 @@ import 'package:health_pro/domain/repositories/plan_repository.dart';
 import 'package:health_pro/domain/repositories/privacy_repository.dart';
 import 'package:health_pro/domain/repositories/profile_repository.dart';
 import 'package:health_pro/domain/repositories/reminder_repository.dart';
+import 'package:health_pro/domain/repositories/store_gateway.dart';
 import 'package:health_pro/domain/repositories/tickets_repository.dart';
 
 /// Stands in for the profile endpoints so widgets can be driven without a dio.
@@ -447,8 +449,43 @@ class FakeBillingRepository implements BillingRepository {
   int cancels = 0;
 
   @override
-  Future<Either<Failure, Entitlements>> entitlements() async =>
-      Right(Entitlements(tier: tier, status: 'active', paymentsMode: paymentsMode));
+  Future<Either<Failure, Entitlements>> entitlements() async => Right(
+    Entitlements(
+      tier: tier,
+      status: 'active',
+      paymentsMode: paymentsMode,
+      storeProducts: [
+        if (paymentsMode == 'app_store')
+          const StoreProduct(tier: 'PRO', months: 1, productId: 'eatzify.pro.p1m')
+        else
+          const StoreProduct(tier: 'PRO', months: 1, productId: 'pro', basePlanId: 'p1m'),
+      ],
+    ),
+  );
+
+  /// What `GET /billing/invoices` answers. Null is an account with none yet.
+  Either<Failure, List<Invoice>>? invoiceResult;
+
+  @override
+  Future<Either<Failure, List<Invoice>>> invoices() async => invoiceResult ?? const Right([]);
+
+  @override
+  Future<Either<Failure, List<int>>> invoicePdf(String id) async => const Right([37, 80, 68, 70]);
+
+  /// Tokens sent to `POST /billing/play/verify` or `/billing/appstore/verify`.
+  final List<String> verified = [];
+
+  @override
+  Future<Either<Failure, SubscriptionState>> verifyAppStore(String signedTransaction) async {
+    verified.add(signedTransaction);
+    return const Right(SubscriptionState(tier: 'PRO', status: 'active'));
+  }
+
+  @override
+  Future<Either<Failure, SubscriptionState>> verifyPlay(String purchaseToken) async {
+    verified.add(purchaseToken);
+    return const Right(SubscriptionState(tier: 'PRO', status: 'active'));
+  }
 
   @override
   Future<Either<Failure, SubscriptionState>> subscription() async {
@@ -1043,4 +1080,27 @@ class FakePaymentGateway implements PaymentGateway {
     opened.add((orderId: orderId, sessionId: paymentSessionId, mode: mode));
     return result;
   }
+}
+
+class FakeStoreGateway implements StoreGateway {
+  FakeStoreGateway({this.result = const PaymentResult.submitted()});
+
+  final PaymentResult result;
+
+  /// Every base plan it was asked to sell, with the account token attached.
+  final List<({String productId, String? basePlanId, String accountToken})> bought = [];
+  int resumed = 0;
+
+  @override
+  Future<PaymentResult> buy({
+    required String productId,
+    required String? basePlanId,
+    required String accountToken,
+  }) async {
+    bought.add((productId: productId, basePlanId: basePlanId, accountToken: accountToken));
+    return result;
+  }
+
+  @override
+  Future<void> resumePending() async => resumed++;
 }

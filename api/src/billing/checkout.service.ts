@@ -1,8 +1,11 @@
+import { PlayBillingService } from './store/play-billing.service';
+import { InvoiceService } from './invoice/invoice.service';
 import {
   HttpStatus,
   Injectable,
   Logger,
   UnprocessableEntityException,
+  Optional,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
@@ -14,7 +17,8 @@ import { UserEntity } from '../users/infrastructure/persistence/relational/entit
 import { CashfreeClient } from './cashfree.client';
 import { CommissionService } from '../partner/commission.service';
 import { CashfreeMode } from './cashfree.config';
-import { PRICES, type Tier } from './tiers';
+import { type Tier } from './tiers';
+import { PriceService } from './price.service';
 import {
   LIVE_STATUSES,
   periodEnd,
@@ -72,6 +76,11 @@ export class CheckoutService {
     private readonly commission: CommissionService,
     private readonly subscriptions_: SubscriptionService,
     private readonly coupons_: CouponsService,
+    private readonly prices: PriceService,
+    // Optional so a build without the store module, and the unit tests, need not supply it.
+    @Optional() private readonly play: PlayBillingService | null = null,
+    // D-255: the GST invoice. Optional for the same reason.
+    @Optional() private readonly invoices: InvoiceService | null = null,
   ) {}
 
   /**
@@ -168,6 +177,7 @@ export class CheckoutService {
     idempotencyKey,
     now,
     couponCode,
+    externalTransactionToken,
   }: {
     userId: number;
     tier: Exclude<Tier, 'FREE'>;
@@ -175,6 +185,7 @@ export class CheckoutService {
     idempotencyKey: string | null;
     now: Date;
     couponCode?: string | null;
+    externalTransactionToken?: string | null;
   }): Promise<CheckoutView> {
     if (idempotencyKey) {
       // docs/09: a retried POST must not create a second order, and must not re-charge.
@@ -182,7 +193,7 @@ export class CheckoutService {
       if (replay) return this.toView(replay);
     }
 
-    const listPaise = PRICES[tier]?.[duration];
+    const listPaise = await this.prices.priceOf(tier, duration);
     if (listPaise === undefined) {
       throw this.refuse('UNKNOWN_PRICE', UNKNOWN_PRICE);
     }
@@ -225,6 +236,7 @@ export class CheckoutService {
         amountPaise: String(amountPaise),
         couponCode: appliedCoupon,
         discountPaise: String(discountPaise),
+        externalTransactionToken: externalTransactionToken ?? null,
         status: 'created',
         idempotencyKey,
       }),
@@ -278,6 +290,20 @@ export class CheckoutService {
     if (order.couponCode) await this.coupons_.redeem(order.couponCode);
 
     const renewal = await this.activate(order, now);
+
+    // A missing invoice must not fail a real payment; it is logged for a re-issue instead.
+    await this.invoices
+      ?.issueFor(order, now)
+      .catch((e: unknown) =>
+        this.log.error(
+          `invoice not issued for order ${cashfreeOrderId}: ${e instanceof Error ? e.message : 'unknown'}`,
+        ),
+      );
+
+    if (await this.play?.reportCashfreeSale(order)) {
+      order.externalReportedAt = new Date(now);
+      await this.orders.save(order);
+    }
 
     /**
      * The partner's commission, written here and nowhere else.

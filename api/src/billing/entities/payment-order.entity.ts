@@ -91,6 +91,14 @@ export class PaymentOrderEntity extends BaseEntity {
   @Column({ type: 'timestamptz', nullable: true })
   paidAt: Date | null;
 
+  /// User Choice Billing: the token Play gave the app when the person chose Cashfree. The sale is
+  /// reported to Google with it once paid (payments plan, Phase 4).
+  @Column({ type: 'varchar', nullable: true })
+  externalTransactionToken: string | null;
+
+  @Column({ type: 'timestamptz', nullable: true })
+  externalReportedAt: Date | null;
+
   /// D-236: the offer applied at checkout, and what it took off. Stored on the order so a later
   /// coupon change cannot rewrite what someone actually paid.
   @Column({ type: 'varchar', nullable: true })

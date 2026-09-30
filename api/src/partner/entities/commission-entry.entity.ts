@@ -93,6 +93,10 @@ export class CommissionEntryEntity extends BaseEntity {
   @Column({ type: 'uuid', nullable: true })
   reversesId: string | null;
 
+  /// The payout that settled this row (docs/12 §4). Null until a payout run takes it.
+  @Column({ type: 'uuid', nullable: true })
+  payoutId: string | null;
+
   @CreateDateColumn({ type: 'timestamptz' })
   createdAt: Date;
 }

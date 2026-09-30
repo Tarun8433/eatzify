@@ -1,3 +1,4 @@
+import { PriceService } from '../src/billing/price.service';
 import { UnprocessableEntityException } from '@nestjs/common';
 import { CheckoutService } from '../src/billing/checkout.service';
 import type { PaymentOrderEntity } from '../src/billing/entities/payment-order.entity';
@@ -75,6 +76,8 @@ function serviceWith({
       discountFor: () => Promise.resolve(null),
       redeem: () => Promise.resolve(),
     } as never,
+    // An empty tier_price table: the prices tiers.ts shipped with.
+    new PriceService({ find: () => Promise.resolve([]) } as never),
   );
 
   return { service, orders, gatewayCalls, accruals, subscription: () => sub };

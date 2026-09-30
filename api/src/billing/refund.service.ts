@@ -1,8 +1,11 @@
 import {
   HttpStatus,
   Injectable,
+  Logger,
+  Optional,
   UnprocessableEntityException,
 } from '@nestjs/common';
+import { InvoiceService } from './invoice/invoice.service';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { randomUUID } from 'node:crypto';
@@ -38,6 +41,8 @@ export type RefundView = {
  */
 @Injectable()
 export class RefundService {
+  private readonly log = new Logger(RefundService.name);
+
   constructor(
     @InjectRepository(PaymentOrderEntity)
     private readonly orders: Repository<PaymentOrderEntity>,
@@ -46,6 +51,8 @@ export class RefundService {
     private readonly cashfree: CashfreeClient,
     private readonly commission: CommissionService,
     private readonly notifications: NotificationsService,
+    // D-255: the credit note against the sale's GST invoice. Optional so unit tests need not supply it.
+    @Optional() private readonly invoices: InvoiceService | null = null,
   ) {}
 
   async refund(
@@ -91,6 +98,15 @@ export class RefundService {
     }
 
     await this.commission.reverseForOrder(order.id, now);
+
+    // The money is already back with the customer; a missing credit note is logged, not thrown.
+    await this.invoices
+      ?.creditNoteFor(order, now)
+      .catch((e: unknown) =>
+        this.log.error(
+          `credit note not issued for order ${order.cashfreeOrderId}: ${e instanceof Error ? e.message : 'unknown'}`,
+        ),
+      );
 
     await this.notifications.notify({
       userId,

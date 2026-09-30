@@ -1,3 +1,4 @@
+import { PriceService } from '../src/billing/price.service';
 import { ConfigService } from '@nestjs/config';
 import { type Repository } from 'typeorm';
 import { SubscriptionEntity } from '../src/billing/entities/subscription.entity';
@@ -82,6 +83,7 @@ function serviceWith(
     users,
     notifications,
     config as never,
+    new PriceService({ find: () => Promise.resolve([]) } as never),
   );
 }
 

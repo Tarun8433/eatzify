@@ -8,11 +8,12 @@ import 'package:health_pro/core/theme/app_theme.dart';
 import 'package:health_pro/core/widgets/state_views.dart';
 import 'package:health_pro/domain/entities/coach_application.dart';
 import 'package:health_pro/domain/entities/coach_client.dart';
-import 'package:health_pro/domain/entities/food.dart';
 import 'package:health_pro/domain/entities/coach_dashboard.dart';
 import 'package:health_pro/domain/entities/coach_discipline.dart';
 import 'package:health_pro/domain/entities/coach_invite.dart';
 import 'package:health_pro/domain/entities/data_access.dart';
+import 'package:health_pro/domain/entities/food.dart';
+import 'package:health_pro/domain/entities/payout_kyc.dart';
 import 'package:health_pro/domain/entities/sent_invite.dart';
 import 'package:health_pro/domain/repositories/coach_repository.dart';
 import 'package:health_pro/presentation/l10n/app_localizations.dart';
@@ -106,6 +107,10 @@ class FakeCoachRepository implements CoachRepository {
   @override
   Future<Either<Failure, CoachEarnings>> earnings({String? period}) async =>
       const Left(ApiFailure('no ledger', code: 'X', status: 404));
+
+  @override
+  Future<Either<Failure, PayoutKyc>> payoutKyc() async =>
+      const Left(ApiFailure('none', code: 'X', status: 404));
 
   @override
   Future<Either<Failure, CoachReferral>> referral() async =>

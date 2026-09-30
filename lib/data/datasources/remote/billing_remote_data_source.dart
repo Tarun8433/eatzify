@@ -3,6 +3,7 @@ import 'package:dio/dio.dart';
 import 'package:health_pro/core/errors/failures.dart';
 import 'package:health_pro/core/network/error_mapper.dart';
 import 'package:health_pro/domain/entities/billing.dart';
+import 'package:health_pro/domain/entities/invoice.dart';
 
 class BillingRemoteDataSource {
   BillingRemoteDataSource(this._dio);
@@ -93,6 +94,48 @@ class BillingRemoteDataSource {
       return Left(mapDioError(e));
     }
   }
+
+  /// `GET /billing/invoices` (D-255).
+  Future<Either<Failure, List<Invoice>>> invoices() async {
+    try {
+      final res = await _dio.get<List<dynamic>>('/billing/invoices');
+      return Right([
+        for (final row in res.data ?? const <dynamic>[])
+          if (row is Map<String, dynamic>) Invoice.fromJson(row),
+      ]);
+    } on DioException catch (e) {
+      return Left(mapDioError(e));
+    }
+  }
+
+  /// `GET /billing/invoices/:id/pdf` (D-255), as bytes.
+  Future<Either<Failure, List<int>>> invoicePdf(String id) async {
+    try {
+      final res = await _dio.get<List<int>>(
+        '/billing/invoices/$id/pdf',
+        options: Options(responseType: ResponseType.bytes),
+      );
+      return Right(res.data ?? const []);
+    } on DioException catch (e) {
+      return Left(mapDioError(e));
+    }
+  }
+
+  /// `POST /billing/appstore/verify` (Payments plan, Phase 5).
+  Future<Either<Failure, SubscriptionState>> verifyAppStore(String signedTransaction) => _state(
+    () => _dio.post<Map<String, dynamic>>(
+      '/billing/appstore/verify',
+      data: {'signed_transaction': signedTransaction},
+    ),
+  );
+
+  /// `POST /billing/play/verify` (Payments plan, Phase 4).
+  Future<Either<Failure, SubscriptionState>> verifyPlay(String purchaseToken) => _state(
+    () => _dio.post<Map<String, dynamic>>(
+      '/billing/play/verify',
+      data: {'purchase_token': purchaseToken},
+    ),
+  );
 
   Future<Either<Failure, SubscriptionState>> _state(
     Future<Response<Map<String, dynamic>>> Function() send,

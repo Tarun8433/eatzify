@@ -4,6 +4,8 @@ import { DatabaseConfig } from '../database/config/database-config.type';
 import { FileConfig } from '../files/config/file-config.type';
 import { MailConfig } from '../mail/config/mail-config.type';
 import { CashfreeConfig } from '../billing/cashfree.config';
+import { StoreConfig } from '../billing/store/store.config';
+import { InvoiceConfig } from '../billing/invoice/invoice.config';
 
 export type AllConfigType = {
   app: AppConfig;
@@ -12,4 +14,6 @@ export type AllConfigType = {
   file: FileConfig;
   mail: MailConfig;
   cashfree: CashfreeConfig;
+  store: StoreConfig;
+  invoice: InvoiceConfig;
 };

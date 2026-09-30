@@ -5,6 +5,7 @@ import { CoachApplicationEntity } from '../coach/entities/coach-application.enti
 import { CoachGrantEntity } from '../coach/entities/coach-grant.entity';
 import { CoachInviteEntity } from '../coach/entities/coach-invite.entity';
 import { SubscriptionEntity } from '../billing/entities/subscription.entity';
+import { TierPriceEntity } from '../billing/entities/tier-price.entity';
 import { FoodEntity } from '../foods/entities/food.entity';
 import { ExerciseEntity } from '../gym/entities/exercise.entity';
 import { EnergyReferenceEntity } from '../gym/entities/energy-reference.entity';
@@ -164,6 +165,29 @@ export class AdminPanelModule {
             {
               resource: SubscriptionEntity,
               options: { actions: readOnly },
+            },
+            {
+              // Payments plan, Phase 3: what Cashfree charges. The grid is fixed (two tiers × four
+              // lengths), so only edit is on; the database refuses a price under ₹1 or a cell
+              // outside the grid. Checkout sees a change within a minute (PriceService's cache).
+              resource: TierPriceEntity,
+              options: {
+                listProperties: ['tier', 'duration', 'pricePaise', 'updatedAt'],
+                properties: {
+                  pricePaise: {
+                    description:
+                      'In paise, GST-inclusive: ₹249 is 24900. Play and App Store prices are set in their own consoles.',
+                  },
+                  updatedAt: {
+                    isVisible: { edit: false, show: true, list: true },
+                  },
+                },
+                actions: {
+                  new: { isAccessible: false },
+                  delete: { isAccessible: false },
+                  bulkDelete: { isAccessible: false },
+                },
+              },
             },
             {
               // The one resource doc 20 §3 actually argued for: "the screen you'll use most and care

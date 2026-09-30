@@ -1,17 +1,24 @@
 import {
+  Body,
   Controller,
   Get,
+  Header,
   HttpCode,
+  Param,
+  ParseUUIDPipe,
   HttpStatus,
+  Put,
   Query,
   Request,
   UseGuards,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import { Matches, IsOptional } from 'class-validator';
+import { Length, Matches, IsOptional } from 'class-validator';
 import { CommissionService, type EarningsView } from './commission.service';
 import { ReferralService, type ReferralView } from './referral.service';
+import { PayoutService, type PayoutView } from './payout.service';
+import { KycService, type KycView } from './kyc.service';
 import type { JwtPayloadType } from '../auth/strategies/types/jwt-payload.type';
 
 class EarningsQuery {
@@ -20,6 +27,26 @@ class EarningsQuery {
   @IsOptional()
   @Matches(/^\d{4}-\d{2}$/)
   period?: string;
+}
+
+/// D-255: what a partner sends when a payout is due. Formats checked here; the full PAN and
+/// account number are sealed before they are stored.
+class KycDto {
+  @Length(2, 100)
+  holder_name: string;
+
+  @Matches(/^[A-Z]{5}[0-9]{4}[A-Z]$/)
+  pan: string;
+
+  @Matches(/^[0-9]{9,18}$/)
+  account_number: string;
+
+  @Matches(/^[A-Z]{4}0[A-Z0-9]{6}$/)
+  ifsc: string;
+
+  @IsOptional()
+  @Matches(/^[0-9]{2}[A-Z0-9]{13}$/)
+  gstin?: string;
 }
 
 /**
@@ -37,6 +64,8 @@ export class PartnerController {
   constructor(
     private readonly commission: CommissionService,
     private readonly referral: ReferralService,
+    private readonly payouts: PayoutService,
+    private readonly kyc: KycService,
   ) {}
 
   /**
@@ -66,5 +95,52 @@ export class PartnerController {
     @Request() request: { user: JwtPayloadType },
   ): Promise<ReferralView> {
     return this.referral.forPartner(Number(request.user.id));
+  }
+
+  /// docs/12 §5: this partner's payouts, waiting or paid. Scoped to the caller — never a user id
+  /// from the request.
+  @Get('payouts')
+  payoutList(
+    @Request() request: { user: JwtPayloadType },
+  ): Promise<PayoutView[]> {
+    return this.payouts.listForPartner(Number(request.user.id));
+  }
+
+  /// D-255: whether payout details are needed yet, and what is on file (last four digits only).
+  @Get('payouts/kyc')
+  kycStatus(@Request() request: { user: JwtPayloadType }): Promise<KycView> {
+    return this.kyc.viewFor(Number(request.user.id), new Date());
+  }
+
+  @Put('payouts/kyc')
+  kycSubmit(
+    @Request() request: { user: JwtPayloadType },
+    @Body() dto: KycDto,
+  ): Promise<KycView> {
+    return this.kyc.submit(
+      Number(request.user.id),
+      {
+        holderName: dto.holder_name.trim(),
+        pan: dto.pan,
+        accountNumber: dto.account_number,
+        ifsc: dto.ifsc,
+        gstin: dto.gstin ?? null,
+      },
+      new Date(),
+    );
+  }
+
+  /// docs/12 §5: "Every payout generates a downloadable statement". CSV, the caller's own only.
+  @Get('payouts/:id/statement')
+  @Header('Content-Type', 'text/csv; charset=utf-8')
+  @Header(
+    'Content-Disposition',
+    'attachment; filename="eatzify-payout-statement.csv"',
+  )
+  statement(
+    @Request() request: { user: JwtPayloadType },
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<string> {
+    return this.payouts.statementCsv(Number(request.user.id), id);
   }
 }

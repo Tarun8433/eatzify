@@ -1,10 +1,11 @@
-import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { MoreThan, Repository } from 'typeorm';
 import { MailService } from '../../mail/mail.service';
 import {
   CODE_EMAIL_TITLE,
   CODE_RATE_LIMITED,
+  CODE_SEND_FAILED,
   codeEmailBody,
 } from '../auth-copy';
 import { EmailOtpEntity } from './email-otp.entity';
@@ -22,6 +23,8 @@ import {
 /// this only stores, counts and emails.
 @Injectable()
 export class EmailOtpService {
+  private readonly logger = new Logger(EmailOtpService.name);
+
   constructor(
     @InjectRepository(EmailOtpEntity)
     private readonly codes: Repository<EmailOtpEntity>,
@@ -43,7 +46,7 @@ export class EmailOtpService {
     }
 
     const code = newCode();
-    await this.codes.save(
+    const row = await this.codes.save(
       this.codes.create({
         userId,
         codeHash: hashCode(code),
@@ -51,10 +54,27 @@ export class EmailOtpService {
         attempts: 0,
       }),
     );
-    await this.mail.notification({
-      to: email,
-      data: { title: CODE_EMAIL_TITLE, body: codeEmailBody(code) },
-    });
+    try {
+      await this.mail.notification({
+        to: email,
+        data: { title: CODE_EMAIL_TITLE, body: codeEmailBody(code) },
+      });
+    } catch (e) {
+      // SMTP refused (wrong MAIL_* settings, a revoked app password, the daily cap). The message
+      // is the mail server's, never the address (api rule 5). A code nobody received must not
+      // count against the hourly limit.
+      this.logger.error(
+        `code email failed for user ${userId}: ${(e as Error).message}`,
+      );
+      await this.codes.delete({ id: row.id });
+      throw new HttpException(
+        {
+          status: HttpStatus.SERVICE_UNAVAILABLE,
+          error: { code: 'CODE_SEND_FAILED', user_message: CODE_SEND_FAILED },
+        },
+        HttpStatus.SERVICE_UNAVAILABLE,
+      );
+    }
   }
 
   /// Checks a guess against the newest code. A wrong guess costs an attempt; the right one

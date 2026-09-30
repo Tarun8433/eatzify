@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Not, Repository } from 'typeorm';
 import {
   AttributionEntity,
   CommissionEntryEntity,
@@ -145,12 +145,19 @@ export class CommissionService {
 
   /// Every entry a refunded order earned, reversed (docs/12 §3). Nothing to reverse is the normal
   /// case: most buyers arrived on their own.
+  ///
+  /// Entries are written `accrued` and only DERIVED payable ([isPayable]), so this looks at every
+  /// live status. It used to ask for `payable` alone, which no row is ever stored as — so a refund
+  /// never reversed anything.
   async reverseForOrder(paymentOrderId: string, now: Date): Promise<void> {
     const earned = await this.entries.find({
-      where: { paymentOrderId, status: 'payable' },
+      where: {
+        paymentOrderId,
+        status: In(['accrued', 'payable', 'paid']),
+        kind: Not('reversal'),
+      },
     });
     for (const entry of earned) {
-      if (entry.kind === 'reversal') continue;
       await this.reverse(entry.id, now);
     }
   }
@@ -181,6 +188,9 @@ export class CommissionService {
         // The month the REVERSAL happened, not the month of the sale. A refund in October is
         // October's cost; restating September would rewrite a statement already sent.
         periodMonth: monthOf(now),
+        // Not yet paid out: it matures with the original, so a payout takes both (netting to
+        // zero) or neither. Already paid: due now, and the next payout claws it back.
+        holdUntil: original.status === 'paid' ? null : original.holdUntil,
         reversesId: original.id,
       }),
     );

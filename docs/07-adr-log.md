@@ -142,3 +142,34 @@ from health data. Workout energy is an estimate shown as its own figure (D-242).
 plan's targets.
 **Reversal trigger:** A clinical or legal review that says in-app training advice needs sign-off we
 cannot get. If that happens, turn off progression and keep the log.
+
+---
+
+### ADR-014 — A photographed meal is logged as the model's estimate
+**Status:** accepted (2026-09-19) · supersedes ADR-001's "never for nutrition" for scanning only,
+and docs/02 §Out "photo meal detection"; replaces docs/04 §11's match-to-our-foods pipeline
+**Context:** The product owner asked that photographing a plate produce its calories and nutrients
+and save them with the photo. The first build followed docs/04 §11 — the model chose from our own
+281 verified foods and the server scaled that row — and they rejected it: it asked for one food and a
+portion instead of pricing the plate.
+**Decision:** A vision model (DeepSeek `deepseek-flash`, Claude selectable, D-239) estimates each
+item on the plate — name, grams, and kcal, protein, carbs, fat, fibre, sodium, added sugar and
+saturated fat for that weight. ADR-001 stands everywhere else: an LLM still never sets a target, a
+constraint or a rule-pack constant, and the plan engine remains deterministic.
+- **Nothing is auto-logged.** The user sees the items, unticks what is wrong, picks the meal, and
+  confirms. Only then does the server write one entry from ITS stored copy of the estimate.
+- **Model output is untrusted input.** `parseEstimate` enforces a schema plus sanity bounds per item;
+  an absurd number refuses the whole answer, which reads as "we couldn't recognise this".
+- **Every screen says it is an estimate.** `food_log.estimated` drives the label; no estimated figure
+  is ever presented as the food table's verified data.
+- **The photo is the user's and stays private** — outside the public file store, served only by an
+  expiring signed link, deleted after 90 days (docs/13 §4 amended).
+**Consequences:** The diary now holds two kinds of nutrition — verified rows scaled by the server,
+and estimates from a photo — and every reader has to keep them apart. Accuracy is unmeasured against
+weighed meals, and the estimates vary between scans of the same plate. Meal photos become personal
+data the deployment must protect, and a third-party processor now sees them, which needs the privacy
+notice and legal sign-off. Scanning cost is per scan, so the allowance is admin-edited data
+(`scan_policy`) rather than a code constant.
+**Reversal trigger:** Estimates that prove unreliable against weighed meals, or a legal review that
+refuses photo retention or the cross-border transfer. The match-to-our-foods pipeline is the fallback
+— the adapter, the confirm step and the storage rules are unchanged by it.

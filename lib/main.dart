@@ -1,4 +1,5 @@
 import 'dart:async';
+
 import 'package:flutter/foundation.dart' show kReleaseMode;
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
@@ -24,6 +25,7 @@ import 'package:health_pro/data/datasources/remote/coach_remote_data_source.dart
 import 'package:health_pro/data/datasources/remote/diary_remote_data_source.dart';
 import 'package:health_pro/data/datasources/remote/google_auth_data_source.dart';
 import 'package:health_pro/data/datasources/remote/gym_remote_data_source.dart';
+import 'package:health_pro/data/datasources/remote/in_app_store_gateway.dart';
 import 'package:health_pro/data/datasources/remote/measurements_remote_data_source.dart';
 import 'package:health_pro/data/datasources/remote/notifications_remote_data_source.dart';
 import 'package:health_pro/data/datasources/remote/plan_remote_data_source.dart';
@@ -60,6 +62,7 @@ import 'package:health_pro/domain/repositories/privacy_repository.dart';
 import 'package:health_pro/domain/repositories/profile_repository.dart';
 import 'package:health_pro/domain/repositories/reminder_repository.dart';
 import 'package:health_pro/domain/repositories/scan_repository.dart';
+import 'package:health_pro/domain/repositories/store_gateway.dart';
 import 'package:health_pro/domain/repositories/tickets_repository.dart';
 import 'package:health_pro/domain/usecases/plan_reminders.dart';
 import 'package:health_pro/domain/usecases/sync_health.dart';
@@ -372,6 +375,22 @@ class EatzifyApp extends StatelessWidget {
         ),
         permanent: true,
       );
+    // Payments plan, Phases 4–5: Google Play on Android, StoreKit 2 on iOS. Listens from launch so
+    // a purchase that clears after the sheet closed is still verified. The server picks the rail.
+    if (!GetPlatform.isWeb && (GetPlatform.isAndroid || GetPlatform.isIOS)) {
+      final billing = Get.find<BillingRepository>();
+      Get.put<StoreGateway>(
+        InAppStoreGateway(
+          verify: (token) async =>
+              (await (GetPlatform.isIOS
+                      ? billing.verifyAppStore(token)
+                      : billing.verifyPlay(token)))
+                  .fold((f) => f.userMessage, (_) => null),
+        ),
+        permanent: true,
+      );
+    }
+
     final session = Get.put(
       SessionController(store: SecureStore(), auth: auth, profile: profile),
       permanent: true,

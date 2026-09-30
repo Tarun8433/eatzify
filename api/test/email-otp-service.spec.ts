@@ -14,7 +14,7 @@ type Row = {
 };
 
 /// In-memory stand-ins: the service's job is storing, counting and emailing, so that is what's faked.
-function harness(now: () => Date) {
+function harness(now: () => Date, mailFails = false) {
   const rows: Row[] = [];
   const sent: string[] = [];
   let id = 0;
@@ -29,8 +29,9 @@ function harness(now: () => Date) {
       ),
     create: (r: Omit<Row, 'id' | 'createdAt'>) => r,
     save: (r: Omit<Row, 'id' | 'createdAt'>) => {
-      rows.push({ ...r, id: ++id, createdAt: now() });
-      return Promise.resolve(r);
+      const row = { ...r, id: ++id, createdAt: now() };
+      rows.push(row);
+      return Promise.resolve(row);
     },
     findOne: ({ where }: { where: { userId: number } }) =>
       Promise.resolve(
@@ -45,14 +46,17 @@ function harness(now: () => Date) {
       );
       return Promise.resolve();
     },
-    delete: ({ userId }: { userId: number }) => {
-      for (let i = rows.length - 1; i >= 0; i--)
-        if (rows[i].userId === userId) rows.splice(i, 1);
+    delete: (where: { userId?: number; id?: number }) => {
+      for (let i = rows.length - 1; i >= 0; i--) {
+        const r = rows[i];
+        if (r.userId === where.userId || r.id === where.id) rows.splice(i, 1);
+      }
       return Promise.resolve();
     },
   };
   const mail = {
     notification: ({ data }: { data: { body: string } }) => {
+      if (mailFails) return Promise.reject(new Error('535 bad credentials'));
       sent.push(data.body.match(/\d{6}/)![0]);
       return Promise.resolve();
     },
@@ -112,5 +116,16 @@ describe('EmailOtpService (D-250)', () => {
     await expect(
       service.issue(1, 'a@example.com', clock),
     ).rejects.toMatchObject({ status: 429 });
+  });
+
+  it('should answer 503 with a readable message and keep no code when the email cannot be sent', async () => {
+    const { service, rows } = harness(now, true);
+    await expect(
+      service.issue(1, 'a@example.com', clock),
+    ).rejects.toMatchObject({
+      status: 503,
+      response: { error: { code: 'CODE_SEND_FAILED' } },
+    });
+    expect(rows).toHaveLength(0);
   });
 });

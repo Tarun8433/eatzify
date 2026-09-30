@@ -12,6 +12,8 @@ export const CODE_EXPIRED = 'That code has expired. Request a new one.';
 export const CODE_LOCKED = 'Too many wrong tries. Request a new code.';
 export const CODE_RATE_LIMITED =
   'Too many codes requested. Please try again in an hour.';
+export const CODE_SEND_FAILED =
+  'We could not send the email just now. Please try again in a few minutes.';
 export const CODE_EMAIL_TITLE = 'Your Eatzify verification code';
 export const codeEmailBody = (code: string): string =>
   `Your code is ${code}. It expires in 10 minutes.\n\nIf you did not try to sign up for Eatzify, you can ignore this email.`;

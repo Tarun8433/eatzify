@@ -1,3 +1,5 @@
+import { storeAccountToken } from './store/store-rules';
+import { PriceService } from './price.service';
 import {
   HttpStatus,
   Injectable,
@@ -47,6 +49,9 @@ export type SubscriptionStateView = {
   /// Whether this account may still take docs/11 §6's one free week.
   trial_available: boolean;
   entitlements: Entitlements;
+  /// Attached by the app to a Play or App Store purchase, so the purchase can only be claimed by
+  /// this account (payments plan, Phase 4).
+  store_account_token: string;
 };
 
 export type UpgradeQuoteView = {
@@ -69,6 +74,7 @@ export class SubscriptionService {
     private readonly users: Repository<UserEntity>,
     private readonly notifications: NotificationsService,
     private readonly config: ConfigService<AllConfigType>,
+    private readonly prices: PriceService,
   ) {}
 
   /// The row that is running, or null. A period whose end has passed is not running, whatever the
@@ -99,6 +105,7 @@ export class SubscriptionService {
       cancelled_at: row?.cancelledAt?.toISOString() ?? null,
       trial_available: await this.trialAvailable(userId),
       entitlements: entitlementsFor(tier),
+      store_account_token: storeAccountToken(userId, this.pepper),
     };
   }
 
@@ -183,7 +190,7 @@ export class SubscriptionService {
     duration: string,
     now: Date,
   ): Promise<UpgradeQuoteView> {
-    const price = priceOf(tier, duration);
+    const price = await this.prices.priceOf(tier, duration);
     if (price === undefined) throw this.refuse('UNKNOWN_PRICE', UNKNOWN_PRICE);
 
     const row = await this.live(userId, now);

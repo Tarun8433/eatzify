@@ -1,4 +1,6 @@
+import 'package:dartz/dartz.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:health_pro/domain/entities/billing.dart';
 import 'package:health_pro/domain/repositories/payment_gateway.dart';
 import 'package:health_pro/presentation/features/billing/billing_controller.dart';
 
@@ -78,5 +80,69 @@ void main() {
     expect(c.buyError.value, isNull);
     expect(c.gatewayUnavailable.value, isFalse);
     expect(c.buying.value, isFalse);
+  });
+
+  group('Google Play (payments_mode: play)', () {
+    FakeBillingRepository playRepo() => FakeBillingRepository(paymentsMode: 'play')
+      ..subscriptionResult = const Right(
+        SubscriptionState(tier: 'FREE', status: 'active', storeAccountToken: 'acct_1'),
+      );
+
+    test("should sell the server's base plan through the store, never Cashfree", () async {
+      final repo = playRepo();
+      final gateway = FakePaymentGateway();
+      final store = FakeStoreGateway();
+      final c = BillingController(billing: repo, gateway: gateway, store: store);
+      await c.load();
+
+      await buy(c);
+
+      expect(store.bought.single, (productId: 'pro', basePlanId: 'p1m', accountToken: 'acct_1'));
+      expect(repo.bought, isEmpty);
+      expect(gateway.opened, isEmpty);
+      // Anything the store still holds unconfirmed is re-sent once entitlements say Play.
+      expect(store.resumed, isPositive);
+    });
+
+    test('should say checkout cannot open when this build has no store', () async {
+      final c = BillingController(billing: playRepo());
+      await c.load();
+
+      await buy(c);
+
+      expect(c.gatewayUnavailable.value, isTrue);
+      expect(c.buying.value, isFalse);
+    });
+
+    test("should show the server's words when it refuses the purchase", () async {
+      final store = FakeStoreGateway(
+        result: const PaymentResult(PaymentOutcome.failed, message: 'Bought on another account.'),
+      );
+      final c = BillingController(billing: playRepo(), store: store);
+      await c.load();
+
+      await buy(c);
+
+      expect(c.buyError.value, 'Bought on another account.');
+    });
+  });
+
+  test('should sell the App Store product on an iPhone, with no base plan', () async {
+    final repo = FakeBillingRepository(paymentsMode: 'app_store')
+      ..subscriptionResult = const Right(
+        SubscriptionState(tier: 'FREE', status: 'active', storeAccountToken: 'acct_1'),
+      );
+    final store = FakeStoreGateway();
+    final c = BillingController(billing: repo, store: store);
+    await c.load();
+
+    await buy(c);
+
+    expect(store.bought.single, (
+      productId: 'eatzify.pro.p1m',
+      basePlanId: null,
+      accountToken: 'acct_1',
+    ));
+    expect(repo.bought, isEmpty);
   });
 }

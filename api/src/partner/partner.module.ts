@@ -6,6 +6,14 @@ import {
   CommissionRateEntity,
   PartnerReferralEntity,
 } from './entities/commission-entry.entity';
+import {
+  PartnerKycEntity,
+  PayoutEntity,
+  TdsRateEntity,
+} from './entities/payout.entity';
+import { PayoutService } from './payout.service';
+import { KycService } from './kyc.service';
+import { PayoutScheduler } from './payout.scheduler';
 import { CommissionService } from './commission.service';
 import { ReferralService } from './referral.service';
 import { PartnerController } from './partner.controller';
@@ -24,11 +32,21 @@ import { PartnerController } from './partner.controller';
       CommissionRateEntity,
       AttributionEntity,
       PartnerReferralEntity,
+      PayoutEntity,
+      PartnerKycEntity,
+      TdsRateEntity,
     ]),
   ],
   controllers: [PartnerController],
-  providers: [CommissionService, ReferralService],
+  providers: [
+    CommissionService,
+    ReferralService,
+    PayoutService,
+    PayoutScheduler,
+    KycService,
+  ],
   // The payment webhook writes the ledger entry, and signup writes the attribution.
-  exports: [CommissionService, ReferralService],
+  // The admin payout desk drives PayoutService.
+  exports: [CommissionService, ReferralService, PayoutService, KycService],
 })
 export class PartnerModule {}

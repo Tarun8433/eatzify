@@ -24,9 +24,14 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": false,
     "resolveJsonModule": true,
-    "baseUrl": ".",
-    "paths": { "@eatzify/diet-engine": ["packages/diet-engine/src/index.ts"] }
+    // No `baseUrl`: TypeScript 6 deprecates it, and `paths` resolves from this file without it.
+    "paths": { "@eatzify/diet-engine": ["./packages/diet-engine/src/index.ts"] }
   },
   "include": ["src/**/*.ts", "test/**/*.ts", "scripts/**/*.ts"],
-  "exclude": ["node_modules", "dist", "packages/*/node_modules", "packages/*/dist"]
+  "exclude": [
+    "node_modules",
+    "dist",
+    "packages/*/node_modules",
+    "packages/*/dist"
+  ]
 }

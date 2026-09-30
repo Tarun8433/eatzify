@@ -9,6 +9,7 @@ import 'package:health_pro/domain/entities/coach_discipline.dart';
 import 'package:health_pro/domain/entities/coach_invite.dart';
 import 'package:health_pro/domain/entities/data_access.dart';
 import 'package:health_pro/domain/entities/food.dart';
+import 'package:health_pro/domain/entities/payout_kyc.dart';
 import 'package:health_pro/domain/entities/sent_invite.dart';
 import 'package:health_pro/domain/repositories/coach_repository.dart';
 
@@ -83,6 +84,13 @@ class CoachRepositoryImpl implements CoachRepository {
 
   @override
   Future<Either<Failure, CoachReferral>> referral() => _remote.referral();
+
+  @override
+  Future<Either<Failure, PayoutKyc>> payoutKyc() => _remote.payoutKyc();
+
+  @override
+  Future<Either<Failure, PayoutKyc>> submitPayoutKyc(PayoutKycSubmission details) =>
+      _remote.submitPayoutKyc(details);
 
   @override
   Future<Either<Failure, List<CoachClient>>> clients() => _remote.clients();

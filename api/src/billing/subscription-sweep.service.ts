@@ -1,13 +1,10 @@
+import { PriceService, type PriceMatrix } from './price.service';
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 import { SubscriptionEntity } from './entities/subscription.entity';
 import { NotificationsService } from '../notifications/notifications.service';
-import {
-  LIVE_STATUSES,
-  TRIAL_REMINDER_HOURS,
-  priceOf,
-} from './subscription-rules';
+import { LIVE_STATUSES, TRIAL_REMINDER_HOURS } from './subscription-rules';
 import type { Tier } from './tiers';
 
 /// docs/11 §5. A failed renewal is retried for three days, then the plan sits in grace for a week
@@ -44,9 +41,14 @@ export class SubscriptionSweepService {
     @InjectRepository(SubscriptionEntity)
     private readonly subscriptions: Repository<SubscriptionEntity>,
     private readonly notifications: NotificationsService,
+    private readonly prices: PriceService,
   ) {}
 
+  /// The admin's prices, read once per sweep so every notice in one run quotes the same figures.
+  private matrix: PriceMatrix | null = null;
+
   async run(now: Date): Promise<SweepReport> {
+    this.matrix = await this.prices.matrix();
     const live = await this.subscriptions.find({
       where: { status: In([...LIVE_STATUSES]) },
     });
@@ -228,7 +230,10 @@ export class SubscriptionSweepService {
   /// "₹2,799" — the exact amount, from the cell the period was bought at.
   private amount(row: SubscriptionEntity): string {
     const [tier, duration] = (row.priceKey ?? '').split(':');
-    const paise = priceOf(tier as Tier, duration) ?? Number(row.paidPaise ?? 0);
+    const paise =
+      this.matrix?.[tier as Exclude<Tier, 'FREE'>]?.[
+        duration as keyof PriceMatrix['PRO']
+      ] ?? Number(row.paidPaise ?? 0);
     return `₹${Math.round(paise / 100).toLocaleString('en-IN')}`;
   }
 }

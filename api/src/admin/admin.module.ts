@@ -22,6 +22,8 @@ import { AdminAudienceService } from './admin-audience.service';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { FoodsModule } from '../foods/foods.module';
 import { AuditService } from './audit.service';
+import { AdminPayoutsController } from './admin-payouts.controller';
+import { PartnerModule } from '../partner/partner.module';
 import { AuditLogEntity } from './entities/audit-log.entity';
 import { FilesModule } from '../files/files.module';
 import { TicketsModule } from '../tickets/tickets.module';
@@ -74,8 +76,15 @@ import { RulePacksService } from './rule-packs.service';
     TicketsModule,
     // The engine owns the rule packs; activation only chooses which of them is live (D-229).
     PlansModule,
+    // docs/12 §5: the payout desk drives the partner module's own service.
+    PartnerModule,
   ],
-  controllers: [AdminController, AdminTotpController, AdminRulePacksController],
+  controllers: [
+    AdminController,
+    AdminTotpController,
+    AdminRulePacksController,
+    AdminPayoutsController,
+  ],
   providers: [
     AdminMetricsService,
     AdminCoachService,
