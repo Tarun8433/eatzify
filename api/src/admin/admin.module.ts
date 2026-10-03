@@ -1,3 +1,13 @@
+import { NotificationEntity } from '../notifications/entities/notification.entity';
+import { AdminDashboardService } from './admin-dashboard.service';
+import { UsersModule } from '../users/users.module';
+import { UserBlockEntity } from '../users/infrastructure/persistence/relational/entities/user-block.entity';
+import { SessionEntity } from '../session/infrastructure/persistence/relational/entities/session.entity';
+import { TicketEntity } from '../tickets/entities/ticket.entity';
+import { PartnerKycEntity } from '../partner/entities/payout.entity';
+import { AdminUsersController } from './admin-users.controller';
+import { AdminUsersService } from './admin-users.service';
+import { AdminStaffService } from './admin-staff.service';
 import { BillingModule } from '../billing/billing.module';
 import { PaymentOrderEntity } from '../billing/entities/payment-order.entity';
 import { CouponEntity } from '../billing/entities/coupon.entity';
@@ -47,6 +57,8 @@ import { RulePacksService } from './rule-packs.service';
 @Module({
   imports: [
     BillingModule,
+    // UserAccessService: blocks and their expiry.
+    UsersModule,
     TypeOrmModule.forFeature([
       PaymentOrderEntity,
       CouponEntity,
@@ -54,6 +66,11 @@ import { RulePacksService } from './rule-packs.service';
       AdminTotpEntity,
       RulePackActivationEntity,
       CoachApplicationEntity,
+      UserBlockEntity,
+      NotificationEntity,
+      SessionEntity,
+      TicketEntity,
+      PartnerKycEntity,
       CoachGrantEntity,
       CoachInviteEntity,
       SubscriptionEntity,
@@ -84,6 +101,7 @@ import { RulePacksService } from './rule-packs.service';
     AdminTotpController,
     AdminRulePacksController,
     AdminPayoutsController,
+    AdminUsersController,
   ],
   providers: [
     AdminMetricsService,
@@ -93,6 +111,9 @@ import { RulePacksService } from './rule-packs.service';
     AuditService,
     TotpService,
     RulePacksService,
+    AdminUsersService,
+    AdminStaffService,
+    AdminDashboardService,
   ],
   exports: [AuditService, TotpService],
 })

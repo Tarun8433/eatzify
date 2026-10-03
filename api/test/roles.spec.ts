@@ -11,13 +11,14 @@ describe('RoleEnum', () => {
     expect(RoleEnum.user).toBe(2);
   });
 
-  it('should give every docs/10 §1 role a distinct id', () => {
+  it('should give every role a distinct id', () => {
     const ids = Object.values(RoleEnum).filter(
       (v): v is number => typeof v === 'number',
     );
 
-    expect(ids).toHaveLength(8);
-    expect(new Set(ids).size).toBe(8);
+    // Eight from docs/10 §1, plus finance and content (admin panel plan, Phase A).
+    expect(ids).toHaveLength(10);
+    expect(new Set(ids).size).toBe(10);
   });
 
   /// docs/10 §1: "the level does not grant access. The consent grant does." `coach_l1` is a

@@ -593,13 +593,13 @@ async function seed(): Promise<void> {
       await measurements.save(rows);
     }
 
-    if (!(await subscriptions.findOne({ where: { userId: user.id } }))) {
+    // FREE is the absence of a live row: CHK_subscription_status has no 'none'.
+    if (
+      c.tier !== 'FREE' &&
+      !(await subscriptions.findOne({ where: { userId: user.id } }))
+    ) {
       await subscriptions.save(
-        subscriptions.create({
-          userId: user.id,
-          tier: c.tier,
-          status: c.tier === 'FREE' ? 'none' : 'active',
-        }),
+        subscriptions.create({ userId: user.id, tier: c.tier, status: 'active' }),
       );
     }
 

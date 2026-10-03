@@ -98,8 +98,13 @@ class _FoodLogTabState extends State<FoodLogTab> {
   /// D-240. A confirmed scan becomes ONE entry: the server sums the kept items of its own stored
   /// estimate and attaches the photo. "No" or not recognised lands back on search.
   Future<void> _scan() async {
+    _c.error.value = null;
     final outcome = await FoodScanFlow(
       scans: _c.scans!,
+      // Said on this sheet's own error line — a snackbar would sit hidden behind the sheet.
+      onMessage: (message) {
+        if (mounted) _c.error.value = message;
+      },
       ads: Get.isRegistered<RewardedAdGate>() ? Get.find<RewardedAdGate>() : null,
       picker: Get.isRegistered<ImagePicker>() ? Get.find<ImagePicker>() : null,
     ).run(context);

@@ -21,7 +21,7 @@ import 'package:image_picker/image_picker.dart';
 /// foods are on it → "Are you having this?". Everything is the server's call; this only sequences
 /// the screens and says what the server said.
 class FoodScanFlow {
-  FoodScanFlow({required this.scans, this.ads, ImagePicker? picker})
+  FoodScanFlow({required this.scans, this.ads, this.onMessage, ImagePicker? picker})
     : _picker = picker ?? ImagePicker();
 
   final ScanRepository scans;
@@ -29,6 +29,11 @@ class FoodScanFlow {
   /// Null where no ad can be shown (tests, or a build without ads); a tier that needs one then gets
   /// the "couldn't load an ad" message rather than a free pass.
   final RewardedAdGate? ads;
+
+  /// Where a refusal or failure is said. The flow runs inside the `+` sheet, and a snackbar lands
+  /// on the page BEHIND it — the analysing sheet closed and the reason was invisible. The host
+  /// passes its own error line; the snackbar is only the fallback for a host that has none.
+  final void Function(String message)? onMessage;
   final ImagePicker _picker;
 
   /// A phone photo at this size identifies a dish as well as the original and uploads in a second.
@@ -38,7 +43,9 @@ class FoodScanFlow {
   Future<ScanOutcome?> run(BuildContext context) async {
     final l = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.maybeOf(context);
-    void say(String text) => messenger?.showSnackBar(SnackBar(content: Text(text)));
+    void say(String text) => onMessage != null
+        ? onMessage!(text)
+        : messenger?.showSnackBar(SnackBar(content: Text(text)));
 
     final status = await scans.status();
     if (!context.mounted) return null;

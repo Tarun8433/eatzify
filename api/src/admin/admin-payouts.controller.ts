@@ -1,3 +1,4 @@
+import { Permit, PermissionsGuard } from './permissions.guard';
 import {
   Body,
   Controller,
@@ -27,8 +28,6 @@ import {
   MaxLength,
   Min,
 } from 'class-validator';
-import { Roles } from '../roles/roles.decorator';
-import { RolesGuard } from '../roles/roles.guard';
 import { RoleEnum } from '../roles/roles.enum';
 import type { JwtPayloadType } from '../auth/strategies/types/jwt-payload.type';
 import { TotpService } from './totp.service';
@@ -93,8 +92,8 @@ type Req = { user: JwtPayloadType };
  */
 @ApiTags('Admin')
 @ApiBearerAuth()
-@Roles(RoleEnum.admin, RoleEnum.super_admin)
-@UseGuards(AuthGuard('jwt'), RolesGuard)
+@Permit('payouts.manage')
+@UseGuards(AuthGuard('jwt'), PermissionsGuard)
 @Controller({ path: 'admin', version: '1' })
 export class AdminPayoutsController {
   constructor(
@@ -168,6 +167,7 @@ export class AdminPayoutsController {
 
   /// D-255: the partner's full payout details, to send the transfer. Second factor and a
   /// `read_pii` audit row, the same as revealing an applicant's identity (D-229).
+  @Permit('verification.manage')
   @Get('partners/:userId/kyc')
   async revealKyc(
     @Param('userId', ParseIntPipe) userId: number,
@@ -183,6 +183,7 @@ export class AdminPayoutsController {
 
   /// Verified after checking the details against the partner's documents; rejected sends the app
   /// back to asking for them.
+  @Permit('verification.manage')
   @Post('partners/:userId/kyc/review')
   @HttpCode(HttpStatus.NO_CONTENT)
   async reviewKyc(
@@ -213,6 +214,7 @@ export class AdminPayoutsController {
   }
 
   /// docs/12 §5: the rate the CA confirmed, from a date on. Added, never edited.
+  @Permit('settings.manage')
   @Post('tds-rates')
   async addTdsRate(
     @Body() dto: TdsRateDto,

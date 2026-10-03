@@ -1,3 +1,4 @@
+import { StatusEnum } from '../statuses/statuses.enum';
 import {
   Controller,
   Get,
@@ -56,7 +57,16 @@ export class UsersController {
   @Post()
   @HttpCode(HttpStatus.CREATED)
   create(@Body() createProfileDto: CreateUserDto): Promise<User> {
-    return this.usersService.create(createProfileDto);
+    // Admin panel plan, Phase A: a role is given through the audited `POST /admin/staff/:id/role`
+    // and a block through `POST /admin/users/:id/block`, never through this CRUD route.
+    const { role: _role, status: _status, ...rest } = createProfileDto;
+    void _role;
+    void _status;
+    return this.usersService.create({
+      ...rest,
+      role: { id: RoleEnum.user },
+      status: { id: StatusEnum.active },
+    });
   }
 
   @ApiOkResponse({
@@ -123,7 +133,10 @@ export class UsersController {
     @Param('id') id: User['id'],
     @Body() updateProfileDto: UpdateUserDto,
   ): Promise<User | null> {
-    return this.usersService.update(id, updateProfileDto);
+    const { role: _role, status: _status, ...rest } = updateProfileDto;
+    void _role;
+    void _status;
+    return this.usersService.update(id, rest);
   }
 
   @Delete(':id')

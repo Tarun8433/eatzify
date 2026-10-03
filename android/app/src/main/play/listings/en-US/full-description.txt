@@ -1,0 +1,52 @@
+Eatzify helps you eat well with the food you already love. Log idli, dal, roti and sabzi in the portions you actually eat (katori, piece, glass) and see your calories, protein, carbs and fat add up through the day.
+
+MADE FOR INDIAN FOOD
+• A food database built around Indian home cooking, from South Indian breakfasts to North Indian thalis
+• Log by household measures like katori, piece and glass, or in grams
+• Search in English, with food names in Hindi too
+• Can't find a dish? Add it as your own entry
+
+A DAILY PLAN BUILT FOR YOU
+• A daily calorie target worked out from your age, height, activity and goal
+• Protein, carbs, fat and fibre targets alongside it
+• Suggested meals for the day that fit your target and food preferences: vegetarian, eggetarian, non-vegetarian, vegan or Jain
+
+SNAP YOUR MEAL
+• Take a photo of your plate and Eatzify estimates what is on it and how much
+• Untick anything that's wrong, choose the meal, and save it in one tap
+• Photo estimates are always marked as estimates
+
+SEE YOUR PROGRESS
+• Weekly calorie chart against your goal
+• Weight trend over time, logged when you choose
+• Nutrition, activity and habit views for this week and last week
+• Body measurements such as waist, if you want to track them
+
+STEPS, WATER AND WORKOUTS
+• Steps, distance and active calories from Health Connect on Android or Apple Health on iPhone, with the source always shown
+• Prefer typing? Manual entry always works
+• Track glasses of water with an optional reminder
+• Gym plans: a weekly schedule, routines and sets, with rest timers
+
+ALWAYS WITHIN REACH
+• Home-screen widget to see your day and log water without opening the app
+• Available in English and Hindi
+• Works in light and dark mode
+
+KIND BY DESIGN
+No shaming, no red "missed" days, and no leaderboards for your weight. Miss a meal? The next one is the one that counts.
+
+PLANS
+Eatzify is free to download. The free plan includes a starter meal plan, calorie and protein tracking, and 7 days of history; new users can also try meal scans, each unlocked by a short video ad.
+Basic adds a fully personalised meal plan, complete logging and weekly progress.
+Pro adds alternative meals, PDF export, unlimited history, advanced analytics and priority support.
+Paid plans have no ads. Prices are shown in the app before you pay, and you can cancel any time.
+
+YOUR DATA
+Your health data is used only to run the app for you. It is never sold and never used for advertising. You can export your data or delete your account at any time from You > Privacy.
+
+Important: Eatzify is a nutrition and wellness tool, not a medical device. It does not diagnose, treat or prevent any condition. If you are pregnant, have diabetes, a kidney or heart condition, an eating disorder, or any other medical condition, talk to your doctor before changing your diet.
+
+Privacy policy: https://www.eatzify.com/privacy-policy.html
+Terms: https://www.eatzify.com/terms-and-conditions.html
+Help: https://www.eatzify.com/help-support.html

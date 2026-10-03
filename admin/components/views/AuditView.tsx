@@ -25,6 +25,20 @@ const ACTION_LABEL: Record<string, string> = {
   coach_verify: 'Verified a partner',
   coach_reject: 'Rejected a partner',
   rule_pack_activate: 'Activated a rule pack',
+  payout_paid: 'Marked a payout paid',
+  payout_cancel: 'Cancelled a payout',
+  kyc_update: 'Reviewed partner KYC',
+  tds_rate_add: 'Added a TDS rate',
+  user_block: 'Blocked a user',
+  user_unblock: 'Unblocked a user',
+  user_update: 'Edited a user',
+  user_delete: 'Deleted a user',
+  password_reset_sent: 'Sent a password reset',
+  verification_resent: 'Resent a verification code',
+  role_change: 'Changed a role',
+  coupon_create: 'Created an offer',
+  coupon_deactivate: 'Deactivated an offer',
+  scan_policy_update: 'Changed scan settings',
 };
 
 function when(iso: string): string {
@@ -41,6 +55,9 @@ function when(iso: string): string {
 export function AuditView() {
   const [actor, setActor] = useState('');
   const [subject, setSubject] = useState('');
+  const [action, setAction] = useState('');
+  const [from, setFrom] = useState('');
+  const [to, setTo] = useState('');
   const [rows, setRows] = useState<AuditRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -52,6 +69,9 @@ export function AuditView() {
       const params = new URLSearchParams();
       if (actor.trim()) params.set('actor', actor.trim());
       if (subject.trim()) params.set('subject', subject.trim());
+      if (action) params.set('action', action);
+      if (from) params.set('from', new Date(from).toISOString());
+      if (to) params.set('to', new Date(`${to}T23:59:59`).toISOString());
 
       const res = await fetch(`/api/audit${params.toString() ? `?${params}` : ''}`);
       const data = await res.json();
@@ -63,7 +83,7 @@ export function AuditView() {
     } finally {
       setLoading(false);
     }
-  }, [actor, subject]);
+  }, [actor, subject, action, from, to]);
 
   useEffect(() => {
     void load();
@@ -95,6 +115,33 @@ export function AuditView() {
             placeholder="Subject id"
             aria-label="Filter by subject"
             className="w-[7.5rem] rounded-full bg-surface px-4 py-1.5 text-[12.5px] text-ink outline-none placeholder:text-ink-muted"
+          />
+          <select
+            value={action}
+            onChange={(e) => setAction(e.target.value)}
+            aria-label="Filter by action"
+            className="rounded-full bg-surface px-4 py-1.5 text-[12.5px] text-ink outline-none"
+          >
+            <option value="">All actions</option>
+            {Object.entries(ACTION_LABEL).map(([key, label]) => (
+              <option key={key} value={key}>
+                {label}
+              </option>
+            ))}
+          </select>
+          <input
+            type="date"
+            value={from}
+            onChange={(e) => setFrom(e.target.value)}
+            aria-label="From date"
+            className="rounded-full bg-surface px-4 py-1.5 text-[12.5px] text-ink outline-none"
+          />
+          <input
+            type="date"
+            value={to}
+            onChange={(e) => setTo(e.target.value)}
+            aria-label="To date"
+            className="rounded-full bg-surface px-4 py-1.5 text-[12.5px] text-ink outline-none"
           />
           <button
             onClick={() => void load()}

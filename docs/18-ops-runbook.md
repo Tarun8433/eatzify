@@ -117,3 +117,72 @@ immediately).
 
 The dominant cost at low scale is OTP SMS, which scales with signups, not revenue. Cap OTP requests
 per number per day (doc 09 §10) or a bot will spend your infra budget for you.
+
+## 10. Google Play publishing (gradle-play-publisher)
+
+`com.github.triplet.play` 4.1.1 on `android/app` (4.x is the AGP 9 line; D-257). Run from `android/`.
+
+**One-time setup**
+1. Play Console → Setup → API access → link a Google Cloud project → create a service account,
+   grant it *Release manager* (plus *Manage store presence* for listing / products / subscriptions).
+2. Save its JSON key as `android/play-service-account.json` (git-ignored). CI: put the JSON in the
+   `ANDROID_PUBLISHER_CREDENTIALS` env var instead.
+3. The first AAB must already be uploaded by hand in Play Console (the API cannot create an app).
+4. Pull what Play already has: `./gradlew bootstrapListing` (add `--products --subscriptions` for
+   `basic` / `pro` and their `p1m/p3m/p6m/p1y` base plans). **This resets `app/src/main/play/`** —
+   bootstrap first, edit after, commit the folder.
+
+**Metadata layout** (`android/app/src/main/play/`)
+- `contact-email.txt`, `contact-website.txt`, `default-language.txt`
+- `listings/<lang>/title.txt` (≤30), `short-description.txt` (≤80), `full-description.txt` (≤4000)
+  — `en-US` and `hi-IN`; missing translations fall back to the default language.
+- `listings/<lang>/graphics/{icon,feature-graphic,phone-screenshots,tablet-screenshots}/1.png`
+  — icon 512×512, feature graphic 1024×500, up to 8 screenshots each, uploaded in file-name order.
+- `release-notes/<lang>/default.txt` (≤500, or `<track>.txt` for one track)
+- `products/`, `subscriptions/` — JSON from bootstrap, each with a `.metadata.json`
+  (`regionsVersion`). Prices are admin-set in Play Console; edit them there, not here, or a publish
+  overwrites them.
+- Store copy follows docs/05 §6: no weight-loss promises, no "Obese", no medical claims.
+
+**Commands**
+
+| Do | Command |
+|---|---|
+| Build + upload AAB to internal | `./gradlew publishBundle` |
+| Upload to another track / staged | `./gradlew publishBundle --track production --release-status inProgress --user-fraction 0.1` |
+| Draft (review in Console first) | `./gradlew publishBundle --release-status draft` |
+| Listing text + graphics only | `./gradlew publishListing` |
+| One-time products / subscriptions | `./gradlew publishProducts` · `./gradlew publishSubscriptions` |
+| Everything (AAB + metadata) | `./gradlew publishApps` |
+| Promote internal → production | `./gradlew promoteArtifact --from-track internal --promote-track production` |
+| Finish a staged rollout | `./gradlew promoteArtifact --update production --release-status completed` |
+| Internal-sharing link for testers | `./gradlew uploadReleasePrivateBundle` |
+
+- Version code comes from `pubspec.yaml` (`version: x.y.z+N`). Bump `N` before every upload; a
+  reused code fails the upload.
+- Release builds use the live `API_BASE_URL` (`lib/main.dart`). Other `--dart-define`s (e.g.
+  `GOOGLE_SERVER_CLIENT_ID`, ad units) go through Gradle as
+  `-Pdart-defines=<base64(KEY=value)>,<base64(...)>`, or build with
+  `flutter build appbundle --release --dart-define=...` first and upload it with
+  `./gradlew publishBundle --artifact-dir ../build/app/outputs/bundle/release`.
+
+**Phone screenshots** — `integration_test/store_screenshots_test.dart` captures the real app
+(Home, meals, Plan, Progress ×2, You) against the local API, as the synthetic
+`ananya.iyer@demo.eatzify.test` from `api/scripts/seed-demo-clients.ts`. Never a real user's data.
+1. Seed (`npx ts-node -r dotenv/config -r tsconfig-paths/register scripts/seed-demo-clients.ts`),
+   give the demo account a local password, log a few of today's meals via `POST /logs/food`.
+2. Emulator at 1080×1920 (Play rejects a long side over 2× the short): `adb -e shell wm size 1080x1920`.
+3. `SHOT_DIR=build/store_screenshots flutter drive --driver=test_driver/integration_test.dart
+   --target=integration_test/store_screenshots_test.dart -d emulator-5554
+   --dart-define=TEST_ACCESS=… --dart-define=TEST_REFRESH=… --dart-define=TEST_USER=…
+   --dart-define=API_BASE_URL=http://10.0.2.2:3001/api/v1`
+4. Copy them as `1.png…6.png` into `listings/en-US/graphics/phone-screenshots/` (after any
+   `bootstrapListing`, which wipes the folder).
+
+**Designed listing images** — `store-screenshots/` is the ParthJadhav/app-store-screenshots editor
+(Next.js). `cd store-screenshots && bun install && bun dev` → http://localhost:3000. Deck, copy and
+the `eatzify` theme live in `app-store-screenshots.json` / `src/lib/constants.ts`; raw captures
+(native 1080×2424, from the test above with `wm size reset`) go in
+`public/screenshots/android/phone/en/01…06.png`. **Export bundle** per device (Android Phone, Feature
+Graphic), then copy the PNGs to `listings/en-US/graphics/{phone-screenshots,feature-graphic}/`.
+Copy follows docs/05 §6 — no weight-loss promises.

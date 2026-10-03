@@ -37,6 +37,17 @@ export const AUDIT_ACTIONS = [
   'payout_cancel',
   'kyc_update',
   'tds_rate_add',
+  // Admin panel plan, Phase A: accounts, staff and settings.
+  'user_block',
+  'user_unblock',
+  'user_update',
+  'user_delete',
+  'password_reset_sent',
+  'verification_resent',
+  'role_change',
+  'coupon_create',
+  'coupon_deactivate',
+  'scan_policy_update',
 ] as const;
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];
 

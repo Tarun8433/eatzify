@@ -7,6 +7,7 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { In, LessThan, QueryFailedError, Repository } from 'typeorm';
 import { MeasurementEntity } from './entities/measurement.entity';
+import { ProfileEntity } from '../profile/entities/profile.entity';
 import { CreateMeasurementDto } from './dto/create-measurement.dto';
 import { BulkReadingDto } from './dto/create-measurements-bulk.dto';
 import { diaryDateFor } from '../plans/diary-date';
@@ -22,6 +23,11 @@ import {
   type MeasurementKind,
   type MeasurementSource,
 } from './measurement-rules';
+import {
+  kcalPer1000Steps,
+  type StrideDay,
+  type WalkingEnergy,
+} from './walking-energy';
 
 export type MeasurementView = {
   id: string;
@@ -43,7 +49,14 @@ export type HistoryView = {
   /// card's sentence wants. Null when the window has too little; the app then falls back to
   /// [change]'s since-start sentence.
   change_30d: number | null;
+  /// Steps only (D-256): calories per 1,000 steps for this person. Null when there is no weight
+  /// to work from. A rate to read, never a figure to add to calories burned.
+  kcal_per_1000_steps?: WalkingEnergy | null;
 };
+
+/// How many days of measured strides to average — a month smooths one odd day out.
+const STRIDE_WINDOW_DAYS = 30;
+const DEVICE_SOURCES: MeasurementSource[] = ['apple_health', 'health_connect'];
 
 export type RecordedView = {
   measurement: MeasurementView;
@@ -86,6 +99,8 @@ export class MeasurementsService {
   constructor(
     @InjectRepository(MeasurementEntity)
     private readonly measurements: Repository<MeasurementEntity>,
+    @InjectRepository(ProfileEntity)
+    private readonly profiles: Repository<ProfileEntity>,
   ) {}
 
   /// docs/09 §4. One reading per kind per diary day — a second entry the same day corrects the
@@ -261,7 +276,55 @@ export class MeasurementsService {
         })),
         30,
       ),
+      ...(steps && {
+        kcal_per_1000_steps: await this.walkingEnergy(userId),
+      }),
     };
+  }
+
+  /// D-256. Stride from the days a DEVICE measured both steps and distance — a typed figure or a
+  /// person's added steps describe no walk — and the newest trustworthy weight, else the profile's.
+  private async walkingEnergy(userId: number): Promise<WalkingEnergy | null> {
+    const [rows, weight, profile] = await Promise.all([
+      this.measurements.find({
+        where: {
+          userId,
+          kind: In(['steps', 'distance_m']),
+          source: In(DEVICE_SOURCES),
+        },
+        order: { diaryDate: 'DESC' },
+        take: STRIDE_WINDOW_DAYS * 2,
+      }),
+      this.measurements.findOne({
+        where: { userId, kind: 'weight', isSuspect: false },
+        order: { diaryDate: 'DESC' },
+      }),
+      this.profiles.findOne({ where: { userId } }),
+    ]);
+
+    const byDay = new Map<string, { steps?: number; distanceM?: number }>();
+    for (const row of rows) {
+      const day = byDay.get(row.diaryDate) ?? {};
+      byDay.set(row.diaryDate, {
+        ...day,
+        [row.kind === 'steps' ? 'steps' : 'distanceM']: Number(row.value),
+      });
+    }
+    const days: StrideDay[] = [...byDay.values()].flatMap((d) =>
+      d.steps === undefined || d.distanceM === undefined
+        ? []
+        : [{ steps: d.steps, distanceM: d.distanceM }],
+    );
+
+    return kcalPer1000Steps({
+      weightKg: weight
+        ? Number(weight.value)
+        : profile
+          ? Number(profile.weightKg)
+          : null,
+      heightCm: profile?.heightCm ?? null,
+      days,
+    });
   }
 
   /// The most recent reading of each kind — used by `GET /profile`.

@@ -51,3 +51,18 @@ export function ringDash(pct: number, r: number): { dash: number; gap: number } 
   const filled = (Math.min(100, Math.max(0, pct)) / 100) * circumference;
   return { dash: filled, gap: circumference - filled };
 }
+
+/// Rupees from paise with Indian digit grouping — ₹1,24,560 (ui-standards: Indian grouping).
+export function inr(paise: number | string): string {
+  return new Intl.NumberFormat('en-IN', {
+    style: 'currency',
+    currency: 'INR',
+    maximumFractionDigits: 0,
+  }).format(Number(paise) / 100);
+}
+
+/// "3 Oct 2026, 14:05" — the short form tables use.
+export function stamp(iso: string | null): string {
+  if (!iso) return '—';
+  return new Date(iso).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
+}

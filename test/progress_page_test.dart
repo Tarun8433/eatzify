@@ -356,6 +356,53 @@ void main() {
       expect(find.text('1 day logged · Health Connect'), findsOneWidget);
     });
 
+    /// D-256. The server's rate, under steps, saying what it was estimated from.
+    testWidgets('should show calories per 1,000 steps when the server sends a rate', (
+      tester,
+    ) async {
+      final steps = habit('steps', [8432]);
+      await tester.pumpWidget(
+        progressUnderTest(
+          _KindedMeasurements(
+            weight: historyOf([70, 69.5]),
+            byKind: {
+              'steps': MeasurementHistory(
+                kind: 'steps',
+                points: steps.points,
+                walkingEnergy: const WalkingEnergy(kcal: 35, isFromStride: true),
+              ),
+            },
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.drag(find.byType(ListView), const Offset(0, -900));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text('About 35 kcal per 1,000 steps · estimated from your weight and your own stride'),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('should show no rate when the server has none', (tester) async {
+      await tester.pumpWidget(
+        progressUnderTest(
+          _KindedMeasurements(
+            weight: historyOf([70, 69.5]),
+            byKind: {
+              'steps': habit('steps', [8432]),
+            },
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.drag(find.byType(ListView), const Offset(0, -900));
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('per 1,000 steps'), findsNothing);
+    });
+
     testWidgets('a habit nobody has logged says so rather than showing a zero', (tester) async {
       await tester.pumpWidget(
         progressUnderTest(_KindedMeasurements(weight: historyOf([70, 69.5]))),

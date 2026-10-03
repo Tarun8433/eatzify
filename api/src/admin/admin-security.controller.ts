@@ -1,3 +1,4 @@
+import { STAFF_ROLES } from './permissions';
 import {
   Body,
   Controller,
@@ -47,7 +48,7 @@ class ActivateRulePackDto {
 /// The second factor, for anybody who can reach the admin surface.
 @ApiTags('Admin')
 @ApiBearerAuth()
-@Roles(RoleEnum.admin, RoleEnum.super_admin)
+@Roles(...STAFF_ROLES)
 @UseGuards(AuthGuard('jwt'), RolesGuard)
 @Controller({ path: 'admin/totp', version: '1' })
 export class AdminTotpController {

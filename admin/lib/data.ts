@@ -137,7 +137,13 @@ function placeholder(): Omit<DashboardData, 'overview'> {
 
 /// docs/10 §1's two admin roles, in words. The top bar saying who you are is not decoration on an
 /// audited surface: every read from this dashboard now lands in the log under THIS name (D-234).
-const ROLE_LABEL: Record<number, string> = { 1: 'Admin', 8: 'Super admin' };
+const ROLE_LABEL: Record<number, string> = {
+  1: 'Admin',
+  7: 'Support',
+  8: 'Super admin',
+  9: 'Finance',
+  10: 'Content',
+};
 
 export async function getDashboardData(): Promise<DashboardData> {
   const [overview, session] = await Promise.all([fetchOverview(), readSession()]);

@@ -79,6 +79,7 @@ function fakeRepo(rows: Row[] = []) {
 function serviceWith(repo: ReturnType<typeof fakeRepo>) {
   return new MeasurementsService(
     repo as unknown as Repository<MeasurementEntity>,
+    {} as never,
   );
 }
 

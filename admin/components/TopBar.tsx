@@ -1,10 +1,8 @@
 import Image from 'next/image';
-import { longDate } from '@/lib/format';
-import { BellIcon, ChevronDownIcon, FilterIcon, SearchIcon, SunIcon } from './icons';
+import { BellIcon, ChevronDownIcon, FilterIcon, SearchIcon } from './icons';
 
 interface Props {
   viewer: { name: string; role: string; photoUrl: string };
-  tempC: number;
   /** Passed in rather than read from the clock here, so the server and client render the same
    *  string — `new Date()` in a component is the classic hydration mismatch. */
   today: string;
@@ -12,15 +10,12 @@ interface Props {
   onQueryChange: (value: string) => void;
 }
 
-export function TopBar({ viewer, tempC, today, query, onQueryChange }: Props) {
+export function TopBar({ viewer, today, query, onQueryChange }: Props) {
   return (
     <header className="flex shrink-0 items-start justify-between gap-6 pt-5">
       <div>
-        <p className="text-[12.5px] text-ink-muted">{today}</p>
-        <p className="mt-1 flex items-center gap-1.5 text-[15px] font-medium text-ink">
-          <SunIcon className="h-[18px] w-[18px]" aria-hidden />
-          {tempC}°C
-        </p>
+        <p className="text-[12.5px] text-ink-muted">Eatzify admin</p>
+        <p className="mt-1 text-[15px] font-medium text-ink">{today}</p>
       </div>
 
       {/* Centred on the shell, not on the space left over — the reference keeps it on the page's

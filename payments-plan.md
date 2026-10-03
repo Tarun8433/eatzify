@@ -55,13 +55,15 @@ A box is ticked only after its check has actually passed.
 - [x] Tests: `test/price-service.spec.ts` — the admin's price is charged, reaches checkout after the cache ages out, missing cells fall back. API `npx jest` 729/729
 
 ### Phase 4 — Server: verifying store purchases
-- [ ] `subscription.source` (`cashfree` · `play` · `app_store`) and store transaction ids
-- [ ] Google: verify a purchase token, **acknowledge within 3 days** (Play refunds unacknowledged purchases), grant the tier
-- [ ] Google: RTDN endpoint for renewals, cancellations, refunds, grace, holds
-- [ ] Google UCB: report each Cashfree-chosen purchase through the external-transactions API
-- [ ] Apple: verify signed transactions (App Store Server API), grant the tier
-- [ ] Apple: Server Notifications v2 endpoint
-- [ ] Idempotent on transaction id everywhere; tests for each path
+- [x] `subscription.provider` (`cashfree` · `play` · `app_store`) + `providerRef`; one claim per purchase (`UQ_subscription_store_ref`)
+- [x] Google: verify a purchase token, **acknowledge within 3 days** (Play refunds unacknowledged purchases), grant the tier
+- [x] Google: RTDN endpoint for renewals, cancellations, refunds, grace, holds
+- [x] Google UCB: report each Cashfree-chosen purchase through the external-transactions API
+- [x] Apple: verify signed transactions (App Store Server API), grant the tier
+- [x] Apple: Server Notifications v2 endpoint
+- [x] Idempotent on transaction id everywhere; tests for each path
+
+> **Phase 4 verified 2026-10-03:** API `npx jest --maxWorkers=2` 822/822. Not yet exercised against real Google/Apple — needs the console setup under "Needs you".
 
 ### Phase 5 — App, Android
 - [ ] `in_app_purchase` (Billing Library 8), product lookup, store price strings shown as-is

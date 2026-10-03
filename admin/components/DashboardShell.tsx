@@ -1,9 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { DashboardData } from '@/lib/types';
-import { longDate } from '@/lib/format';
-import { Sidebar, type NavKey } from './Sidebar';
+import { allowedNav, homeFor, type NavKey } from '@/lib/nav';
+import { call } from '@/lib/client';
+import { Sidebar } from './Sidebar';
 import { TopBar } from './TopBar';
 import { ClientsView } from './views/ClientsView';
 import { PartnerReview } from './views/PartnerReview';
@@ -16,9 +17,10 @@ import { AuditView } from './views/AuditView';
 import { RulePacksView } from './views/RulePacksView';
 import { SecurityView } from './views/SecurityView';
 import { ScanSettingsView } from './views/ScanSettingsView';
-
-// 18 Sep 2024 is a Wednesday, which is what the reference shows; the same date in 2026 is a Friday.
-const REFERENCE_DAY = new Date('2024-09-18T09:00:00Z');
+import { DashboardView } from './views/DashboardView';
+import { UsersView } from './views/UsersView';
+import { VerificationView } from './views/VerificationView';
+import { StaffView } from './views/StaffView';
 
 /**
  * The application shell: chrome that never changes, and one view that does.
@@ -33,8 +35,26 @@ const REFERENCE_DAY = new Date('2024-09-18T09:00:00Z');
  */
 /// One place that decides which view a nav key means, so adding a destination is one line in the
 /// sidebar and one case here.
-function View({ nav, overview }: { nav: NavKey; overview: DashboardData['overview'] }) {
+function View({
+  nav,
+  overview,
+  permissions,
+  go,
+}: {
+  nav: NavKey;
+  overview: DashboardData['overview'];
+  permissions: string[];
+  go: (key: NavKey) => void;
+}) {
   switch (nav) {
+    case 'dashboard':
+      return <DashboardView permissions={permissions} />;
+    case 'users':
+      return <UsersView permissions={permissions} />;
+    case 'verification':
+      return <VerificationView permissions={permissions} onOpenPartners={() => go('partners')} />;
+    case 'staff':
+      return <StaffView />;
     case 'partners':
       return <PartnerReview />;
     case 'search':
@@ -53,24 +73,37 @@ function View({ nav, overview }: { nav: NavKey; overview: DashboardData['overvie
       return <SecurityView />;
     case 'scanning':
       return <ScanSettingsView />;
-    default:
+    case 'metrics':
       return <MetricsView overview={overview} />;
+    default:
+      return <DashboardView permissions={permissions} />;
   }
 }
 
-export function DashboardShell({ data }: { data: DashboardData }) {
-  const [nav, setNav] = useState<NavKey>('people');
+export function DashboardShell({ data, today }: { data: DashboardData; today: string }) {
+  const [nav, setNav] = useState<NavKey>('dashboard');
   const [query, setQuery] = useState('');
+  // What this person's role may open (D-260). Until it arrives only the dashboard is drawn.
+  const [permissions, setPermissions] = useState<string[]>(['panel.access']);
+
+  useEffect(() => {
+    call<{ permissions: string[] }>('me')
+      .then((me) => {
+        setPermissions(me.permissions);
+        setNav(homeFor(me.permissions));
+      })
+      .catch(() => undefined);
+  }, []);
+  const allowed = allowedNav(permissions);
 
   return (
     <div className="flex h-screen w-full overflow-hidden bg-shell">
-      <Sidebar active={nav} onChange={setNav} />
+      <Sidebar active={nav} onChange={setNav} allowed={allowed} />
 
       <div className="flex min-w-0 flex-1 flex-col px-5 pb-4">
         <TopBar
           viewer={data.viewer}
-          tempC={data.weather.tempC}
-          today={longDate(REFERENCE_DAY)}
+          today={today}
           query={query}
           onQueryChange={setQuery}
         />
@@ -80,7 +113,7 @@ export function DashboardShell({ data }: { data: DashboardData }) {
           <ClientsView />
         ) : (
           <div className="flex min-h-0 flex-1 flex-col pt-3">
-            <View nav={nav} overview={data.overview} />
+            <View nav={nav} overview={data.overview} permissions={permissions} go={setNav} />
           </div>
         )}
       </div>

@@ -1,3 +1,4 @@
+import { Permit, PermissionsGuard } from './permissions.guard';
 import {
   BadRequestException,
   Body,
@@ -33,8 +34,6 @@ import {
   ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
-import { Roles } from '../roles/roles.decorator';
-import { RolesGuard } from '../roles/roles.guard';
 import { RoleEnum } from '../roles/roles.enum';
 import {
   COACH_APPLICATION_STATUS,
@@ -51,7 +50,12 @@ import {
   type ClientDetail,
   type ClientSummary,
 } from './admin-clients.service';
-import { AUDIT_REASONS, type AuditReason } from './entities/audit-log.entity';
+import {
+  AUDIT_ACTIONS,
+  AUDIT_REASONS,
+  type AuditAction,
+  type AuditReason,
+} from './entities/audit-log.entity';
 import {
   AdminMetricsService,
   type AdminOverview,
@@ -230,6 +234,11 @@ class AuditQueryDto {
   @IsString()
   to?: string;
 
+  /// Admin panel plan, Phase A: one kind of action, e.g. `user_block`.
+  @IsOptional()
+  @IsIn([...AUDIT_ACTIONS])
+  action?: AuditAction;
+
   @IsOptional()
   @Type(() => Number)
   @IsInt()
@@ -289,8 +298,8 @@ class CreateCouponDto {
  */
 @ApiTags('Admin')
 @ApiBearerAuth()
-@Roles(RoleEnum.admin, RoleEnum.super_admin)
-@UseGuards(AuthGuard('jwt'), RolesGuard)
+@Permit('users.read')
+@UseGuards(AuthGuard('jwt'), PermissionsGuard)
 @Controller({ path: 'admin', version: '1' })
 export class AdminController {
   constructor(
@@ -354,6 +363,7 @@ export class AdminController {
   }
 
   /// docs/09 §9: the review queue, a step at a time.
+  @Permit('content.manage')
   @Get('foods')
   foodsByStatus(@Query('status') status?: string): Promise<FoodEntity[]> {
     const wanted = (FOOD_STATUSES as readonly string[]).includes(status ?? '')
@@ -365,6 +375,7 @@ export class AdminController {
 
   /// docs/09 §9: one food, typed rather than imported. A DRAFT whatever the body says — nothing
   /// reaches a plan because somebody pressed save.
+  @Permit('content.manage')
   @Post('foods')
   @HttpCode(HttpStatus.CREATED)
   createFood(@Body() dto: FoodDraftDto): Promise<FoodEntity> {
@@ -372,6 +383,7 @@ export class AdminController {
   }
 
   /// docs/09 §9: `POST /admin/foods/{id}/review`.
+  @Permit('content.manage')
   @Post('foods/:id/review')
   @HttpCode(HttpStatus.OK)
   reviewFood(
@@ -382,6 +394,7 @@ export class AdminController {
   }
 
   /// docs/09 §9: `POST /admin/foods/{id}/publish`. Only from `reviewed`.
+  @Permit('content.manage')
   @Post('foods/:id/publish')
   @HttpCode(HttpStatus.OK)
   publishFood(
@@ -392,6 +405,7 @@ export class AdminController {
   }
 
   /// Out of circulation, not deleted: the row is in somebody's diary (docs/08 §4).
+  @Permit('content.manage')
   @Post('foods/:id/retire')
   @HttpCode(HttpStatus.OK)
   retireFood(
@@ -444,6 +458,7 @@ export class AdminController {
   }
 
   /// docs/09 §9: `POST /admin/tickets/{id}/reply`. The person gets a notification (D-223).
+  @Permit('users.manage')
   @Post('tickets/:id/reply')
   @HttpCode(HttpStatus.OK)
   replyToTicket(
@@ -459,6 +474,7 @@ export class AdminController {
   }
 
   /// docs/03 §5: resolved, and reopenable for seven days if it was not.
+  @Permit('users.manage')
   @Post('tickets/:id/resolve')
   @HttpCode(HttpStatus.OK)
   resolveTicket(@Param('id') id: string): Promise<TicketRow> {
@@ -466,6 +482,7 @@ export class AdminController {
   }
 
   /// Final. docs/13 §6's two-year retention runs from here.
+  @Permit('users.manage')
   @Post('tickets/:id/close')
   @HttpCode(HttpStatus.OK)
   closeTicket(@Param('id') id: string): Promise<TicketRow> {
@@ -478,6 +495,7 @@ export class AdminController {
    * docs/13 §5's rule is enforced in the service: a segment that names a health condition is
    * allowed only for a clinical message. A send that used one is audited whatever it said.
    */
+  @Permit('notify.send')
   @Post('notifications')
   @HttpCode(HttpStatus.OK)
   async broadcast(
@@ -565,6 +583,7 @@ export class AdminController {
   }
 
   /// D-236. Sums only — no row here names a buyer.
+  @Permit('payments.read')
   @Get('metrics/revenue')
   revenue(): Promise<RevenueOverview> {
     return this.metrics.revenue();
@@ -572,6 +591,7 @@ export class AdminController {
 
   /// D-236 — the offers. Creating one changes what people pay, so it sits behind the second
   /// factor like the other dangerous actions (D-229); reading the list does not.
+  @Permit('content.manage')
   @Get('coupons')
   coupons(): Promise<CouponView[]> {
     return this.couponsService.list();
@@ -579,11 +599,13 @@ export class AdminController {
 
   /// D-238 — who may scan a meal photo, per tier. Changing it changes what the scans cost and
   /// what a plan includes, so a write takes the second factor like an offer does.
+  @Permit('settings.manage')
   @Get('scan-policy')
   scanPolicies(): Promise<ScanPolicyView[]> {
     return this.scanPolicy.list();
   }
 
+  @Permit('settings.manage')
   @Patch('scan-policy/:tier')
   async updateScanPolicy(
     @Headers('x-totp') code: string | undefined,
@@ -592,9 +614,15 @@ export class AdminController {
     @Body() body: UpdateScanPolicyDto,
   ): Promise<ScanPolicyView> {
     await this.totp.require(Number(request.user.id), code ?? '');
-    return this.scanPolicy.update(tier, body);
+    const updated = await this.scanPolicy.update(tier, body);
+    await this.recordSetting(request, 'scan_policy_update', 'scan_policy', {
+      tier,
+      after: body,
+    });
+    return updated;
   }
 
+  @Permit('content.manage')
   @Post('coupons')
   async createCoupon(
     @Headers('x-totp') code: string | undefined,
@@ -602,10 +630,16 @@ export class AdminController {
     @Body() body: CreateCouponDto,
   ): Promise<CouponView> {
     await this.totp.require(Number(request.user.id), code ?? '');
-    return this.couponsService.create(body);
+    const created = await this.couponsService.create(body);
+    await this.recordSetting(request, 'coupon_create', 'coupon', {
+      code: created.code,
+      after: body,
+    });
+    return created;
   }
 
   /// Deactivation, never deletion — a code that ever ran stays visible with its usage.
+  @Permit('content.manage')
   @Post('coupons/:code/deactivate')
   async deactivateCoupon(
     @Headers('x-totp') code: string | undefined,
@@ -613,10 +647,33 @@ export class AdminController {
     @Param('code') coupon: string,
   ): Promise<CouponView> {
     await this.totp.require(Number(request.user.id), code ?? '');
-    return this.couponsService.deactivate(coupon);
+    const deactivated = await this.couponsService.deactivate(coupon);
+    await this.recordSetting(request, 'coupon_deactivate', 'coupon', {
+      code: coupon,
+      before: { active: true },
+      after: { active: false },
+    });
+    return deactivated;
+  }
+
+  /// Settings and offers carry no personal data, so the change itself goes in `meta`.
+  private recordSetting(
+    request: { user: JwtPayloadType },
+    action: 'scan_policy_update' | 'coupon_create' | 'coupon_deactivate',
+    resource: string,
+    meta: Record<string, unknown>,
+  ): Promise<void> {
+    return this.audit.record({
+      actorUserId: Number(request.user.id),
+      actorRole: String(request.user.role?.id ?? RoleEnum.admin),
+      action,
+      resource,
+      meta: JSON.parse(JSON.stringify(meta)) as Record<string, unknown>,
+    });
   }
 
   /// The review queue. Masked by default (docs/13 §4) — user ids, never names or phones.
+  @Permit('verification.manage')
   @Get('coaches/applications')
   applications(@Query() query: QueueQueryDto): Promise<ApplicationQueueRow[]> {
     return this.coaches.queue(query.status, query.limit);
@@ -629,6 +686,7 @@ export class AdminController {
    * row. No reason header — that is docs/10 §4's requirement for HEALTH fields, and an applicant's
    * own name is not one. An admin who cannot see who they are verifying cannot verify anybody.
    */
+  @Permit('verification.manage')
   @Get('coaches/:userId/applicant')
   async applicant(
     @Param('userId', ParseIntPipe) userId: number,
@@ -655,6 +713,7 @@ export class AdminController {
    * all. Serving the bytes through this endpoint means the only key is the reviewer's token, every
    * open writes an audit row, and there is no URL to forward.
    */
+  @Permit('verification.manage')
   @Get('coaches/:userId/documents/:kind')
   async document(
     @Param('userId', ParseIntPipe) userId: number,
@@ -685,6 +744,7 @@ export class AdminController {
     response.sendFile(doc.absolutePath);
   }
 
+  @Permit('verification.manage')
   @Post('coaches/:userId/verify')
   verify(
     @Param('userId', ParseIntPipe) userId: number,
@@ -699,6 +759,7 @@ export class AdminController {
     });
   }
 
+  @Permit('verification.manage')
   @Post('coaches/:userId/reject')
   reject(
     @Param('userId', ParseIntPipe) userId: number,
@@ -714,6 +775,7 @@ export class AdminController {
   }
 
   /// docs/09 §9: `GET /admin/audit?actor=&subject=&from=&to=`.
+  @Permit('audit.read')
   @Get('audit')
   auditLog(@Query() query: AuditQueryDto): Promise<AuditLogEntity[]> {
     return this.audit.search({
@@ -721,6 +783,7 @@ export class AdminController {
       subjectUserId: query.subject,
       from: query.from ? new Date(query.from) : undefined,
       to: query.to ? new Date(query.to) : undefined,
+      action: query.action,
       limit: query.limit,
     });
   }

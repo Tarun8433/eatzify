@@ -23,6 +23,8 @@ export class RoleSeedService {
       { id: RoleEnum.partner_org, name: 'Partner Organisation' },
       { id: RoleEnum.support, name: 'Support' },
       { id: RoleEnum.super_admin, name: 'Super Admin' },
+      { id: RoleEnum.finance, name: 'Finance' },
+      { id: RoleEnum.content, name: 'Content' },
     ];
 
   async run() {

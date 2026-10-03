@@ -30,6 +30,12 @@ export enum RoleEnum {
 
   /// Everything, audited, TOTP 2FA mandatory, no shared accounts (docs/10 §4).
   super_admin = 8,
+
+  /// Admin panel plan, Phase A: payments, refunds and revenue reports. No health data.
+  finance = 9,
+
+  /// Admin panel plan, Phase A: offers, announcements, foods and messages. No personal data.
+  content = 10,
 }
 
 /// The roles that may hold a consent grant over a client. `coach_l1` is a referrer, so it is

@@ -91,9 +91,11 @@ void main() {
   });
 
   test('should point every link at the one site', () {
-    for (final uri in [SiteLinks.terms, SiteLinks.privacy, SiteLinks.refunds, SiteLinks.contact]) {
+    for (final uri in [SiteLinks.terms, SiteLinks.privacy, SiteLinks.contact]) {
       expect(uri.scheme, 'https');
       expect(uri.host, SiteLinks.terms.host);
     }
+    // The new site has no refunds page yet; it stays on the page Cashfree reviewed.
+    expect(SiteLinks.refunds.scheme, 'https');
   });
 }

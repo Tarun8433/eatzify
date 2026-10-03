@@ -37,9 +37,11 @@ class TabScaffold extends StatelessWidget {
           // The same gutter the body under it uses. These were picked separately — the header
           // on `lg`, every tab body on `xl` — so the title sat 8 pt left of its own content on
           // all four tabs.
+          // Top is `xs`: the shell's SafeArea already clears the status bar, and `lg` on top of
+          // it left a visible empty band under the clock on every tab.
           padding: const EdgeInsets.fromLTRB(
             AppSpacing.screenH,
-            AppSpacing.lg,
+            AppSpacing.xs,
             AppSpacing.screenH,
             AppSpacing.sm,
           ),

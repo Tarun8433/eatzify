@@ -1,5 +1,7 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
+
 import 'package:health_pro/domain/repositories/payment_gateway.dart';
 import 'package:health_pro/domain/repositories/store_gateway.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
@@ -40,11 +42,21 @@ class InAppStoreGateway implements StoreGateway {
   }) async {
     // A second tap while the sheet is up would leave the first caller waiting forever.
     if (_waiting != null && !_waiting!.isCompleted) return const PaymentResult.cancelled();
-    if (!await _iap.isAvailable()) return _failed(null);
+    if (!await _iap.isAvailable()) {
+      // Reaches logcat in release too. Store names only — nothing about the person.
+      debugPrint('store: billing unavailable (not installed from the store, or no store account)');
+      return _failed(null);
+    }
 
     final found = await _iap.queryProductDetails({productId});
     final param = _param(found.productDetails, basePlanId, accountToken);
-    if (param == null) return _failed(found.error?.message);
+    if (param == null) {
+      debugPrint(
+        'store: no offer for $productId/${basePlanId ?? '-'} '
+        '(not found: ${found.notFoundIDs}, error: ${found.error?.message})',
+      );
+      return _failed(found.error?.message);
+    }
 
     final waiting = Completer<PaymentResult>();
     _pendingProduct = productId;
@@ -52,7 +64,10 @@ class InAppStoreGateway implements StoreGateway {
 
     try {
       final launched = await _iap.buyNonConsumable(purchaseParam: param);
-      if (!launched) _finish(_failed(null));
+      if (!launched) {
+        debugPrint('store: purchase sheet did not launch for $productId');
+        _finish(_failed(null));
+      }
     } on Exception catch (e) {
       _finish(_failed(e.toString()));
     }

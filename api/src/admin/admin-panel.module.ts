@@ -251,6 +251,9 @@ export class AdminPanelModule {
           resave: false,
           saveUninitialized: false,
           secret: requireSessionSecret(),
+          // nginx ends TLS and forwards plain HTTP with `X-Forwarded-Proto: https`. Without
+          // trusting it, a `secure` cookie is never set and every login bounces back silently.
+          proxy: true,
           cookie: {
             httpOnly: true,
             // An admin session cookie sent over plain HTTP is the session stolen.

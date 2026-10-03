@@ -5,6 +5,9 @@ coverage/
 .env.local
 .env.production
 .env.staging
+# Any other .env copy, e.g. the server's `.env.bak-2026-09-28` backups, which hold live keys.
+.env.*
+!.env.example
 *.log
 .boilerplate-tmp/
 .env.example.boilerplate

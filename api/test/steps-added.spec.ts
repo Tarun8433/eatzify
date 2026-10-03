@@ -84,6 +84,7 @@ describe('steps_added as a kind', () => {
   it('should refuse one a device sent', async () => {
     const service = new MeasurementsService(
       {} as Repository<MeasurementEntity>,
+      {} as never,
     );
 
     await expect(

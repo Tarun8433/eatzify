@@ -145,4 +145,19 @@ void main() {
     ));
     expect(repo.bought, isEmpty);
   });
+
+  test('should say checkout cannot open when the store fails without words', () async {
+    final repo = FakeBillingRepository(paymentsMode: 'play')
+      ..subscriptionResult = const Right(
+        SubscriptionState(tier: 'FREE', status: 'active', storeAccountToken: 'acct_1'),
+      );
+    final store = FakeStoreGateway(result: const PaymentResult(PaymentOutcome.failed));
+    final c = BillingController(billing: repo, store: store);
+    await c.load();
+
+    await buy(c);
+
+    expect(c.gatewayUnavailable.value, isTrue);
+    expect(c.buying.value, isFalse);
+  });
 }

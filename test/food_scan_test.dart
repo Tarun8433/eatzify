@@ -310,6 +310,21 @@ void main() {
     expect(scans.scansSent, isEmpty);
   });
 
+  /// The flow runs inside the `+` sheet. A snackbar would land on the page behind it, so a failed
+  /// upload used to close the analysing sheet with nothing visible to say why.
+  testWidgets("should show the server's words on the sheet when the upload fails", (tester) async {
+    final scans = FakeScanRepository(
+      scanResult: const Left(ApiFailure("We couldn't read that photo. Try again.", code: 'X')),
+    );
+    await pumpTab(tester, scans: scans);
+
+    await scanAPlate(tester);
+
+    expect(scans.scansSent, hasLength(1));
+    expect(find.text("We couldn't read that photo. Try again."), findsOneWidget);
+    expect(find.byType(SnackBar), findsNothing);
+  });
+
   testWidgets('should survive 200 % font scale on the confirm sheet (rule 12)', (tester) async {
     tester.platformDispatcher.textScaleFactorTestValue = 2;
     addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);

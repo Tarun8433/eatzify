@@ -77,6 +77,10 @@ export class UserEntity extends EntityRelationalHelper {
   })
   status?: StatusEntity;
 
+  /// Admin panel plan, Phase A: when a session was last issued (sign-in of any kind).
+  @Column({ type: 'timestamptz', nullable: true })
+  lastLoginAt: Date | null;
+
   @CreateDateColumn()
   createdAt: Date;
 

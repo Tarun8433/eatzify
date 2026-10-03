@@ -22,9 +22,10 @@ export const SESSION_COOKIE = 'eatzify_admin';
 /// the expired one still sitting in the cookie it was sent with.
 export const FRESH_TOKEN_HEADER = 'x-admin-fresh-token';
 
-/// docs/10 §1: only these two reach the admin surface. Checked at sign-in as well as by the API, so
-/// a coach who signs in here is told plainly rather than shown a dashboard of 403s.
-export const ADMIN_ROLE_IDS = [1, 8];
+/// The five staff roles (D-260): admin, support, super admin, finance, content. Checked at sign-in as
+/// well as by the API, so a coach who signs in here is told plainly rather than shown a page of 403s.
+/// What each may open is the API's `GET /admin/me`, not this list.
+export const ADMIN_ROLE_IDS = [1, 7, 8, 9, 10];
 
 const API = process.env.ADMIN_API_URL ?? 'http://localhost:3001/api/v1';
 
@@ -89,14 +90,21 @@ export async function signIn(
     return { error: 'That email and password did not match an account.' };
   }
 
+  // D-250 changed the login reply to `{ access, refresh, user }`, the same shape as every other way
+  // in. The older `{ token, refreshToken, tokenExpires }` is still read, so a dashboard deployed
+  // against an older API keeps working.
   const data = (await res.json()) as {
+    access?: string;
+    refresh?: string;
     token?: string;
     refreshToken?: string;
     tokenExpires?: number;
     user?: { id: number; firstName: string | null; role?: { id: number } };
   };
+  const token = data.access ?? data.token;
+  const refreshToken = data.refresh ?? data.refreshToken;
 
-  if (!data.token || !data.refreshToken || !data.user) {
+  if (!token || !refreshToken || !data.user) {
     return { error: 'The API signed in but returned no session.' };
   }
 
@@ -107,9 +115,9 @@ export async function signIn(
 
   return {
     session: {
-      token: data.token,
-      tokenExpires: data.tokenExpires ?? Date.now() + 60_000,
-      refreshToken: data.refreshToken,
+      token,
+      tokenExpires: data.tokenExpires ?? tokenExpiry(token) ?? Date.now() + 60_000,
+      refreshToken,
       viewer: {
         userId: data.user.id,
         name: data.user.firstName ?? 'Admin',
@@ -175,5 +183,17 @@ export async function signOut(session: Session): Promise<void> {
     });
   } catch {
     // The cookie is cleared regardless. A network failure must not leave somebody signed in.
+  }
+}
+
+/// When an access token stops working, read from its own `exp` claim. Not verified — the API does
+/// that on every call; this only decides when to refresh.
+export function tokenExpiry(token: string): number | null {
+  try {
+    const part = (token.split('.')[1] ?? '').replace(/-/g, '+').replace(/_/g, '/');
+    const payload = JSON.parse(atob(part)) as { exp?: number };
+    return typeof payload.exp === 'number' ? payload.exp * 1000 : null;
+  } catch {
+    return null;
   }
 }

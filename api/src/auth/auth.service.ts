@@ -1,3 +1,4 @@
+import { UserAccessService } from '../users/user-access.service';
 import {
   HttpException,
   HttpStatus,
@@ -58,6 +59,7 @@ export class AuthService {
     private readonly mailService: MailService,
     private readonly configService: ConfigService<AllConfigType>,
     private readonly emailOtp: EmailOtpService,
+    private readonly access: UserAccessService,
   ) {}
 
   /// D-250: email and password are the way in. One message for an unknown email and a wrong
@@ -107,12 +109,16 @@ export class AuthService {
   /// One session shape for every way in (docs/09 §3): the app stores `access` and `refresh` and
   /// asks the server, never itself, whether onboarding is done.
   async issueSession(user: User): Promise<AppSession> {
+    // Every way in comes through here, so a blocked account is refused once, for all of them.
+    const now = new Date();
+    await this.access.refuseIfBlocked(Number(user.id), now);
     const hash = crypto
       .createHash('sha256')
       .update(randomStringGenerator())
       .digest('hex');
 
     const session = await this.sessionService.create({ user, hash });
+    await this.access.recordLogin(Number(user.id), now);
 
     const { token, refreshToken } = await this.getTokensData({
       id: user.id,
@@ -208,10 +214,14 @@ export class AuthService {
       .update(randomStringGenerator())
       .digest('hex');
 
+    // Same gate as issueSession: Google sign-in builds its session on its own.
+    const now = new Date();
+    await this.access.refuseIfBlocked(Number(user.id), now);
     const session = await this.sessionService.create({
       user,
       hash,
     });
+    await this.access.recordLogin(Number(user.id), now);
 
     const {
       token: jwtToken,
@@ -614,6 +624,7 @@ export class AuthService {
     if (!user?.role) {
       throw new UnauthorizedException();
     }
+    await this.access.refuseIfBlocked(Number(user.id), new Date());
 
     const { token, refreshToken, tokenExpires } = await this.getTokensData({
       id: session.user.id,

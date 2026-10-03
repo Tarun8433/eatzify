@@ -256,6 +256,17 @@ class _Habit extends StatelessWidget {
                 style: theme.textTheme.bodySmall,
               ),
             ],
+            if (history?.walkingEnergy case final energy?) ...[
+              const SizedBox(height: AppSpacing.xs),
+              Text(
+                energy.isFromStride
+                    ? l.stepsKcalFromStride(energy.kcal)
+                    : l.stepsKcalFromHeight(energy.kcal),
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
           ],
         ),
       ),

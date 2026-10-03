@@ -5,6 +5,8 @@ plugins {
     id("com.android.application")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
+    // Google Play uploads, listing, graphics, products and subscriptions. 4.x is the AGP 9 line.
+    id("com.github.triplet.play") version "4.1.1"
 }
 
 // Release signing, read from android/key.properties (git-ignored): a keystore in the repo is a
@@ -79,4 +81,15 @@ dependencies {
 
 flutter {
     source = "../.."
+}
+
+// Google Play publishing. Metadata lives in src/main/play; workflow in docs/18-ops-runbook.md.
+// Credentials: android/play-service-account.json (git-ignored) if present, otherwise the
+// ANDROID_PUBLISHER_CREDENTIALS environment variable holding the same JSON (CI).
+play {
+    val serviceAccount = rootProject.file("play-service-account.json")
+    if (serviceAccount.exists()) serviceAccountCredentials.set(serviceAccount)
+    defaultToAppBundles.set(true)
+    // Overridable per run: --track production --release-status inProgress --user-fraction 0.1
+    track.set("internal")
 }

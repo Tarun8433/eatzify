@@ -1,12 +1,16 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
+import type { NavKey } from '@/lib/nav';
 
 import {
   BellIcon,
   BoltIcon,
   BriefcaseIcon,
+  CalendarIcon,
   ChartIcon,
+  CheckIcon,
+  GridIcon,
   ChatIcon,
   GearPathIcon,
   InboxIcon,
@@ -15,6 +19,7 @@ import {
   PeopleIcon,
   SearchIcon,
   SettingsIcon,
+  UserCogIcon,
 } from './icons';
 
 /**
@@ -26,20 +31,24 @@ import {
  * half fiction teaches people to distrust the half that works.
  */
 const NAV = [
+  { key: 'dashboard', label: 'Dashboard', Icon: GridIcon, enabled: true },
+  { key: 'users', label: 'Users', Icon: PeopleIcon, enabled: true },
+  { key: 'verification', label: 'Verification', Icon: CheckIcon, enabled: true },
   { key: 'partners', label: 'Partner applications', Icon: BriefcaseIcon, enabled: true },
-  { key: 'people', label: 'Clients', Icon: PeopleIcon, enabled: true },
+  { key: 'people', label: 'Clients', Icon: CalendarIcon, enabled: true },
   { key: 'search', label: 'Find someone', Icon: SearchIcon, enabled: true },
   { key: 'tickets', label: 'Support', Icon: ChatIcon, enabled: true },
   { key: 'foods', label: 'Food review', Icon: InboxIcon, enabled: true },
   { key: 'broadcast', label: 'Send a message', Icon: BellIcon, enabled: true },
   { key: 'metrics', label: 'Live metrics', Icon: ChartIcon, enabled: true },
   { key: 'audit', label: 'Audit log', Icon: NodesIcon, enabled: true },
+  { key: 'staff', label: 'Admins & roles', Icon: UserCogIcon, enabled: true },
   { key: 'rulepacks', label: 'Rule packs', Icon: BoltIcon, enabled: true },
   { key: 'scanning', label: 'Meal scanning', Icon: SettingsIcon, enabled: true },
   { key: 'security', label: 'Security', Icon: GearPathIcon, enabled: true },
 ] as const;
 
-export type NavKey = (typeof NAV)[number]['key'];
+export type { NavKey };
 
 /// Ends the session on the API as well as in this browser, then lands on the login page. It was a
 /// button with no handler until D-234 — there was nothing to log out of, because there was no
@@ -79,9 +88,12 @@ function LogOutButton() {
 export function Sidebar({
   active,
   onChange,
+  allowed,
 }: {
   active: NavKey;
   onChange: (key: NavKey) => void;
+  /// What this person's role may open (`GET /admin/me`); the rest is not drawn at all.
+  allowed: readonly NavKey[];
 }) {
   return (
     <nav
@@ -93,7 +105,7 @@ export function Sidebar({
       </div>
 
       <ul className="flex flex-1 flex-col items-center gap-1">
-        {NAV.map(({ key, label, Icon, enabled }) => {
+        {NAV.filter(({ key }) => allowed.includes(key)).map(({ key, label, Icon, enabled }) => {
           const isActive = key === active;
           return (
             <li key={key} className="relative">

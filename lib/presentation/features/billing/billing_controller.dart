@@ -203,7 +203,13 @@ class BillingController extends GetxController {
       case PaymentOutcome.cancelled:
         break;
       case PaymentOutcome.failed:
-        buyError.value = result.message;
+        // A failure with no words of its own (store unavailable, product not found) must still say
+        // something — it used to set a null error and the button looked dead.
+        if (result.message == null) {
+          gatewayUnavailable.value = true;
+        } else {
+          buyError.value = result.message;
+        }
         await load();
     }
   }

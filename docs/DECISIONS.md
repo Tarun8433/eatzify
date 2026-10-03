@@ -6197,3 +6197,67 @@ address = supplied where the seller is). The seller's details are copied into ea
 and hands the PDF to the share sheet. Play and App Store sales are invoiced by the stores.
 **Not done** B2B invoices (buyer GSTIN, IGST by place of supply), the SAC code and GST registration
 (CA), and a Postgres test of the new constraints.
+
+## D-256 — Calories per 1,000 steps: server-computed, gross ACSM, from data already synced
+**When** 2026-10-01 · **Decision** Product owner: show calories burned per 1,000 steps from the
+person's own weight and walking, never a fixed "1,000 steps = X kcal". Chose **existing data only**
+(no new Health Connect permission) and **gross** calories.
+- `GET /measurements/steps` carries `kcal_per_1000_steps: { kcal, is_estimated, stride_from } | null`.
+  Computed in `api/src/measurements/walking-energy.ts` (rule 2: the app renders it).
+- ACSM walking, flat ground: `MET = (0.1 × speed + 3.5) / 3.5`, `kcal = MET × 3.5 × kg / 200 × min`.
+- **Stride** = Σ distance ÷ Σ steps over the last 30 device days that have both (days < 1,000 steps
+  skipped; a stride outside 0.3–1.1 m is refused, since Android distance includes cycling).
+  Otherwise `0.414 × height`. **Speed** is always the 80 m/min default — no walking speed is
+  read — so the figure is always `is_estimated: true`, and the copy says "estimated".
+- **Weight** as D-242: latest non-suspect weight measurement, else `profile.weightKg`, else null.
+- **Gross includes the resting 1 MET**, so the rate is shown on its own under Steps and is **never**
+  added to `energy_burned_kcal` (active-only, D-217) — that would count BMR twice against TDEE.
+  Total calories stay unread (tracker §3).
+- Not done: incline (plugin has no ElevationGained), stairs/floors as their own calculation, real
+  walking speed. Each needs a new permission and a Play health declaration update.
+- ⚠ The tunable numbers (80 m/min, 0.414, 1,000-step day, stride bounds) sit in code, not in a rule
+  pack — `config/rule-packs/` is human-edit-only. Moving them there is open.
+
+## D-257 — Play publishing through gradle-play-publisher 4.x
+**When** 2026-10-01 · **Decision** Play uploads, store listing, graphics, translations, products,
+subscriptions and track promotion run through `com.github.triplet.play` 4.1.1 on `android/app`,
+not by hand in Play Console.
+- 4.x because 4.0.0 is the first release supporting AGP 9 (we are on 9.0.1); 3.x will not apply.
+- Credentials: `android/play-service-account.json` (git-ignored) or `ANDROID_PUBLISHER_CREDENTIALS`.
+  Never committed.
+- Default track `internal`, App Bundle by default; production is always an explicit `--track`.
+- No `ResolutionStrategy.AUTO`: the version code stays owned by `pubspec.yaml`, so a stale build
+  fails loudly instead of being silently renumbered.
+- Metadata under `app/src/main/play/` is bootstrapped from Play, not hand-written (the plugin's own
+  advice; `bootstrapListing` resets the folder). Subscription prices stay admin-set in Console.
+- Upstream is in maintenance mode (PRs only). If it breaks on a future AGP, fallback is
+  `fastlane supply` with the same metadata layout.
+- Workflow: docs/18 §10.
+
+## D-258 — Legal and help links move to www.eatzify.com
+**When** 2026-10-01 · **Decision** Terms → `/terms-and-conditions.html`, privacy →
+`/privacy-policy.html`, contact → `/help-support.html` on `https://www.eatzify.com`
+(`lib/core/config/site_links.dart`, `SITE_URL` still overrides). Health Connect's native
+`privacy_policy_url` follows. **Refunds stays on `eatzify.zynthovo.com/refunds/`**: the new site has
+no refunds page (checked: 404) and the paywall must keep linking one. Move it when the page exists.
+
+## D-259 — Every phone is laid out at one design width
+**When** 2026-10-03 · **Decision** Product owner: screens looked oversized on a OnePlus 11R and
+"should look the same in every device". The cause is Android's *Display size* setting (raised by
+default on some OnePlus phones): it shrinks the logical width the app gets, so everything zooms in
+and narrow rows wrap. `FixedTextScale` (the D-247 text lock at the app root) now also lays phones
+out at **393 pt** — the product owner's iPhone 15 Pro — and scales the result to the real screen.
+Widths of 600 pt and over (tablets, opened foldables) keep their real width. **Trade-off** On a
+small phone everything is drawn slightly smaller; on a large one slightly larger — the layout is
+identical, the physical size is not.
+
+## D-260 — Five staff roles behind one permission map
+**When** 2026-10-03 · **Decision** Product owner (admin panel plan): super_admin, admin, support,
+finance (9) and content (10). `src/admin/permissions.ts` maps each role to permissions, and
+`PermissionsGuard` with `@Permit` checks them on every admin route. A route without `@Permit` is
+refused, so a new route cannot be open by default. Only super_admin has `staff.manage`, which covers
+role changes (with TOTP) and deleting accounts. **Also** status `blocked` (3) with a `user_block`
+history table. Blocked accounts are refused at sign-in and token refresh; access tokens (15 min) are
+not checked per request, and blocking deletes the person's sessions. Personal data in audit `meta` is
+recorded as field names only (api rule 5). The boilerplate `/users` CRUD no longer sets a role or
+status. **Supersedes** the `@Roles(admin, super_admin)` checks on `/admin/*`.

@@ -253,3 +253,13 @@ export const SaveContactIcon: Icon = (p) => (
     <path d="M16.5 9.5v4M14.5 11.5h4" />
   </svg>
 );
+
+/// Admins & roles: a person with a small cog.
+export const UserCogIcon: Icon = (p) => (
+  <svg {...base} {...p}>
+    <circle cx="9" cy="8" r="3.2" />
+    <path d="M3 19.5c0-3.3 2.7-5.5 6-5.5 1.2 0 2.3.3 3.2.8" />
+    <circle cx="17.5" cy="16.5" r="2" />
+    <path d="M17.5 12.8v1.7M17.5 18.5v1.7M21.2 16.5h-1.7M15.5 16.5h-1.7" />
+  </svg>
+);

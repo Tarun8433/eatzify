@@ -280,9 +280,9 @@ class EatzifyApp extends StatelessWidget {
         // keyboard without swallowing the button the user was actually aiming for.
         behavior: HitTestBehavior.translucent,
         onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
-        // D-247: text is drawn at the design size on every phone, ignoring the device's own
-        // font-size setting, so the app looks the same everywhere. This reverses rule 12's 200 %
-        // requirement — a deliberate product decision, see DECISIONS.md before changing it.
+        // D-247 / D-259: text at the design size whatever the font-size setting, and every phone
+        // laid out at the design width (393 pt) and scaled to fit, whatever the display-size
+        // setting — so the app looks the same everywhere. See DECISIONS.md before changing it.
         child: FixedTextScale(child: child!),
       ),
       home: const RootGate(),

@@ -752,7 +752,8 @@ class _GoalStep extends StatelessWidget {
           () => Column(
             children: [
               // The seven the user recognises. The engine's three are derived — see GoalDeclared.
-              for (final (i, g) in GoalDeclared.values.indexed)
+              for (final (i, g)
+                  in GoalDeclared.values.where((g) => g != GoalDeclared.other).indexed)
                 StaggeredIn(
                   index: i,
                   child: ChoiceTile(
@@ -835,6 +836,7 @@ class _ConditionsStep extends StatelessWidget {
           final hidden = <Condition>{
             if (!controller.asksPregnancyStatus) ...{Condition.pregnancy, Condition.lactation},
             if (!controller.asksFemaleHealth) Condition.pcos,
+            Condition.otherDeclared,
           };
           final shown = Condition.values.where((c) => !hidden.contains(c)).toList();
           // Rows, not chips — which reverses D-88 for this step alone (D-110). D-88 was right that
@@ -1673,7 +1675,7 @@ class _DietStep extends StatelessWidget {
                 label: l.onboardingAllergiesLabel,
                 hint: l.onboardingSelectAllOptional,
                 headingIcon: Icons.warning_amber_outlined,
-                values: FoodAllergy.values,
+                values: FoodAllergy.values.where((a) => a != FoodAllergy.other).toList(),
                 labelOf: (v) => v.label(l),
                 iconOf: (v) => v.icon,
                 // Eleven of them, two words each and no description: one column is a scroll on its

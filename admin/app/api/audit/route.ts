@@ -5,7 +5,7 @@ import { proxy } from '@/lib/api';
 export async function GET(request: Request) {
   const from = new URL(request.url).searchParams;
   const passed = new URLSearchParams();
-  for (const key of ['actor', 'subject', 'from', 'to', 'limit']) {
+  for (const key of ['actor', 'subject', 'from', 'to', 'action', 'limit']) {
     const value = from.get(key);
     if (value) passed.set(key, value);
   }

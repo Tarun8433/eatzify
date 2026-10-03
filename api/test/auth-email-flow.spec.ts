@@ -64,6 +64,10 @@ function harness() {
     } as never,
     config as never,
     emailOtp as never,
+    {
+      refuseIfBlocked: () => Promise.resolve(),
+      recordLogin: () => Promise.resolve(),
+    } as never,
   );
   return { service, users, codes, resetMails };
 }

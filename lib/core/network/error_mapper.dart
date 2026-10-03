@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:health_pro/core/errors/failures.dart';
 
 /// Turns a dio error into a Failure carrying the server's own `user_message`.
@@ -21,6 +22,12 @@ Failure mapDioError(DioException e) {
       break;
     // ignore: no_default_cases
     default:
+      // The user sees the generic line; logcat gets why. Type, path and the error's class only —
+      // never a body, header or query (rule 9: no PII in logs).
+      debugPrint(
+        'api: ${e.type.name} on ${e.requestOptions.method} ${e.requestOptions.path}: '
+        '${e.error?.runtimeType ?? e.message}',
+      );
       return const UnexpectedFailure('Something went wrong. Please try again.');
   }
 
@@ -33,6 +40,10 @@ Failure mapDioError(DioException e) {
 
   final code = error['code']?.toString() ?? 'UNKNOWN';
   final message = error['user_message']?.toString();
+  // A reply without `user_message` is a framework error (a 413, a proxy page), not one of ours.
+  if (message == null) {
+    debugPrint('api: $status $code on ${e.requestOptions.method} ${e.requestOptions.path}');
+  }
 
   // docs/05 §3 gates arrive as a 422 domain rejection and must render as a referral, not an error.
   if (status == 422 && error['gate'] != null) {

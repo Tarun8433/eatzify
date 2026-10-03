@@ -70,7 +70,13 @@ enum MeasurementSource {
 
 /// A kind's history plus the server-computed change.
 class MeasurementHistory {
-  const MeasurementHistory({required this.kind, required this.points, this.change, this.change30d});
+  const MeasurementHistory({
+    required this.kind,
+    required this.points,
+    this.change,
+    this.change30d,
+    this.walkingEnergy,
+  });
 
   MeasurementHistory.fromJson(Map<String, dynamic> json)
     : this(
@@ -80,6 +86,9 @@ class MeasurementHistory {
             .toList(),
         change: (json['change'] as num?)?.toDouble(),
         change30d: (json['change_30d'] as num?)?.toDouble(),
+        walkingEnergy: json['kcal_per_1000_steps'] is Map<String, dynamic>
+            ? WalkingEnergy.fromJson(json['kcal_per_1000_steps'] as Map<String, dynamic>)
+            : null,
       );
 
   final String kind;
@@ -94,5 +103,26 @@ class MeasurementHistory {
   /// back to [change]'s since-start sentence.
   final double? change30d;
 
+  /// Steps only (D-256): the server's calories per 1,000 steps. Null when it had no weight to use.
+  final WalkingEnergy? walkingEnergy;
+
   bool get isEmpty => points.isEmpty;
+}
+
+/// Calories per 1,000 steps for this person, computed by the server (rule 2). A rate to read —
+/// never added to calories burned, which would count resting metabolism twice. Always an estimate
+/// (no walking speed is read), and the copy says so.
+class WalkingEnergy {
+  const WalkingEnergy({required this.kcal, required this.isFromStride});
+
+  WalkingEnergy.fromJson(Map<String, dynamic> json)
+    : this(
+        kcal: (json['kcal'] as num?)?.round() ?? 0,
+        isFromStride: json['stride_from'] == 'distance',
+      );
+
+  final int kcal;
+
+  /// True when the stride came from the person's own measured distance, false when from height.
+  final bool isFromStride;
 }

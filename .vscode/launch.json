@@ -12,7 +12,10 @@
       "request": "launch",
       "type": "dart",
       "program": "lib/main.dart",
-      "args": ["--host-vmservice-port=8181", "--disable-dds"]
+      "args": [
+        "--host-vmservice-port=8181",
+        "--disable-dds"
+      ]
     },
     {
       "name": "Eatzify (profile)",
@@ -20,6 +23,13 @@
       "type": "dart",
       "program": "lib/main.dart",
       "flutterMode": "profile"
+    },
+    {
+      "name": "Eatzify (release)",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart",
+      "flutterMode": "release"
     }
   ]
 }

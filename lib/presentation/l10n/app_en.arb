@@ -3118,5 +3118,25 @@
         "type": "String"
       }
     }
+  },
+  "stepsKcalFromStride": "About {kcal} kcal per 1,000 steps · estimated from your weight and your own stride",
+  "@stepsKcalFromStride": {
+    "description": "Under the steps habit on Progress (D-256). Server-computed calories per 1,000 steps; the stride came from the user's measured distance.",
+    "placeholders": {
+      "kcal": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
+  "stepsKcalFromHeight": "About {kcal} kcal per 1,000 steps · estimated from your weight and height",
+  "@stepsKcalFromHeight": {
+    "description": "Under the steps habit on Progress (D-256). Server-computed calories per 1,000 steps; no distance was measured so the stride came from height.",
+    "placeholders": {
+      "kcal": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
   }
 }

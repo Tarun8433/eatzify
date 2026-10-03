@@ -62,6 +62,7 @@ export class AuditService {
     subjectUserId?: number;
     from?: Date;
     to?: Date;
+    action?: AuditAction;
     limit?: number;
   }): Promise<AuditLogEntity[]> {
     const q = this.log.createQueryBuilder('a').orderBy('a.createdAt', 'DESC');
@@ -76,6 +77,8 @@ export class AuditService {
     }
     if (filter.from) q.andWhere('a.createdAt >= :from', { from: filter.from });
     if (filter.to) q.andWhere('a.createdAt <= :to', { to: filter.to });
+    if (filter.action)
+      q.andWhere('a.action = :action', { action: filter.action });
 
     // Capped rather than optional. An un-paged audit query is the one endpoint guaranteed to grow
     // without limit, and the first person to run it unfiltered would pull the whole table.
