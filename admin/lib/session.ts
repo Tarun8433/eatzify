@@ -77,17 +77,33 @@ export async function signIn(
   email: string,
   password: string,
 ): Promise<{ session: Session } | { error: string }> {
-  const res = await fetch(`${API}/auth/email/login`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, password }),
-    cache: 'no-store',
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${API}/auth/email/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+      cache: 'no-store',
+    });
+  } catch {
+    return { error: `The dashboard cannot reach the Eatzify API at ${API}.` };
+  }
 
-  if (!res.ok) {
-    // Deliberately the same sentence for a wrong password and an unknown address: telling somebody
-    // which half they got right is how an address list gets enumerated.
+  // 401 is the API's one answer for an unknown email and a wrong password, so this sentence stays
+  // the same for both — telling somebody which half they got right is how an address list gets
+  // enumerated. Anything else is not about the password, and saying so saves an hour of resets.
+  if (res.status === 401) {
     return { error: 'That email and password did not match an account.' };
+  }
+  if (!res.ok) {
+    const body = (await res.json().catch(() => ({}))) as {
+      error?: { user_message?: string };
+    };
+    return {
+      error:
+        body.error?.user_message ??
+        `The Eatzify API refused the sign-in (status ${res.status}) at ${API}.`,
+    };
   }
 
   // D-250 changed the login reply to `{ access, refresh, user }`, the same shape as every other way
