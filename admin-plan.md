@@ -19,8 +19,8 @@ The full plan, with what exists and what is missing, is at
 |---|---|---|
 | A: core | Yes | Yes: `eb65bca` (3 Oct), dashboard at `https://eatzify-admin.zynthovo.com` |
 | B: payments | Yes | Yes: `ee9b7e7` (3 Oct) |
-| C: communication | Yes | **No, not pushed yet** |
-| D: reports | Yes | **No, not pushed yet** |
+| C: communication | Yes | Yes: `f1e55db` (3 Oct) |
+| D: reports | Yes | Yes: `f1e55db` (3 Oct) |
 
 ## Phase A: foundation, dashboard, users, verification, roles, audit
 
