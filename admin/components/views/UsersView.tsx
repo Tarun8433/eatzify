@@ -9,6 +9,8 @@ import { UserDetail } from './UserDetail';
 export type UserRow = {
   user_id: number;
   name: string;
+  /// Present only for roles allowed to see contact details (D-261).
+  email?: string | null;
   email_masked: string | null;
   phone_masked: string | null;
   role: string;
@@ -91,7 +93,7 @@ export function UsersView({
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3">
-      <ViewHeader title="Users" subtitle="Contact details are masked. Open someone to act on their account.">
+      <ViewHeader title="Users" subtitle="Mobile numbers are masked. Open a person to act on their account or reveal their number.">
         {STATES.map((s) => (
           <Pill key={s.key} active={state === s.key} onClick={() => setState(s.key)}>
             {s.label}
@@ -139,7 +141,7 @@ export function UsersView({
                     {r.name || '—'}
                     <span className="ml-1.5 text-[12px] text-ink-muted">#{r.user_id}</span>
                   </td>
-                  <td className="px-3 py-2 text-ink-muted">{r.email_masked ?? '—'}</td>
+                  <td className="px-3 py-2 text-ink-muted">{r.email ?? r.email_masked ?? '—'}</td>
                   <td className="px-3 py-2 text-ink-muted">{r.phone_masked ?? '—'}</td>
                   <td className="px-3 py-2 text-ink-muted">{stamp(r.registered_at)}</td>
                   <td className="px-3 py-2 text-ink">{STATE_LABEL[r.state]}</td>

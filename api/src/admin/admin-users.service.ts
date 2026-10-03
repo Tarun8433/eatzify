@@ -43,6 +43,8 @@ export type Actor = { userId: number; roleId: number; ip?: string | null };
 export type AdminUserRow = {
   user_id: number;
   name: string;
+  /// The full address. The controller removes it for a role without `users.reveal` (D-261).
+  email?: string | null;
   email_masked: string | null;
   phone_masked: string | null;
   role: string;
@@ -400,6 +402,7 @@ export class AdminUsersService {
     return {
       user_id: u.id,
       name: [u.firstName, u.lastName].filter(Boolean).join(' '),
+      email: u.email,
       email_masked: maskEmail(u.email),
       phone_masked: maskPhone(u.phone),
       role: u.role?.name ?? String(u.role?.id ?? ''),

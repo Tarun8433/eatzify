@@ -14,6 +14,8 @@ import { STAFF_ROLES } from './permissions';
 export type StaffRow = {
   user_id: number;
   name: string;
+  /// Staff are listed only to a super admin, who may see contact details anyway.
+  email: string | null;
   email_masked: string | null;
   role_id: number;
   role: string;
@@ -45,6 +47,7 @@ export class AdminStaffService {
     return rows.map((u) => ({
       user_id: u.id,
       name: [u.firstName, u.lastName].filter(Boolean).join(' '),
+      email: u.email,
       email_masked: maskEmail(u.email),
       role_id: Number(u.role?.id),
       role: u.role?.name ?? '',

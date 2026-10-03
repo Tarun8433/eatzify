@@ -156,7 +156,7 @@ export function UserDetail({
             <div className="grid gap-3 lg:grid-cols-2">
               <Section title="Profile">
                 <Row label="User id" value={`#${user.user_id}`} />
-                <Row label="Email" value={contact?.email ?? user.email_masked ?? '—'} />
+                <Row label="Email" value={contact?.email ?? user.email ?? user.email_masked ?? '—'} />
                 <Row label="Mobile" value={contact?.phone ?? user.phone_masked ?? '—'} />
                 <Row label="Registered" value={stamp(user.registered_at)} />
                 <Row label="Last sign-in" value={stamp(user.last_login_at)} />

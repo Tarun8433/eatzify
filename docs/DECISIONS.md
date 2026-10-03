@@ -6261,3 +6261,11 @@ history table. Blocked accounts are refused at sign-in and token refresh; access
 not checked per request, and blocking deletes the person's sessions. Personal data in audit `meta` is
 recorded as field names only (api rule 5). The boilerplate `/users` CRUD no longer sets a role or
 status. **Supersedes** the `@Roles(admin, super_admin)` checks on `/admin/*`.
+
+## D-261 — Full email in admin lists for roles that may see contact details
+**When** 2026-10-03 · **Decision** Product owner: "show the complete gmail" in the admin user list.
+Super admin, Admin and Support (the roles with `users.reveal`) now see the full email in Users,
+user detail and Verification. Finance and Content still get only the masked one; the API removes
+the field, so hiding it is not left to the dashboard. **Kept** Mobile numbers stay masked for
+everyone behind the audited Reveal, which needs a reason. **Departs from** docs/13 §4 ("mask by
+default") for email only, at the product owner's request.

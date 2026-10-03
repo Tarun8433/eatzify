@@ -1,6 +1,7 @@
 import { ForbiddenException } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { AdminUsersService, maskEmail } from '../src/admin/admin-users.service';
+import { AdminUsersController } from '../src/admin/admin-users.controller';
 import { AdminStaffService } from '../src/admin/admin-staff.service';
 import { PermissionsGuard, Permit } from '../src/admin/permissions.guard';
 import {
@@ -261,12 +262,14 @@ function person(id: number, role: RoleEnum): UserRow {
 }
 
 describe('AdminUsersService', () => {
-  it('should mask contact details in every row', async () => {
+  it('should mask the phone and carry a masked email in every row', async () => {
     const { service } = harness();
     const user = await service.detail(5);
     expect(user.email_masked).toBe('p…@example.com');
     expect(user.phone_masked).toBe('+919…0000');
-    expect(JSON.stringify(user)).not.toContain('person5@');
+    // The full email travels to the controller, which drops it per role (D-261); the phone never
+    // travels unmasked outside the audited reveal.
+    expect(JSON.stringify(user)).not.toContain('+919800000000');
     expect(maskEmail('x')).toBe('••••');
   });
 
@@ -392,5 +395,34 @@ describe('AdminStaffService', () => {
         roleId: RoleEnum.super_admin,
       }),
     ).rejects.toMatchObject({ response: { error: { code: 'SELF_ACTION' } } });
+  });
+});
+
+describe('AdminUsersController email visibility (D-261)', () => {
+  const row = {
+    user_id: 5,
+    email: 'person5@example.com',
+    email_masked: 'p…@example.com',
+  };
+  const controller = new AdminUsersController(
+    { detail: () => Promise.resolve({ ...row }) } as never,
+    {} as never,
+    {} as never,
+    {} as never,
+  );
+  const as = (roleId: number) =>
+    ({ user: { id: 1, role: { id: roleId } } }) as never;
+
+  it('should show the full email to a role that may see contact details', async () => {
+    const seen = await controller.detail(5, as(RoleEnum.admin));
+    expect(seen.email).toBe('person5@example.com');
+  });
+
+  it('should send only the masked email to finance and content', async () => {
+    for (const role of [RoleEnum.finance, RoleEnum.content]) {
+      const seen = await controller.detail(5, as(role));
+      expect(seen.email).toBeUndefined();
+      expect(seen.email_masked).toBe('p…@example.com');
+    }
   });
 });

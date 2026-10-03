@@ -184,16 +184,18 @@ export class AdminUsersController {
   }
 
   @Get('users')
-  list(
+  async list(
     @Query() q: UserListQuery,
+    @Request() request: StaffRequest,
   ): Promise<{ rows: AdminUserRow[]; next_cursor: number | null }> {
-    return this.users.list({
+    const page = await this.users.list({
       state: q.state,
       from: q.from ? new Date(q.from) : undefined,
       to: q.to ? new Date(q.to) : undefined,
       cursor: q.cursor,
       limit: q.limit,
     });
+    return { ...page, rows: page.rows.map((r) => contactFor(request, r)) };
   }
 
   @Get('users/counts')
@@ -202,8 +204,11 @@ export class AdminUsersController {
   }
 
   @Get('users/:id')
-  detail(@Param('id', ParseIntPipe) id: number): Promise<AdminUserDetail> {
-    return this.users.detail(id);
+  async detail(
+    @Param('id', ParseIntPipe) id: number,
+    @Request() request: StaffRequest,
+  ): Promise<AdminUserDetail> {
+    return contactFor(request, await this.users.detail(id));
   }
 
   @Permit('users.reveal')
@@ -221,35 +226,44 @@ export class AdminUsersController {
   @Permit('users.manage')
   @Post('users/:id/block')
   @HttpCode(HttpStatus.OK)
-  block(
+  async block(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: BlockDto,
     @Request() request: StaffRequest,
     @Ip() ip: string,
   ): Promise<AdminUserDetail> {
-    return this.users.block(id, dto, actorOf(request, ip));
+    return contactFor(
+      request,
+      await this.users.block(id, dto, actorOf(request, ip)),
+    );
   }
 
   @Permit('users.manage')
   @Post('users/:id/unblock')
   @HttpCode(HttpStatus.OK)
-  unblock(
+  async unblock(
     @Param('id', ParseIntPipe) id: number,
     @Request() request: StaffRequest,
     @Ip() ip: string,
   ): Promise<AdminUserDetail> {
-    return this.users.unblock(id, actorOf(request, ip));
+    return contactFor(
+      request,
+      await this.users.unblock(id, actorOf(request, ip)),
+    );
   }
 
   @Permit('users.manage')
   @Patch('users/:id')
-  update(
+  async update(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: UpdateUserDto,
     @Request() request: StaffRequest,
     @Ip() ip: string,
   ): Promise<AdminUserDetail> {
-    return this.users.update(id, dto, actorOf(request, ip));
+    return contactFor(
+      request,
+      await this.users.update(id, dto, actorOf(request, ip)),
+    );
   }
 
   /// Super admin only (`staff.manage`), and a second factor: a deleted account is hard to explain.
@@ -296,8 +310,8 @@ export class AdminUsersController {
 
   @Permit('users.read')
   @Get('verification/email')
-  unverified(): Promise<AdminUserRow[]> {
-    return this.users.unverified();
+  async unverified(@Request() request: StaffRequest): Promise<AdminUserRow[]> {
+    return (await this.users.unverified()).map((r) => contactFor(request, r));
   }
 
   @Permit('staff.manage')
@@ -327,4 +341,16 @@ function actorOf(request: StaffRequest, ip: string): Actor {
     roleId: Number(request.user.role?.id),
     ip,
   };
+}
+
+/// D-261: the full email shows only to a role allowed to see contact details (`users.reveal`).
+/// Everyone else gets the masked one. Phone numbers stay masked for all, behind the audited reveal.
+function contactFor<T extends { email?: string | null }>(
+  request: StaffRequest,
+  row: T,
+): T {
+  if (can(request.user.role?.id, 'users.reveal')) return row;
+  const { email: _email, ...rest } = row;
+  void _email;
+  return rest as T;
 }

@@ -90,7 +90,7 @@ export function VerificationView({
                   <td className="px-3 py-2 text-ink">
                     {u.name || '—'} <span className="text-[12px] text-ink-muted">#{u.user_id}</span>
                   </td>
-                  <td className="px-3 py-2 text-ink-muted">{u.email_masked ?? '—'}</td>
+                  <td className="px-3 py-2 text-ink-muted">{u.email ?? u.email_masked ?? '—'}</td>
                   <td className="px-3 py-2 text-ink-muted">{stamp(u.registered_at)}</td>
                   <td className="px-3 py-2 text-right">
                     {permissions.includes('users.manage') && (

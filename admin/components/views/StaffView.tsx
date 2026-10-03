@@ -8,6 +8,7 @@ import { Button, ConfirmDialog, ErrorNote, Loadable, ViewHeader } from '../ui';
 type Staff = {
   user_id: number;
   name: string;
+  email: string | null;
   email_masked: string | null;
   role_id: number;
   role: string;
@@ -62,7 +63,7 @@ export function StaffView() {
         <Button
           disabled={!addId}
           onClick={() =>
-            setEditing({ user_id: Number(addId), name: '', email_masked: null, role_id: 2, role: '', last_login_at: null })
+            setEditing({ user_id: Number(addId), name: '', email: null, email_masked: null, role_id: 2, role: '', last_login_at: null })
           }
         >
           Give a role
@@ -88,7 +89,7 @@ export function StaffView() {
                   <td className="px-3 py-2 text-ink">
                     {s.name || '—'} <span className="text-[12px] text-ink-muted">#{s.user_id}</span>
                   </td>
-                  <td className="px-3 py-2 text-ink-muted">{s.email_masked ?? '—'}</td>
+                  <td className="px-3 py-2 text-ink-muted">{s.email ?? s.email_masked ?? '—'}</td>
                   <td className="px-3 py-2 text-ink">{s.role}</td>
                   <td className="px-3 py-2 text-ink-muted">{stamp(s.last_login_at)}</td>
                   <td className="px-3 py-2 text-right">
