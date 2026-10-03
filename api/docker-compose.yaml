@@ -72,7 +72,8 @@ services:
       dockerfile: Dockerfile
     restart: unless-stopped
     ports:
-      - ${ADMIN_PORT:-3004}:3000
+      # Local only: the way in is nginx over HTTPS, never http://<server-ip>:3004.
+      - 127.0.0.1:${ADMIN_PORT:-3004}:3000
     environment:
       ADMIN_API_URL: http://api:${APP_PORT}/api/v1
     depends_on:
