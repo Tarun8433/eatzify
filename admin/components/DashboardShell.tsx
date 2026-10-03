@@ -21,6 +21,8 @@ import { DashboardView } from './views/DashboardView';
 import { UsersView } from './views/UsersView';
 import { VerificationView } from './views/VerificationView';
 import { StaffView } from './views/StaffView';
+import { PaymentsView } from './views/PaymentsView';
+import { RefundsView } from './views/RefundsView';
 
 /**
  * The application shell: chrome that never changes, and one view that does.
@@ -55,6 +57,10 @@ function View({
       return <VerificationView permissions={permissions} onOpenPartners={() => go('partners')} />;
     case 'staff':
       return <StaffView />;
+    case 'payments':
+      return <PaymentsView permissions={permissions} />;
+    case 'refunds':
+      return <RefundsView permissions={permissions} />;
     case 'partners':
       return <PartnerReview />;
     case 'search':

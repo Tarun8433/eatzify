@@ -3138,5 +3138,30 @@
         "format": "decimalPattern"
       }
     }
+  },
+  "subscriptionPayments": "Payments and refunds",
+  "paymentsTitle": "Payments",
+  "paymentsEmpty": "No payments yet",
+  "paymentsEmptyBody": "Plans you buy with UPI or a card appear here.",
+  "paymentsRefresh": "Refresh",
+  "paymentsRefunded": "Refunded",
+  "paymentsRefund": "Refund",
+  "paymentsRequestRefund": "Ask for a refund",
+  "paymentsRequested": "Refund requested",
+  "paymentsRefundTitle": "Refund {amount}?",
+  "paymentsRefundBody": "The money goes back the way you paid, and this plan ends now.",
+  "paymentsRequestTitle": "Ask for a refund",
+  "paymentsRequestBody": "This payment is more than 7 days old, so our team will look at it. We will email you the decision.",
+  "paymentsReasonLabel": "Why are you asking?",
+  "paymentsSend": "Send request",
+  "paymentsCancel": "Cancel",
+  "paymentsRefundDone": "Refund started. Banks usually take 5 to 7 working days.",
+  "paymentsRequestDone": "Request sent. We will email you.",
+  "@paymentsRefundTitle": {
+    "placeholders": {
+      "amount": {
+        "type": "String"
+      }
+    }
   }
 }

@@ -5,6 +5,8 @@ export const NAV_PERMISSION = {
   dashboard: 'panel.access',
   users: 'users.read',
   verification: 'users.read',
+  payments: 'payments.read',
+  refunds: 'payments.read',
   partners: 'verification.manage',
   people: 'users.read',
   search: 'users.read',

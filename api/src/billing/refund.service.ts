@@ -55,11 +55,26 @@ export class RefundService {
     @Optional() private readonly invoices: InvoiceService | null = null,
   ) {}
 
+  /// Admin panel plan, Phase B: a refund an admin decided on — a refund request they approved, or
+  /// one they issue themselves. Same path as self-serve, without the 7-day window.
+  async refundAsAdmin(
+    cashfreeOrderId: string,
+    reason: string | null,
+    now: Date,
+  ): Promise<RefundView> {
+    const order = await this.orders.findOne({ where: { cashfreeOrderId } });
+    if (!order) throw this.refuse('REFUND_NOT_AVAILABLE', REFUND_NOT_AVAILABLE);
+    return this.refund(order.userId, cashfreeOrderId, reason, now, {
+      ignoreWindow: true,
+    });
+  }
+
   async refund(
     userId: number,
     cashfreeOrderId: string,
     reason: string | null,
     now: Date,
+    opts: { ignoreWindow?: boolean } = {},
   ): Promise<RefundView> {
     const order = await this.orders.findOne({
       where: { cashfreeOrderId, userId },
@@ -71,7 +86,7 @@ export class RefundService {
     }
 
     const days = (now.getTime() - order.paidAt.getTime()) / MS_PER_DAY;
-    if (days > REFUND_DAYS) {
+    if (days > REFUND_DAYS && !opts.ignoreWindow) {
       throw this.refuse('REFUND_WINDOW_CLOSED', REFUND_WINDOW_CLOSED);
     }
 

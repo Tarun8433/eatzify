@@ -9,6 +9,7 @@ import 'package:health_pro/domain/entities/billing.dart';
 import 'package:health_pro/domain/repositories/billing_repository.dart';
 import 'package:health_pro/presentation/features/billing/billing_controller.dart';
 import 'package:health_pro/presentation/features/billing/invoices_page.dart';
+import 'package:health_pro/presentation/features/billing/payments_page.dart';
 import 'package:health_pro/presentation/features/billing/paywall_sheet.dart';
 import 'package:health_pro/presentation/features/billing/subscription_controller.dart';
 import 'package:health_pro/presentation/features/billing/tier_palette.dart';
@@ -167,6 +168,12 @@ class _Body extends StatelessWidget {
             onPressed: InvoicesPage.open,
             icon: const Icon(Icons.receipt_long_outlined),
             label: Text(l.subscriptionInvoices),
+          ),
+          // Admin panel plan, Phase B: payments, and a refund or a refund request for each.
+          TextButton.icon(
+            onPressed: PaymentsPage.open,
+            icon: const Icon(Icons.payments_outlined),
+            label: Text(l.subscriptionPayments),
           ),
         ],
       ),

@@ -41,8 +41,20 @@ The full plan, with what exists and what is missing, is at
 - [x] Hosting files: `admin/Dockerfile` (standalone), compose service `admin` behind profile `admin` (port 3004), nginx block for `eatzify-admin.zynthovo.com`
 - [ ] **Product owner:** DNS for `eatzify-admin.zynthovo.com`, copy the nginx file, certbot, then `docker compose --profile admin up -d --build admin`
 
-## Phase B: payments, failed transactions, refunds
-- [ ] Not started
+## Phase B: payments, failed transactions, refunds (verified 2026-10-03: API 861 + 7 new, app `flutter test` 934/934, admin `tsc` + `npm test` clean)
+- [x] `refund_request` table (`1759400000000-RefundRequests`, one open request per order)
+- [x] `RefundService.refundAsAdmin`: the self-serve path (Cashfree first, plan ends, commission reversed, credit note, email) without the 7-day window; self-serve keeps the window
+- [x] App routes `GET /billing/payments` (each payment with `self_serve` / `request` / `requested`) and `POST /billing/refund-request`
+- [x] Admin routes:
+  - `GET /admin/payments` (status, user, date, cursor), `/payments/summary` (by status, today, failure reasons, open requests, store plans), `/payments/:orderId`
+  - `POST /payments/:orderId/remind` (in-app + email, once a day)
+  - `POST /payments/:orderId/refund` (finance + TOTP + reason)
+  - `GET /admin/refunds?status=`, `POST /refunds/:id/approve` (TOTP), `/refunds/:id/reject` (note sent to the person)
+- [x] Audit: `payment_remind`, `refund_admin`, `refund_approve`, `refund_reject`
+- [x] Dashboard: Payments (7 cards, Successful/Pending/Failed/Refunded filters, failure reasons, detail with Refund and Remind) and Refund requests (Waiting/Approved/Rejected, Approve with TOTP, Reject with note)
+- [x] App: "Payments and refunds" on Your plan, with Refund (inside 7 days) or Ask for a refund (after), en + hi, widget test for all four states and 200 % font
+- [x] Tests: `test/admin-refunds.spec.ts`, `test/payments_page_test.dart`; `admin-guard.spec.ts` covers the new controller
+- [ ] Play and App Store purchases are counted, not listed: the stores own their payments and refunds
 
 ## Phase C: notifications, announcements, offers
 - [ ] Not started

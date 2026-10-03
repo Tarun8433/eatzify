@@ -159,9 +159,7 @@ class SessionEntry {
       );
 
   static List<String> _stepList(Object? steps, String lang) =>
-      ((steps as Map<String, dynamic>?)?[lang] as List? ?? [])
-          .map((s) => s.toString())
-          .toList();
+      ((steps as Map<String, dynamic>?)?[lang] as List? ?? []).map((s) => s.toString()).toList();
 
   final String exerciseId;
   final String name;

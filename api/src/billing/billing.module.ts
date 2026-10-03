@@ -13,6 +13,8 @@ import { SubscriptionEntity } from './entities/subscription.entity';
 import { TrialGrantEntity } from './entities/trial-grant.entity';
 import { CouponEntity } from './entities/coupon.entity';
 import { CouponsService } from './coupons.service';
+import { RefundRequestService } from './refund-request.service';
+import { RefundRequestEntity } from './entities/refund-request.entity';
 import { PriceService } from './price.service';
 import { PlayClient } from './store/play.client';
 import { InvoiceEntity } from './invoice/invoice.entity';
@@ -36,6 +38,7 @@ import { NotificationsModule } from '../notifications/notifications.module';
       SubscriptionEntity,
       TrialGrantEntity,
       PaymentOrderEntity,
+      RefundRequestEntity,
       TierPriceEntity,
       InvoiceEntity,
       // Cashfree needs a contactable customer, and the number lives on the user row.
@@ -67,10 +70,13 @@ import { NotificationsModule } from '../notifications/notifications.module';
     SubscriptionSweepService,
     SubscriptionScheduler,
     RefundService,
+    RefundRequestService,
     CashfreeClient,
   ],
   exports: [
     BillingService,
+    RefundService,
+    RefundRequestService,
     SubscriptionService,
     SubscriptionSweepService,
     CouponsService,

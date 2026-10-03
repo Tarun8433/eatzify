@@ -29,6 +29,11 @@ import {
   type UpgradeQuoteView,
 } from './subscription.service';
 import { RefundService, type RefundView } from './refund.service';
+import {
+  RefundRequestService,
+  type PaidOrderView,
+  type RefundRequestView,
+} from './refund-request.service';
 import { CashfreeClient } from './cashfree.client';
 import { CashfreeMode } from './cashfree.config';
 import { PAYMENTS_NOT_OFFERED, STUB_MODE } from './billing-copy';
@@ -104,6 +109,16 @@ class UpgradeDto {
   duration: Duration;
 }
 
+class RefundRequestDto {
+  @IsString()
+  order_id: string;
+
+  /// Why — the person's own words, read by whoever decides (admin panel plan, Phase B).
+  @IsString()
+  @MaxLength(1000)
+  reason: string;
+}
+
 class RefundDto {
   @IsString()
   order_id: string;
@@ -124,6 +139,7 @@ export class BillingController {
     private readonly checkout: CheckoutService,
     private readonly subscriptions: SubscriptionService,
     private readonly refunds: RefundService,
+    private readonly refundRequests: RefundRequestService,
     private readonly cashfree: CashfreeClient,
     private readonly play: PlayBillingService,
     private readonly appStore: AppStoreBillingService,
@@ -228,6 +244,32 @@ export class BillingController {
       Number(request.user.id),
       dto.order_id,
       dto.reason ?? null,
+      new Date(),
+    );
+  }
+
+  /// The caller's own payments with the refund each allows (admin panel plan, Phase B).
+  @Get('payments')
+  public paidOrders(
+    @Request() request: RequestWithUser<JwtPayloadType>,
+  ): Promise<PaidOrderView[]> {
+    return this.refundRequests.paidOrdersFor(
+      Number(request.user.id),
+      new Date(),
+    );
+  }
+
+  /// Past the 7-day window: ask instead, and someone in finance decides (admin panel plan, Phase B).
+  @Post('refund-request')
+  @HttpCode(HttpStatus.CREATED)
+  public requestRefund(
+    @Request() request: RequestWithUser<JwtPayloadType>,
+    @Body() dto: RefundRequestDto,
+  ): Promise<RefundRequestView> {
+    return this.refundRequests.request(
+      Number(request.user.id),
+      dto.order_id,
+      dto.reason,
       new Date(),
     );
   }

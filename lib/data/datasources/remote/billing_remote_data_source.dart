@@ -4,6 +4,7 @@ import 'package:health_pro/core/errors/failures.dart';
 import 'package:health_pro/core/network/error_mapper.dart';
 import 'package:health_pro/domain/entities/billing.dart';
 import 'package:health_pro/domain/entities/invoice.dart';
+import 'package:health_pro/domain/entities/paid_order.dart';
 
 class BillingRemoteDataSource {
   BillingRemoteDataSource(this._dio);
@@ -116,6 +117,34 @@ class BillingRemoteDataSource {
         options: Options(responseType: ResponseType.bytes),
       );
       return Right(res.data ?? const []);
+    } on DioException catch (e) {
+      return Left(mapDioError(e));
+    }
+  }
+
+  /// `GET /billing/payments` (admin panel plan, Phase B).
+  Future<Either<Failure, List<PaidOrder>>> paidOrders() async {
+    try {
+      final res = await _dio.get<List<dynamic>>('/billing/payments');
+      return Right([
+        for (final row in res.data ?? const <dynamic>[])
+          if (row is Map<String, dynamic>) PaidOrder.fromJson(row),
+      ]);
+    } on DioException catch (e) {
+      return Left(mapDioError(e));
+    }
+  }
+
+  Future<Either<Failure, Unit>> refund(String orderId) =>
+      _noContent('/billing/refund', {'order_id': orderId});
+
+  Future<Either<Failure, Unit>> requestRefund(String orderId, String reason) =>
+      _noContent('/billing/refund-request', {'order_id': orderId, 'reason': reason});
+
+  Future<Either<Failure, Unit>> _noContent(String path, Map<String, String> body) async {
+    try {
+      await _dio.post<dynamic>(path, data: body);
+      return const Right(unit);
     } on DioException catch (e) {
       return Left(mapDioError(e));
     }

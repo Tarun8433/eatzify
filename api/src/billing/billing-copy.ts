@@ -59,3 +59,12 @@ export const PURCHASE_OTHER_ACCOUNT =
   'This purchase belongs to another Eatzify account. Sign in with that account to use it.';
 export const STORE_NOT_CONFIGURED =
   "Store purchases aren't available yet. Nothing has been charged.";
+
+/// Admin panel plan, Phase B: refund requests after the self-serve window.
+export const REFUND_USE_SELF_SERVE =
+  'This payment can still be refunded straight away from your plan screen.';
+export const REFUND_REQUEST_OPEN =
+  'You have already asked for a refund of this payment. We will email you when it is decided.';
+export const REFUND_REQUEST_NOT_FOUND = 'That refund request no longer exists.';
+export const REFUND_REQUEST_DECIDED =
+  'That refund request has already been decided.';

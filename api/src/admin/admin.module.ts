@@ -1,3 +1,6 @@
+import { AdminPaymentsController } from './admin-payments.controller';
+import { AdminPaymentsService } from './admin-payments.service';
+import { RefundRequestEntity } from '../billing/entities/refund-request.entity';
 import { NotificationEntity } from '../notifications/entities/notification.entity';
 import { AdminDashboardService } from './admin-dashboard.service';
 import { UsersModule } from '../users/users.module';
@@ -68,6 +71,7 @@ import { RulePacksService } from './rule-packs.service';
       CoachApplicationEntity,
       UserBlockEntity,
       NotificationEntity,
+      RefundRequestEntity,
       SessionEntity,
       TicketEntity,
       PartnerKycEntity,
@@ -102,6 +106,7 @@ import { RulePacksService } from './rule-packs.service';
     AdminRulePacksController,
     AdminPayoutsController,
     AdminUsersController,
+    AdminPaymentsController,
   ],
   providers: [
     AdminMetricsService,
@@ -114,6 +119,7 @@ import { RulePacksService } from './rule-packs.service';
     AdminUsersService,
     AdminStaffService,
     AdminDashboardService,
+    AdminPaymentsService,
   ],
   exports: [AuditService, TotpService],
 })

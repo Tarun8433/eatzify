@@ -13,6 +13,7 @@ import 'package:health_pro/domain/entities/health_metric.dart';
 import 'package:health_pro/domain/entities/invoice.dart';
 import 'package:health_pro/domain/entities/measurement.dart';
 import 'package:health_pro/domain/entities/onboarding_submission.dart';
+import 'package:health_pro/domain/entities/paid_order.dart';
 import 'package:health_pro/domain/entities/plan.dart';
 import 'package:health_pro/domain/entities/privacy.dart';
 import 'package:health_pro/domain/entities/profile_view.dart';
@@ -471,6 +472,26 @@ class FakeBillingRepository implements BillingRepository {
 
   @override
   Future<Either<Failure, List<int>>> invoicePdf(String id) async => const Right([37, 80, 68, 70]);
+
+  /// Admin panel plan, Phase B.
+  Either<Failure, List<PaidOrder>>? paidOrderResult;
+  Either<Failure, Unit> refundResult = const Right(unit);
+  final List<String> refundCalls = [];
+
+  @override
+  Future<Either<Failure, List<PaidOrder>>> paidOrders() async => paidOrderResult ?? const Right([]);
+
+  @override
+  Future<Either<Failure, Unit>> refund(String orderId) async {
+    refundCalls.add('refund:$orderId');
+    return refundResult;
+  }
+
+  @override
+  Future<Either<Failure, Unit>> requestRefund(String orderId, String reason) async {
+    refundCalls.add('request:$orderId:$reason');
+    return refundResult;
+  }
 
   /// Tokens sent to `POST /billing/play/verify` or `/billing/appstore/verify`.
   final List<String> verified = [];

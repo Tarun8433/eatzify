@@ -48,6 +48,11 @@ export const AUDIT_ACTIONS = [
   'coupon_create',
   'coupon_deactivate',
   'scan_policy_update',
+  // Admin panel plan, Phase B: money.
+  'payment_remind',
+  'refund_admin',
+  'refund_approve',
+  'refund_reject',
 ] as const;
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];
 

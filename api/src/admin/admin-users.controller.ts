@@ -50,7 +50,12 @@ import {
 } from './admin-staff.service';
 import { AUDIT_REASONS, type AuditReason } from './entities/audit-log.entity';
 import { Permit, PermissionsGuard } from './permissions.guard';
-import { can, permissionsFor, type Permission } from './permissions';
+import {
+  can,
+  permissionsFor,
+  withContact,
+  type Permission,
+} from './permissions';
 import {
   AdminDashboardService,
   SERIES_METRICS,
@@ -343,14 +348,9 @@ function actorOf(request: StaffRequest, ip: string): Actor {
   };
 }
 
-/// D-261: the full email shows only to a role allowed to see contact details (`users.reveal`).
-/// Everyone else gets the masked one. Phone numbers stay masked for all, behind the audited reveal.
 function contactFor<T extends { email?: string | null }>(
   request: StaffRequest,
   row: T,
 ): T {
-  if (can(request.user.role?.id, 'users.reveal')) return row;
-  const { email: _email, ...rest } = row;
-  void _email;
-  return rest as T;
+  return withContact(request.user.role?.id, row);
 }

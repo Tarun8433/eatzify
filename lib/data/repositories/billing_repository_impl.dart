@@ -3,6 +3,7 @@ import 'package:health_pro/core/errors/failures.dart';
 import 'package:health_pro/data/datasources/remote/billing_remote_data_source.dart';
 import 'package:health_pro/domain/entities/billing.dart';
 import 'package:health_pro/domain/entities/invoice.dart';
+import 'package:health_pro/domain/entities/paid_order.dart';
 import 'package:health_pro/domain/repositories/billing_repository.dart';
 
 class BillingRepositoryImpl implements BillingRepository {
@@ -67,4 +68,14 @@ class BillingRepositoryImpl implements BillingRepository {
 
   @override
   Future<Either<Failure, List<int>>> invoicePdf(String id) => _remote.invoicePdf(id);
+
+  @override
+  Future<Either<Failure, List<PaidOrder>>> paidOrders() => _remote.paidOrders();
+
+  @override
+  Future<Either<Failure, Unit>> refund(String orderId) => _remote.refund(orderId);
+
+  @override
+  Future<Either<Failure, Unit>> requestRefund(String orderId, String reason) =>
+      _remote.requestRefund(orderId, reason);
 }

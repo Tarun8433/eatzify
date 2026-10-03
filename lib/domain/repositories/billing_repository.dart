@@ -2,6 +2,7 @@ import 'package:dartz/dartz.dart';
 import 'package:health_pro/core/errors/failures.dart';
 import 'package:health_pro/domain/entities/billing.dart';
 import 'package:health_pro/domain/entities/invoice.dart';
+import 'package:health_pro/domain/entities/paid_order.dart';
 
 /// docs/09 §7. Entitlements, prices, and starting a purchase (D-194).
 ///
@@ -64,4 +65,13 @@ abstract class BillingRepository {
 
   /// One invoice as PDF bytes, to hand to the share sheet.
   Future<Either<Failure, List<int>>> invoicePdf(String id);
+
+  /// `GET /billing/payments`: this account's payments and the refund each allows.
+  Future<Either<Failure, List<PaidOrder>>> paidOrders();
+
+  /// `POST /billing/refund`: inside the 7-day window, refunded straight away (docs/11 §9).
+  Future<Either<Failure, Unit>> refund(String orderId);
+
+  /// `POST /billing/refund-request`: past the window, asked for; finance decides.
+  Future<Either<Failure, Unit>> requestRefund(String orderId, String reason);
 }

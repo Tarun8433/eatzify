@@ -76,3 +76,15 @@ export function can(
 ): boolean {
   return permissionsFor(roleId).includes(permission);
 }
+
+/// D-261: the full email shows only to a role allowed to see contact details (`users.reveal`).
+/// Everyone else gets the masked one. Phone numbers stay masked for all, behind the audited reveal.
+export function withContact<T extends { email?: string | null }>(
+  roleId: number | string | undefined,
+  row: T,
+): T {
+  if (can(roleId, 'users.reveal')) return row;
+  const { email: _email, ...rest } = row;
+  void _email;
+  return rest as T;
+}
