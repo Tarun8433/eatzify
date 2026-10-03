@@ -33,6 +33,28 @@ export class CouponEntity extends BaseEntity {
   @Column({ type: 'boolean', default: true })
   active: boolean;
 
+  /// Admin panel plan, Phase C: what the offer card says.
+  @Column({ type: 'varchar', length: 80, nullable: true })
+  title: string | null;
+
+  @Column({ type: 'varchar', length: 300, nullable: true })
+  description: string | null;
+
+  @Column({ type: 'varchar', length: 500, nullable: true })
+  bannerUrl: string | null;
+
+  /// Not usable before this. Null: from creation.
+  @Column({ type: 'timestamptz', nullable: true })
+  startsAt: Date | null;
+
+  /// `new_users`: only someone who has never paid before.
+  @Column({ type: 'varchar', default: 'all' })
+  eligibility: 'all' | 'new_users';
+
+  /// Only for this tier's plans. Null: any.
+  @Column({ type: 'varchar', nullable: true })
+  tier: 'BASIC' | 'PRO' | null;
+
   @CreateDateColumn()
   createdAt: Date;
 }

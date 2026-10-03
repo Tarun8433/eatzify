@@ -6,8 +6,16 @@ const CONTENT = ['panel.access', 'content.manage', 'notify.send'];
 const FINANCE = ['panel.access', 'users.read', 'payments.read', 'refunds.manage', 'payouts.manage', 'reports.read'];
 
 describe('allowedNav', () => {
-  it('shows a content editor only foods, messages, the dashboard and security', () => {
-    expect(allowedNav(CONTENT).sort()).toEqual(['broadcast', 'dashboard', 'foods', 'security']);
+  it('shows a content editor content and messages, nothing about people or money', () => {
+    expect(allowedNav(CONTENT).sort()).toEqual([
+      'announcements',
+      'broadcast',
+      'dashboard',
+      'foods',
+      'messages',
+      'offers',
+      'security',
+    ]);
   });
 
   it('shows finance the revenue screen but not staff, settings or the audit log', () => {

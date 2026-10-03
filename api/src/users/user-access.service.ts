@@ -1,9 +1,17 @@
-import { ForbiddenException, HttpStatus, Injectable } from '@nestjs/common';
+import {
+  ForbiddenException,
+  HttpStatus,
+  Injectable,
+  Optional,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { IsNull, Repository } from 'typeorm';
 import { StatusEnum } from '../statuses/statuses.enum';
 import { UserBlockEntity } from './infrastructure/persistence/relational/entities/user-block.entity';
 import { UserEntity } from './infrastructure/persistence/relational/entities/user.entity';
+import { UserActivityDayEntity } from './infrastructure/persistence/relational/entities/user-activity-day.entity';
+
+const IST_OFFSET_MS = 330 * 60_000;
 
 export const ACCOUNT_BLOCKED =
   'This account has been blocked. Contact support if you think this is a mistake.';
@@ -19,7 +27,14 @@ export class UserAccessService {
     private readonly blocks: Repository<UserBlockEntity>,
     @InjectRepository(UserEntity)
     private readonly users: Repository<UserEntity>,
+    // Optional so older tests need not supply it; activity is a statistic, never a gate.
+    @Optional()
+    @InjectRepository(UserActivityDayEntity)
+    private readonly activity: Repository<UserActivityDayEntity> | null = null,
   ) {}
+
+  private readonly seenToday = new Set<string>();
+  private seenDay = '';
 
   /// The block in force, or null. A block whose time is up is lifted here, on first contact,
   /// so an expired block never needs a job to have run.
@@ -45,6 +60,30 @@ export class UserAccessService {
 
   async recordLogin(userId: number, now: Date): Promise<void> {
     await this.users.update({ id: userId }, { lastLoginAt: now });
+    await this.recordActive(userId, now);
+  }
+
+  /// Admin panel plan, Phase D: today (in India) counts as a day this person used the app. Called
+  /// at sign-in and on every token refresh; the first call each day writes, the rest do nothing.
+  async recordActive(userId: number, now: Date): Promise<void> {
+    if (!this.activity) return;
+    const day = new Date(now.getTime() + IST_OFFSET_MS)
+      .toISOString()
+      .slice(0, 10);
+    const key = `${userId}:${day}`;
+    if (this.seenToday.has(key)) return;
+    await this.activity
+      .createQueryBuilder()
+      .insert()
+      .values({ userId, day })
+      .orIgnore()
+      .execute();
+    // ponytail: per-process memo, cleared daily; one API container today.
+    if (this.seenDay !== day) {
+      this.seenToday.clear();
+      this.seenDay = day;
+    }
+    this.seenToday.add(key);
   }
 
   async lift(

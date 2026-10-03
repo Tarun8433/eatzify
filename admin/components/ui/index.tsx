@@ -180,8 +180,14 @@ export function LineChart({
 }
 
 export type ConfirmField =
-  | { kind: 'select'; name: string; label: string; options: { value: string; label: string }[] }
-  | { kind: 'text'; name: string; label: string; optional?: boolean };
+  | {
+      kind: 'select';
+      name: string;
+      label: string;
+      options: { value: string; label: string }[];
+      initial?: string;
+    }
+  | { kind: 'text'; name: string; label: string; optional?: boolean; initial?: string };
 
 /**
  * A confirmation for an action that changes something. Asks for whatever the API needs — a
@@ -208,7 +214,10 @@ export function ConfirmDialog({
 }) {
   const [values, setValues] = useState<Record<string, string>>(() =>
     Object.fromEntries(
-      fields.map((f) => [f.name, f.kind === 'select' ? (f.options[0]?.value ?? '') : '']),
+      fields.map((f) => [
+        f.name,
+        f.initial ?? (f.kind === 'select' ? (f.options[0]?.value ?? '') : ''),
+      ]),
     ),
   );
   const [code, setCode] = useState('');

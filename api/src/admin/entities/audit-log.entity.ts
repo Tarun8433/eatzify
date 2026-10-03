@@ -53,6 +53,11 @@ export const AUDIT_ACTIONS = [
   'refund_admin',
   'refund_approve',
   'refund_reject',
+  // Admin panel plan, Phase C: communication and offers.
+  'notification_send',
+  'campaign_cancel',
+  'announcement_publish',
+  'coupon_update',
 ] as const;
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];
 

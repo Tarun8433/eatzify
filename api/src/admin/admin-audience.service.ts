@@ -2,8 +2,10 @@ import {
   ForbiddenException,
   HttpStatus,
   Injectable,
+  Optional,
   UnprocessableEntityException,
 } from '@nestjs/common';
+import { ConsentEntity } from '../profile/entities/consent.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { ILike, In, Repository } from 'typeorm';
 import { ProfileEntity } from '../profile/entities/profile.entity';
@@ -69,7 +71,71 @@ export class AdminAudienceService {
     @InjectRepository(FoodLogEntity)
     private readonly logs: Repository<FoodLogEntity>,
     private readonly notifications: NotificationsService,
+    // Admin panel plan, Phase C: a commercial message reaches only people who said yes to
+    // marketing. Optional so older unit tests need not supply it; `idsFor` refuses a commercial
+    // send without it rather than skipping the check.
+    @Optional()
+    @InjectRepository(ConsentEntity)
+    private readonly consents: Repository<ConsentEntity> | null = null,
   ) {}
+
+  /**
+   * Who a message to [segment] reaches (admin panel plan, Phase C): the same rules as a broadcast
+   * — condition targeting only for clinical messages, at most [MAX_BROADCAST] people — plus the
+   * account state, and marketing consent for a commercial message.
+   */
+  async idsFor(
+    segment: Segment & { account_state?: 'active' | 'unverified' },
+    contentClass: ContentClass,
+    now: Date,
+  ): Promise<number[]> {
+    const byCondition = (segment.conditions?.length ?? 0) > 0;
+    if (byCondition && contentClass !== 'clinical') {
+      throw new ForbiddenException({
+        status: HttpStatus.FORBIDDEN,
+        error: {
+          code: 'CONDITION_TARGETING_FORBIDDEN',
+          user_message:
+            'Only a clinical message may be sent to people by health condition (docs/13 §5).',
+        },
+      });
+    }
+    let ids = segment.user_ids?.length
+      ? [...new Set(segment.user_ids)]
+      : await this.matching(undefined, segment, now);
+
+    if (segment.account_state) {
+      const status = segment.account_state === 'active' ? 1 : 2;
+      const rows = await this.users.find({
+        where: { id: In(ids), status: { id: status } },
+        select: { id: true },
+      });
+      ids = rows.map((u) => u.id);
+    }
+
+    if (contentClass === 'commercial') {
+      if (!this.consents) throw new Error('consent repository missing');
+      const rows = await this.consents.find({
+        where: { userId: In(ids), type: 'marketing' },
+        order: { grantedAt: 'DESC' },
+      });
+      const latest = new Map<number, boolean>();
+      for (const r of rows)
+        if (!latest.has(r.userId)) latest.set(r.userId, r.granted);
+      ids = ids.filter((id) => latest.get(id) === true);
+    }
+
+    if (ids.length > MAX_BROADCAST) {
+      throw new UnprocessableEntityException({
+        status: HttpStatus.UNPROCESSABLE_ENTITY,
+        error: {
+          code: 'SEGMENT_TOO_LARGE',
+          user_message: `That segment reaches ${ids.length} people. Narrow it to ${MAX_BROADCAST} or fewer.`,
+        },
+      });
+    }
+    return ids;
+  }
 
   /// Whether this search reads a health field, and therefore needs a reason and an audit row.
   static readsHealth(filters: UserFilters | undefined): boolean {

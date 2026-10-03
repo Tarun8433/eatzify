@@ -22,6 +22,12 @@ import { UsersView } from './views/UsersView';
 import { VerificationView } from './views/VerificationView';
 import { StaffView } from './views/StaffView';
 import { PaymentsView } from './views/PaymentsView';
+import { MessagesView } from './views/MessagesView';
+import { ReportsView } from './views/ReportsView';
+import { AnalyticsView } from './views/AnalyticsView';
+import { AnnouncementsView } from './views/AnnouncementsView';
+import { OffersView } from './views/OffersView';
+import { AlertBell, type Alert } from './AlertBell';
 import { RefundsView } from './views/RefundsView';
 
 /**
@@ -57,6 +63,16 @@ function View({
       return <VerificationView permissions={permissions} onOpenPartners={() => go('partners')} />;
     case 'staff':
       return <StaffView />;
+    case 'reports':
+      return <ReportsView />;
+    case 'analytics':
+      return <AnalyticsView />;
+    case 'messages':
+      return <MessagesView />;
+    case 'announcements':
+      return <AnnouncementsView />;
+    case 'offers':
+      return <OffersView />;
     case 'payments':
       return <PaymentsView permissions={permissions} />;
     case 'refunds':
@@ -102,6 +118,15 @@ export function DashboardShell({ data, today }: { data: DashboardData; today: st
   }, []);
   const allowed = allowedNav(permissions);
 
+  // The bell's counts, refreshed every minute while the dashboard is open.
+  const [alerts, setAlerts] = useState<Alert[]>([]);
+  useEffect(() => {
+    const load = () => call<Alert[]>('alerts').then(setAlerts).catch(() => undefined);
+    void load();
+    const timer = setInterval(load, 60_000);
+    return () => clearInterval(timer);
+  }, []);
+
   return (
     <div className="flex h-screen w-full overflow-hidden bg-shell">
       <Sidebar active={nav} onChange={setNav} allowed={allowed} />
@@ -110,6 +135,7 @@ export function DashboardShell({ data, today }: { data: DashboardData; today: st
         <TopBar
           viewer={data.viewer}
           today={today}
+          bell={<AlertBell alerts={alerts} onGo={setNav} />}
           query={query}
           onQueryChange={setQuery}
         />

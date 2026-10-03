@@ -625,6 +625,8 @@ export class AuthService {
       throw new UnauthorizedException();
     }
     await this.access.refuseIfBlocked(Number(user.id), new Date());
+    // Admin panel plan, Phase D: a refresh means the app is open today.
+    await this.access.recordActive(Number(user.id), new Date());
 
     const { token, refreshToken, tokenExpires } = await this.getTokensData({
       id: session.user.id,

@@ -208,6 +208,10 @@ export class CheckoutService {
         couponCode,
         amountPaise,
         now,
+        {
+          userId,
+          tier,
+        },
       );
       if (offer === null) throw this.refuse('COUPON_INVALID', COUPON_INVALID);
       discountPaise = offer.discountPaise;

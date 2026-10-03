@@ -227,7 +227,7 @@
   "onboardingDietQuestionHint": "Choose one that fits you best.",
   "onboardingAllergiesWhy": "This helps us make your plan safer and more personalized.",
   "onboardingSelectAllOptional": "Select all that apply (optional)",
-  "dietVegDesc": "No meat, but may include dairy and eggs",
+  "dietVegDesc": "No meat, but may include dairy.",
   "dietNonVegDesc": "Includes meat, fish and poultry",
   "dietEggetarianDesc": "No meat, but includes eggs",
   "dietJainDesc": "No onion, garlic or root vegetables",

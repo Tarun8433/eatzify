@@ -29,6 +29,7 @@ import {
   IsOptional,
   IsString,
   Max,
+  MaxLength,
   Min,
   ValidateIf,
   ValidateNested,
@@ -99,7 +100,7 @@ import { CouponsService, type CouponView } from '../billing/coupons.service';
 
 /// docs/09 §9: `POST /admin/users/search { query, filters }`. A POST because a filter may name a
 /// health condition, and api rule 6 keeps health data out of query strings.
-class UserFiltersDto {
+export class UserFiltersDto {
   @IsOptional()
   @IsString()
   tier?: string;
@@ -134,7 +135,7 @@ class UserSearchDto {
   filters?: UserFiltersDto;
 }
 
-class SegmentDto extends UserFiltersDto {
+export class SegmentDto extends UserFiltersDto {
   /// Named people, for a send that is not a rule about a group.
   @IsOptional()
   @IsArray()
@@ -286,6 +287,34 @@ class CreateCouponDto {
   @IsOptional()
   @IsString()
   expires_at?: string | null;
+
+  /// Admin panel plan, Phase C: the offer card and who may use it.
+  @IsOptional()
+  @IsString()
+  @MaxLength(80)
+  title?: string | null;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(300)
+  description?: string | null;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  banner_url?: string | null;
+
+  @IsOptional()
+  @IsString()
+  starts_at?: string | null;
+
+  @IsOptional()
+  @IsIn(['all', 'new_users'])
+  eligibility?: 'all' | 'new_users';
+
+  @IsOptional()
+  @IsIn(['BASIC', 'PRO', null])
+  tier?: 'BASIC' | 'PRO' | null;
 }
 
 /**

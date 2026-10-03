@@ -1,5 +1,6 @@
 import Image from 'next/image';
-import { BellIcon, ChevronDownIcon, FilterIcon, SearchIcon } from './icons';
+import type { ReactNode } from 'react';
+import { ChevronDownIcon, FilterIcon, SearchIcon } from './icons';
 
 interface Props {
   viewer: { name: string; role: string; photoUrl: string };
@@ -8,9 +9,11 @@ interface Props {
   today: string;
   query: string;
   onQueryChange: (value: string) => void;
+  /// The alert bell, owned by the shell (which knows where each alert leads).
+  bell: ReactNode;
 }
 
-export function TopBar({ viewer, today, query, onQueryChange }: Props) {
+export function TopBar({ viewer, today, query, onQueryChange, bell }: Props) {
   return (
     <header className="flex shrink-0 items-start justify-between gap-6 pt-5">
       <div>
@@ -45,13 +48,7 @@ export function TopBar({ viewer, today, query, onQueryChange }: Props) {
       </div>
 
       <div className="mt-0.5 flex items-center gap-3">
-        <button
-          type="button"
-          aria-label="Notifications"
-          className="flex h-[42px] w-[42px] items-center justify-center rounded-full bg-raised text-ink transition-colors hover:bg-line"
-        >
-          <BellIcon className="h-[18px] w-[18px]" />
-        </button>
+        {bell}
 
         <button type="button" className="flex items-center gap-2.5 text-left">
           <Image

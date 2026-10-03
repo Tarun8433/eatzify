@@ -1,3 +1,11 @@
+import { AdminReportsController } from './admin-reports.controller';
+import { AdminReportsService } from './admin-reports.service';
+import { UserActivityDayEntity } from '../users/infrastructure/persistence/relational/entities/user-activity-day.entity';
+import { CampaignScheduler } from './campaign.scheduler';
+import { AdminCommsController } from './admin-comms.controller';
+import { AdminCampaignsService } from './admin-campaigns.service';
+import { AdminAlertsService } from './admin-alerts.service';
+import { CampaignsModule } from '../campaigns/campaigns.module';
 import { AdminPaymentsController } from './admin-payments.controller';
 import { AdminPaymentsService } from './admin-payments.service';
 import { RefundRequestEntity } from '../billing/entities/refund-request.entity';
@@ -62,6 +70,8 @@ import { RulePacksService } from './rule-packs.service';
     BillingModule,
     // UserAccessService: blocks and their expiry.
     UsersModule,
+    // Phase C: push delivery, campaign and announcement tables.
+    CampaignsModule,
     TypeOrmModule.forFeature([
       PaymentOrderEntity,
       CouponEntity,
@@ -70,6 +80,7 @@ import { RulePacksService } from './rule-packs.service';
       RulePackActivationEntity,
       CoachApplicationEntity,
       UserBlockEntity,
+      UserActivityDayEntity,
       NotificationEntity,
       RefundRequestEntity,
       SessionEntity,
@@ -107,6 +118,8 @@ import { RulePacksService } from './rule-packs.service';
     AdminPayoutsController,
     AdminUsersController,
     AdminPaymentsController,
+    AdminCommsController,
+    AdminReportsController,
   ],
   providers: [
     AdminMetricsService,
@@ -120,6 +133,10 @@ import { RulePacksService } from './rule-packs.service';
     AdminStaffService,
     AdminDashboardService,
     AdminPaymentsService,
+    AdminCampaignsService,
+    CampaignScheduler,
+    AdminAlertsService,
+    AdminReportsService,
   ],
   exports: [AuditService, TotpService],
 })

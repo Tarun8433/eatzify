@@ -27,6 +27,7 @@ import 'package:health_pro/presentation/features/gym/gym_today_card.dart';
 import 'package:health_pro/presentation/features/home/home_controller.dart';
 import 'package:health_pro/presentation/features/home/home_health_sync.dart';
 import 'package:health_pro/presentation/features/home/home_skeleton.dart';
+import 'package:health_pro/presentation/features/home/widgets/announcements_strip.dart';
 import 'package:health_pro/presentation/features/onboarding/enum_labels.dart';
 import 'package:health_pro/presentation/features/tab_scaffold.dart';
 import 'package:health_pro/presentation/l10n/app_localizations.dart';
@@ -118,6 +119,8 @@ class _Today extends StatelessWidget {
         // last few hours: everything logged before 04:00 this morning was unreachable (D-128).
         _DayBar(controller: controller),
         const SizedBox(height: AppSpacing.sm),
+        // Admin panel plan, Phase C: the team's news. Draws nothing when there is none.
+        const AnnouncementsStrip(),
         // D-57: the hero is the screen, not a card on it — the summary cards on the left, the
         // walker on his stage to the right, both painted in their own layers.
         _Hero(day: day, controller: controller),

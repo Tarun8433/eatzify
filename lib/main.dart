@@ -33,6 +33,7 @@ import 'package:health_pro/data/datasources/remote/privacy_remote_data_source.da
 import 'package:health_pro/data/datasources/remote/profile_remote_data_source.dart';
 import 'package:health_pro/data/datasources/remote/scan_remote_data_source.dart';
 import 'package:health_pro/data/datasources/remote/tickets_remote_data_source.dart';
+import 'package:health_pro/data/repositories/announcements_repository_impl.dart';
 import 'package:health_pro/data/repositories/auth_repository_impl.dart';
 import 'package:health_pro/data/repositories/billing_repository_impl.dart';
 import 'package:health_pro/data/repositories/chat_repository_impl.dart';
@@ -48,6 +49,7 @@ import 'package:health_pro/data/repositories/profile_repository_impl.dart';
 import 'package:health_pro/data/repositories/reminder_repository_impl.dart';
 import 'package:health_pro/data/repositories/scan_repository_impl.dart';
 import 'package:health_pro/data/repositories/tickets_repository_impl.dart';
+import 'package:health_pro/domain/repositories/announcements_repository.dart';
 import 'package:health_pro/domain/repositories/billing_repository.dart';
 import 'package:health_pro/domain/repositories/chat_repository.dart';
 import 'package:health_pro/domain/repositories/coach_repository.dart';
@@ -337,6 +339,8 @@ class EatzifyApp extends StatelessWidget {
         BillingRepositoryImpl(BillingRemoteDataSource(client.dio)),
         permanent: true,
       )
+      // Admin panel plan, Phase C: the team's announcements on Home.
+      ..put<AnnouncementsRepository>(AnnouncementsRepositoryImpl(client.dio), permanent: true)
       // Cashfree's hosted checkout. The server decides sandbox vs production and hands the session
       // over per order; this only opens what it is given (docs/11 §5).
       ..put<PaymentGateway>(CashfreeGateway(), permanent: true)
