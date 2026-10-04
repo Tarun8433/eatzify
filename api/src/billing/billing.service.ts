@@ -14,6 +14,7 @@ import {
   type ClientPlatform,
   PAYMENTS_APP_STORE_MODE,
   PAYMENTS_PLAY_MODE,
+  PAYMENTS_UNAVAILABLE_MODE,
   paymentsMode,
 } from './payment-rails';
 import { PlayClient } from './store/play.client';
@@ -66,7 +67,7 @@ export class BillingService {
     // D-249: an app that may not offer Cashfree is told there is no way to pay here, so it draws
     // no pay button — rather than one that the checkout route would then refuse. Android goes to
     // Google Play instead once Play is configured (Phase 4).
-    const mode = paymentsMode(
+    let mode = paymentsMode(
       this.cashfree.mode,
       platform,
       this.cashfree.androidEnabled,
@@ -74,13 +75,24 @@ export class BillingService {
       this.appStore.configured,
     );
 
+    // Only plans Play is really selling. None live (not created, not active, or Play could not be
+    // asked) means no Pay button rather than one that cannot open.
+    let playOffer: ReturnType<typeof playProducts> = [];
+    if (mode === PAYMENTS_PLAY_MODE) {
+      const live = await this.play.liveBasePlans(['basic', 'pro']);
+      playOffer = playProducts().filter((p) =>
+        live.has(`${p.product_id}:${p.base_plan_id}`),
+      );
+      if (playOffer.length === 0) mode = PAYMENTS_UNAVAILABLE_MODE;
+    }
+
     return {
       tier,
       status: row?.status ?? 'active',
       current_period_end: row?.currentPeriodEnd?.toISOString() ?? null,
       entitlements: entitlementsFor(tier),
       payments_mode: mode,
-      ...(mode === PAYMENTS_PLAY_MODE ? { play_products: playProducts() } : {}),
+      ...(mode === PAYMENTS_PLAY_MODE ? { play_products: playOffer } : {}),
       ...(mode === PAYMENTS_APP_STORE_MODE
         ? { appstore_products: appStoreProducts() }
         : {}),

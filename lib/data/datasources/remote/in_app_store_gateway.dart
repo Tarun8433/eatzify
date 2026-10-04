@@ -45,7 +45,7 @@ class InAppStoreGateway implements StoreGateway {
     if (!await _iap.isAvailable()) {
       // Reaches logcat in release too. Store names only — nothing about the person.
       debugPrint('store: billing unavailable (not installed from the store, or no store account)');
-      return _failed(null);
+      return _failed(null, PaymentFailureReason.storeUnavailable);
     }
 
     final found = await _iap.queryProductDetails({productId});
@@ -55,7 +55,7 @@ class InAppStoreGateway implements StoreGateway {
         'store: no offer for $productId/${basePlanId ?? '-'} '
         '(not found: ${found.notFoundIDs}, error: ${found.error?.message})',
       );
-      return _failed(found.error?.message);
+      return _failed(found.error?.message, PaymentFailureReason.productUnavailable);
     }
 
     final waiting = Completer<PaymentResult>();
@@ -122,8 +122,8 @@ class InAppStoreGateway implements StoreGateway {
     if (waiting != null && !waiting.isCompleted) waiting.complete(result);
   }
 
-  static PaymentResult _failed(String? message) =>
-      PaymentResult(PaymentOutcome.failed, message: message);
+  static PaymentResult _failed(String? message, [PaymentFailureReason? reason]) =>
+      PaymentResult(PaymentOutcome.failed, message: message, reason: reason);
 
   /// Play: the base plan's own offer (no offer id) before any promotional offer on it.
   /// App Store (no [basePlanId]): the product itself; the account token must be a UUID.

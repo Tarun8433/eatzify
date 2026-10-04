@@ -14,8 +14,18 @@ enum PaymentOutcome {
   failed,
 }
 
+/// Why a store purchase could not start, when the store gave no words of its own.
+enum PaymentFailureReason {
+  /// Google Play / App Store billing is not available on this phone (not installed from the store,
+  /// or no store account signed in).
+  storeUnavailable,
+
+  /// The store does not sell this plan (missing or inactive in the store's console).
+  productUnavailable,
+}
+
 class PaymentResult {
-  const PaymentResult(this.outcome, {this.message});
+  const PaymentResult(this.outcome, {this.message, this.reason});
 
   const PaymentResult.submitted() : this(PaymentOutcome.submitted);
   const PaymentResult.cancelled() : this(PaymentOutcome.cancelled);
@@ -24,6 +34,9 @@ class PaymentResult {
 
   /// The gateway's own words, shown only when it failed. Never invented here.
   final String? message;
+
+  /// Set when the store failed without words, so the app can say which of the two it was.
+  final PaymentFailureReason? reason;
 }
 
 /// Opens the payment gateway for a started order.

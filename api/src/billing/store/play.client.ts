@@ -1,13 +1,17 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { google, type androidpublisher_v3 } from 'googleapis';
 import type { AllConfigType } from '../../config/config.type';
+
+const LIVE_PLANS_TTL_MS = 10 * 60_000;
 
 /// The Google Play Developer API, and nothing else. Thin on purpose: every decision about what a
 /// purchase means is in `store-rules.ts`, where it is tested without a network.
 @Injectable()
 export class PlayClient {
+  private readonly log = new Logger(PlayClient.name);
   private api: androidpublisher_v3.Androidpublisher | null = null;
+  private live: { at: number; plans: Set<string> } | null = null;
 
   constructor(private readonly config: ConfigService<AllConfigType>) {}
 
@@ -17,6 +21,39 @@ export class PlayClient {
 
   get configured(): boolean {
     return !!this.config.get('store.playServiceAccountFile', { infer: true });
+  }
+
+  /// The `product:basePlan` pairs Play is actually selling, asked of Play itself and remembered for
+  /// ten minutes. The app is only sent to Play for these, so a plan missing or inactive in Play
+  /// Console never becomes a Pay button that cannot open. A failed check sells nothing on Play.
+  async liveBasePlans(
+    productIds: string[],
+    now = Date.now(),
+  ): Promise<Set<string>> {
+    if (this.live && now - this.live.at < LIVE_PLANS_TTL_MS)
+      return this.live.plans;
+    const plans = new Set<string>();
+    try {
+      for (const productId of productIds) {
+        const res = await this.client()
+          .monetization.subscriptions.get({
+            packageName: this.packageName,
+            productId,
+          })
+          .catch(() => null);
+        for (const plan of res?.data.basePlans ?? []) {
+          if (plan.state === 'ACTIVE' && plan.basePlanId) {
+            plans.add(`${productId}:${plan.basePlanId}`);
+          }
+        }
+      }
+    } catch (e) {
+      this.log.warn(
+        `could not read Play subscriptions: ${e instanceof Error ? e.message : 'unknown'}`,
+      );
+    }
+    this.live = { at: now, plans };
+    return plans;
   }
 
   async subscription(

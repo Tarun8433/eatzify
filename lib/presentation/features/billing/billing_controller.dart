@@ -80,6 +80,9 @@ class BillingController extends GetxController {
   /// a controller has no l10n.
   final gatewayUnavailable = false.obs;
 
+  /// Which store problem stopped the last purchase, so the paywall can say it plainly.
+  final storeProblem = Rxn<PaymentFailureReason>();
+
   /// Set once a stub purchase has unlocked the tier, so the sheet can say what it actually did
   /// rather than looking like a real payment went through.
   final stubUnlocked = false.obs;
@@ -101,6 +104,7 @@ class BillingController extends GetxController {
     buying.value = true;
     buyError.value = null;
     gatewayUnavailable.value = false;
+    storeProblem.value = null;
 
     if (isStoreBilling) {
       await _payAtStore(tier, months);
@@ -205,7 +209,9 @@ class BillingController extends GetxController {
       case PaymentOutcome.failed:
         // A failure with no words of its own (store unavailable, product not found) must still say
         // something — it used to set a null error and the button looked dead.
-        if (result.message == null) {
+        if (result.reason != null && result.message == null) {
+          storeProblem.value = result.reason;
+        } else if (result.message == null) {
           gatewayUnavailable.value = true;
         } else {
           buyError.value = result.message;

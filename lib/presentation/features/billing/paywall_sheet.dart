@@ -7,6 +7,7 @@ import 'package:health_pro/core/widgets/app_card.dart';
 import 'package:health_pro/core/widgets/state_views.dart';
 import 'package:health_pro/core/widgets/view_state.dart';
 import 'package:health_pro/domain/entities/billing.dart';
+import 'package:health_pro/domain/repositories/payment_gateway.dart';
 import 'package:health_pro/presentation/features/billing/billing_controller.dart';
 import 'package:health_pro/presentation/features/billing/paywall_compare.dart';
 import 'package:health_pro/presentation/features/billing/paywall_plan_cards.dart';
@@ -253,6 +254,18 @@ class _PayButton extends StatelessWidget {
               ),
             // Not a refusal from the server: the order exists, the app just has no way to open
             // checkout. Saying that beats a button that looks like it did nothing.
+            // A store problem without the store's own words: which one it was, in plain terms.
+            if (billing.storeProblem.value case final problem?)
+              Padding(
+                padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+                child: Text(
+                  problem == PaymentFailureReason.storeUnavailable
+                      ? l.billingStoreUnavailable
+                      : l.billingPlanNotOnSale,
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.error),
+                ),
+              ),
             if (billing.gatewayUnavailable.value)
               Padding(
                 padding: const EdgeInsets.only(bottom: AppSpacing.sm),

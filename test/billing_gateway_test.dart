@@ -125,6 +125,21 @@ void main() {
 
       expect(c.buyError.value, 'Bought on another account.');
     });
+
+    test('should name the store problem when Play gives no words of its own', () async {
+      for (final reason in PaymentFailureReason.values) {
+        final store = FakeStoreGateway(
+          result: PaymentResult(PaymentOutcome.failed, reason: reason),
+        );
+        final c = BillingController(billing: playRepo(), store: store);
+        await c.load();
+
+        await buy(c);
+
+        expect(c.storeProblem.value, reason);
+        expect(c.gatewayUnavailable.value, isFalse, reason: 'not the generic message');
+      }
+    });
   });
 
   test('should sell the App Store product on an iPhone, with no base plan', () async {

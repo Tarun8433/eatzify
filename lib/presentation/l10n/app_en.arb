@@ -3101,7 +3101,7 @@
   "gymWeekTagline": "Keep showing up",
   "gymViewDetails": "View workout details",
   "gymEnergySubtitle": "Today vs. this week",
-  "billingGatewayUnavailable": "Payments cannot be opened on this build yet. Nothing was charged.",
+  "billingGatewayUnavailable": "We couldn't start the payment. Please try again in a few minutes. Nothing was charged.",
   "accountLegal": "Legal & support",
   "legalTerms": "Terms & conditions",
   "legalPrivacy": "Privacy policy",
@@ -3163,5 +3163,7 @@
         "type": "String"
       }
     }
-  }
+  },
+  "billingStoreUnavailable": "Google Play payments aren't available on this phone. Install Eatzify from the Play Store and sign in to Google Play, then try again. Nothing was charged.",
+  "billingPlanNotOnSale": "This plan isn't on sale yet. Please try again a little later. Nothing was charged."
 }
