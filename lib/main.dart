@@ -178,7 +178,9 @@ void _openFromReminder(NotificationResponse response) {
 /// would be a second thing to change when the host moves.
 String resolveBaseUrl() {
   const override = String.fromEnvironment('API_BASE_URL');
-  const live = 'http://187.127.137.245:3002/api/v1';
+  // HTTPS through nginx (port 443). The raw http://<ip>:3002 address stopped answering once the
+  // server's firewall closed every port but 22, 80 and 443 — and was plain text besides.
+  const live = 'https://eatzify-api.zynthovo.com/api/v1';
   const dev = 'http://THINKs-MacBook-Air.local:3001/api/v1';
 
   return override.isNotEmpty ? override : (kReleaseMode ? live : dev);
