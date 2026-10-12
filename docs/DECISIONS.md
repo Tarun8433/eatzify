@@ -6269,3 +6269,16 @@ user detail and Verification. Finance and Content still get only the masked one;
 the field, so hiding it is not left to the dashboard. **Kept** Mobile numbers stay masked for
 everyone behind the audited Reveal, which needs a reason. **Departs from** docs/13 §4 ("mask by
 default") for email only, at the product owner's request.
+
+## D-262 — Google sign-in: `POST /auth/google`, verified against the Web client id
+Closes the gap left in the Google sign-in entry: the endpoint now exists. OAuth clients live in the
+Firebase project `eatzify-zyn` (auto-created by Firebase Auth); the Web client id is the token
+audience on both platforms, set as `GOOGLE_WEB_CLIENT_ID` on the server and `GOOGLE_SERVER_CLIENT_ID`
+in `dart_defines.json` (passed with `--dart-define-from-file`). Client ids are not secrets.
+Account resolution: linked Google `sub` → that account; else a confirmed email account with the same
+verified address → that account, unchanged (its password keeps working); else an UNCONFIRMED email
+account (D-250) is taken over — provider becomes `google`, which retires its password; else a new
+active account. Every path ends in `issueSession`, so the blocked-account gate and the session shape
+are shared. A bad token and an unverified email get one answer, `GOOGLE_SIGN_IN_FAILED`.
+The unused boilerplate `validateSocialLogin` was replaced, not kept beside it.
+**Open:** the Play app-signing SHA-1 must be added in Firebase or Play-installed builds cannot sign in.

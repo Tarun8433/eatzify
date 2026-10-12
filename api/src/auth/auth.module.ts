@@ -5,6 +5,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { EmailOtpEntity } from './email-otp/email-otp.entity';
 import { EmailOtpService } from './email-otp/email-otp.service';
 import { MeService } from './me.service';
+import { GoogleIdToken } from './google-id-token';
 import { BillingModule } from '../billing/billing.module';
 import { PlansModule } from '../plans/plans.module';
 import { ProfileModule } from '../profile/profile.module';
@@ -35,6 +36,7 @@ import { UsersModule } from '../users/users.module';
   providers: [
     EmailOtpService,
     MeService,
+    GoogleIdToken,
     AuthService,
     JwtStrategy,
     JwtRefreshStrategy,

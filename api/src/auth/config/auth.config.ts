@@ -59,6 +59,10 @@ class EnvironmentVariablesValidator {
   @IsBooleanString()
   @IsOptional()
   AUTH_UNIFORM_ERRORS: string;
+
+  @IsString()
+  @IsOptional()
+  GOOGLE_WEB_CLIENT_ID: string;
 }
 
 export default registerAs<AuthConfig>('auth', () => {
@@ -76,5 +80,6 @@ export default registerAs<AuthConfig>('auth', () => {
     confirmEmailExpires: process.env
       .AUTH_CONFIRM_EMAIL_TOKEN_EXPIRES_IN as ms.StringValue,
     uniformErrors: process.env.AUTH_UNIFORM_ERRORS === 'true',
+    googleWebClientId: process.env.GOOGLE_WEB_CLIENT_ID,
   };
 });

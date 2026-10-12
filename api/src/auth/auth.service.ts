@@ -37,8 +37,10 @@ import {
   CODE_LOCKED,
   EMAIL_NOT_VERIFIED,
   EMAIL_TAKEN,
+  GOOGLE_SIGN_IN_FAILED,
   INVALID_CREDENTIALS,
 } from './auth-copy';
+import { GoogleIdToken } from './google-id-token';
 
 /// What every way in returns (docs/09 §3).
 export type AppSession = {
@@ -60,6 +62,7 @@ export class AuthService {
     private readonly configService: ConfigService<AllConfigType>,
     private readonly emailOtp: EmailOtpService,
     private readonly access: UserAccessService,
+    private readonly googleIdToken: GoogleIdToken,
   ) {}
 
   /// D-250: email and password are the way in. One message for an unknown email and a wrong
@@ -137,109 +140,64 @@ export class AuthService {
     };
   }
 
-  async validateSocialLogin(
-    authProvider: string,
-    socialData: SocialInterface,
-  ): Promise<LoginResponseDto> {
-    let user: NullableType<User> = null;
-    const socialEmail = socialData.email?.toLowerCase();
-    let userByEmail: NullableType<User> = null;
-
-    if (socialEmail && !socialData.emailVerified) {
-      throw new UnprocessableEntityException({
-        status: HttpStatus.UNPROCESSABLE_ENTITY,
-        errors: {
-          email: 'emailNotVerified',
-        },
-      });
+  /// `POST /auth/google`: the app's Google ID token, verified by the server, becomes a session in
+  /// the same shape as every other way in. A token that does not verify, or has no verified email,
+  /// gets one answer.
+  async googleLogin(idToken: string): Promise<AppSession> {
+    const google = await this.googleIdToken.verify(idToken);
+    const email = google?.email?.trim().toLowerCase();
+    if (!google || !email || !google.emailVerified) {
+      throw this.refuse(
+        HttpStatus.UNAUTHORIZED,
+        'GOOGLE_SIGN_IN_FAILED',
+        GOOGLE_SIGN_IN_FAILED,
+      );
     }
+    return this.issueSession(await this.googleUser(google, email));
+  }
 
-    if (socialEmail) {
-      userByEmail = await this.usersService.findByEmail(socialEmail);
-    }
-
-    if (socialData.id) {
-      user = await this.usersService.findBySocialIdAndProvider({
-        socialId: socialData.id,
-        provider: authProvider,
-      });
-    }
-
-    if (user) {
-      if (socialEmail && !userByEmail) {
-        user.email = socialEmail;
-      }
-      await this.usersService.update(user.id, user);
-    } else if (userByEmail) {
-      user = userByEmail;
-
-      if (user.status?.id?.toString() === StatusEnum.inactive.toString()) {
-        user.provider = authProvider;
-        user.socialId = socialData.id;
-
-        await this.usersService.update(user.id, user);
-      }
-    } else if (socialData.id) {
-      const role = {
-        id: RoleEnum.user,
-      };
-      const status = {
-        id: StatusEnum.active,
-      };
-
-      user = await this.usersService.create({
-        email: socialEmail ?? null,
-        firstName: socialData.firstName ?? null,
-        lastName: socialData.lastName ?? null,
-        socialId: socialData.id,
-        provider: authProvider,
-        role,
-        status,
-      });
-
-      user = await this.usersService.findById(user.id);
-    }
-
-    if (!user) {
-      throw new UnprocessableEntityException({
-        status: HttpStatus.UNPROCESSABLE_ENTITY,
-        errors: {
-          user: 'userNotFound',
-        },
-      });
-    }
-
-    const hash = crypto
-      .createHash('sha256')
-      .update(randomStringGenerator())
-      .digest('hex');
-
-    // Same gate as issueSession: Google sign-in builds its session on its own.
-    const now = new Date();
-    await this.access.refuseIfBlocked(Number(user.id), now);
-    const session = await this.sessionService.create({
-      user,
-      hash,
+  /// Finds or makes the account for a verified Google identity, in this order:
+  /// 1. linked before (Google `sub`) → that account;
+  /// 2. an email account with the same, now Google-verified, address → that account. An unconfirmed
+  ///    one (D-250) is taken over: whoever started it never proved the inbox, Google just did. Its
+  ///    provider becomes `google`, which is what retires the password — `validateLogin` only
+  ///    accepts `email` accounts;
+  /// 3. otherwise a new, active account.
+  private async googleUser(
+    google: SocialInterface,
+    email: string,
+  ): Promise<User> {
+    const linked = await this.usersService.findBySocialIdAndProvider({
+      socialId: google.id,
+      provider: AuthProvidersEnum.google,
     });
-    await this.access.recordLogin(Number(user.id), now);
+    if (linked) return linked;
 
-    const {
-      token: jwtToken,
-      refreshToken,
-      tokenExpires,
-    } = await this.getTokensData({
-      id: user.id,
-      role: user.role,
-      sessionId: session.id,
-      hash,
+    const byEmail = await this.usersService.findByEmail(email);
+    if (
+      byEmail &&
+      byEmail.status?.id?.toString() !== StatusEnum.inactive.toString()
+    ) {
+      return byEmail;
+    }
+    if (byEmail) {
+      const claimed = await this.usersService.update(byEmail.id, {
+        provider: AuthProvidersEnum.google,
+        socialId: google.id,
+        status: { id: StatusEnum.active },
+      });
+      return claimed ?? byEmail;
+    }
+
+    return this.usersService.create({
+      email,
+      firstName: google.firstName ?? null,
+      lastName: google.lastName ?? null,
+      socialId: google.id,
+      provider: AuthProvidersEnum.google,
+      role: { id: RoleEnum.user },
+      status: { id: StatusEnum.active },
     });
-
-    return {
-      refreshToken,
-      token: jwtToken,
-      tokenExpires,
-      user,
-    };
   }
 
   /// D-250: an account starts inactive and becomes usable once the emailed code is entered.

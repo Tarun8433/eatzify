@@ -68,6 +68,7 @@ function harness() {
       refuseIfBlocked: () => Promise.resolve(),
       recordLogin: () => Promise.resolve(),
     } as never,
+    {} as never,
   );
   return { service, users, codes, resetMails };
 }

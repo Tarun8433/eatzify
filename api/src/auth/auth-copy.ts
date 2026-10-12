@@ -6,6 +6,8 @@ export const EMAIL_NOT_VERIFIED =
   'Please verify your email first. We have sent you a new code.';
 export const EMAIL_TAKEN =
   'An account with this email already exists. Sign in instead.';
+export const GOOGLE_SIGN_IN_FAILED =
+  'We could not sign you in with Google. Please try again.';
 export const CODE_INVALID =
   'That code is not right. Check the email and try again.';
 export const CODE_EXPIRED = 'That code has expired. Request a new one.';

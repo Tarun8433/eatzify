@@ -51,9 +51,8 @@ class AuthRemoteDataSource {
     }
   }
 
-  /// The endpoint this posts to does not exist in `api/src/auth` yet — see the contract on
-  /// `AuthRepository.signInWithGoogle`. The request body is the minimum a verifier needs: the
-  /// token, and the device the session belongs to.
+  /// `api/src/auth` verifies the token against the Web client id (`GoogleIdToken`). The request
+  /// body is the minimum a verifier needs: the token, and the device the session belongs to.
   Future<Either<Failure, Session>> signInWithGoogle({
     required String idToken,
     required String deviceId,

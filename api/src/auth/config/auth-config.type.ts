@@ -10,4 +10,6 @@ export type AuthConfig = {
   confirmEmailSecret?: string;
   confirmEmailExpires?: ms.StringValue;
   uniformErrors: boolean;
+  /// OAuth Web client id; Google sign-in is refused while unset.
+  googleWebClientId?: string;
 };

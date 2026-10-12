@@ -15,6 +15,7 @@ import { AuthService } from './auth.service';
 import { MeService, type MeView } from './me.service';
 import { ApiBearerAuth, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import { AuthEmailLoginDto } from './dto/auth-email-login.dto';
+import { AuthGoogleLoginDto } from './dto/auth-google-login.dto';
 import { AuthForgotPasswordDto } from './dto/auth-forgot-password.dto';
 import { AuthConfirmEmailDto } from './dto/auth-confirm-email.dto';
 import { AuthResetPasswordDto } from './dto/auth-reset-password.dto';
@@ -71,6 +72,14 @@ export class AuthController {
   @HttpCode(HttpStatus.NO_CONTENT)
   async resendCode(@Body() dto: AuthResendCodeDto): Promise<void> {
     return this.service.resendCode(dto.email);
+  }
+
+  /// A Google ID token from the app, verified here. Answers with a session, exactly as login does.
+  @SerializeOptions({ groups: ['me'] })
+  @Post('google')
+  @HttpCode(HttpStatus.OK)
+  googleLogin(@Body() dto: AuthGoogleLoginDto) {
+    return this.service.googleLogin(dto.id_token);
   }
 
   @Post('email/confirm')

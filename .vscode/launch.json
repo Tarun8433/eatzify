@@ -5,7 +5,10 @@
       "name": "Eatzify (debug)",
       "request": "launch",
       "type": "dart",
-      "program": "lib/main.dart"
+      "program": "lib/main.dart",
+      "args": [
+        "--dart-define-from-file=dart_defines.json"
+      ]
     },
     {
       "name": "Eatzify (debug, pinned vmservice port)",
@@ -13,6 +16,7 @@
       "type": "dart",
       "program": "lib/main.dart",
       "args": [
+        "--dart-define-from-file=dart_defines.json",
         "--host-vmservice-port=8181",
         "--disable-dds"
       ]
@@ -22,14 +26,20 @@
       "request": "launch",
       "type": "dart",
       "program": "lib/main.dart",
-      "flutterMode": "profile"
+      "flutterMode": "profile",
+      "args": [
+        "--dart-define-from-file=dart_defines.json"
+      ]
     },
     {
       "name": "Eatzify (release)",
       "request": "launch",
       "type": "dart",
       "program": "lib/main.dart",
-      "flutterMode": "release"
+      "flutterMode": "release",
+      "args": [
+        "--dart-define-from-file=dart_defines.json"
+      ]
     }
   ]
 }
