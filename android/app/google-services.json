@@ -1,0 +1,62 @@
+{
+  "project_info": {
+    "project_number": "1013683869281",
+    "project_id": "eatzify-zyn",
+    "storage_bucket": "eatzify-zyn.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1013683869281:android:010aba2cc5411aea0dbc20",
+        "android_client_info": {
+          "package_name": "com.zynthovo.eatzify"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1013683869281-9tgdm2hmun4vq64vrdp9uc9njn59tag6.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.zynthovo.eatzify",
+            "certificate_hash": "2ad37c9f58ded543047e20d6a1eb27e7573629e5"
+          }
+        },
+        {
+          "client_id": "1013683869281-bghkljc054pijlq6rvrb2k7irortbpo0.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.zynthovo.eatzify",
+            "certificate_hash": "21594ded10ed4461454663664b07af201bc56f57"
+          }
+        },
+        {
+          "client_id": "1013683869281-04kbcs84hu5atok72co3pr0024o0nvkb.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCZdNutrBBCyBhUITHtm8W6mUDxgQbPy1s"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1013683869281-04kbcs84hu5atok72co3pr0024o0nvkb.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "1013683869281-pdor2hci093rm4jvtm8m0hkukemp0i2n.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "app.eatzify"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
