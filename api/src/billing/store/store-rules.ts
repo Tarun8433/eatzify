@@ -36,15 +36,16 @@ const PLAY_BASE_PLANS: Record<string, StoreDuration> = {
   p3m: '3M',
   p6m: '6M',
   p1y: '12M',
-  // User's custom Play Console base plans:
+  // The Play Console's own base plans (all prepaid), named after their prices. Two of Pro's carry
+  // no "pro" suffix in the Console — `1799` and `4999` — and must be spelt exactly so.
   '249basic': '1M',
   '699basic': '3M',
   '1199basic': '6M',
   '2099basic': '12M',
   '649pro': '1M',
-  '1799pro': '3M',
+  '1799': '3M',
   '2799pro': '6M',
-  '4999pro': '12M',
+  '4999': '12M',
 };
 
 export function playProduct(
@@ -72,14 +73,54 @@ export type PlayProductView = {
 /// to the app so it never builds a product id itself.
 export function playProducts(): PlayProductView[] {
   return [
-    { tier: 'BASIC', duration: '1M', product_id: 'eatzify_basic', base_plan_id: '249basic' },
-    { tier: 'BASIC', duration: '3M', product_id: 'eatzify_basic', base_plan_id: '699basic' },
-    { tier: 'BASIC', duration: '6M', product_id: 'eatzify_basic', base_plan_id: '1199basic' },
-    { tier: 'BASIC', duration: '12M', product_id: 'eatzify_basic', base_plan_id: '2099basic' },
-    { tier: 'PRO', duration: '1M', product_id: 'eatzify_premium', base_plan_id: '649pro' },
-    { tier: 'PRO', duration: '3M', product_id: 'eatzify_premium', base_plan_id: '1799pro' },
-    { tier: 'PRO', duration: '6M', product_id: 'eatzify_premium', base_plan_id: '2799pro' },
-    { tier: 'PRO', duration: '12M', product_id: 'eatzify_premium', base_plan_id: '4999pro' },
+    {
+      tier: 'BASIC',
+      duration: '1M',
+      product_id: 'eatzify_basic',
+      base_plan_id: '249basic',
+    },
+    {
+      tier: 'BASIC',
+      duration: '3M',
+      product_id: 'eatzify_basic',
+      base_plan_id: '699basic',
+    },
+    {
+      tier: 'BASIC',
+      duration: '6M',
+      product_id: 'eatzify_basic',
+      base_plan_id: '1199basic',
+    },
+    {
+      tier: 'BASIC',
+      duration: '12M',
+      product_id: 'eatzify_basic',
+      base_plan_id: '2099basic',
+    },
+    {
+      tier: 'PRO',
+      duration: '1M',
+      product_id: 'eatzify_premium',
+      base_plan_id: '649pro',
+    },
+    {
+      tier: 'PRO',
+      duration: '3M',
+      product_id: 'eatzify_premium',
+      base_plan_id: '1799',
+    },
+    {
+      tier: 'PRO',
+      duration: '6M',
+      product_id: 'eatzify_premium',
+      base_plan_id: '2799pro',
+    },
+    {
+      tier: 'PRO',
+      duration: '12M',
+      product_id: 'eatzify_premium',
+      base_plan_id: '4999',
+    },
   ];
 }
 
@@ -117,7 +158,9 @@ export function grantFromPlay(
     expiresAt,
     autoRenew:
       purchase.subscriptionState === 'SUBSCRIPTION_STATE_ACTIVE' &&
-      item.autoRenewingPlan?.autoRenewEnabled !== false,
+      // Only an auto-renewing plan that says so renews. A prepaid plan sends `prepaidPlan` instead,
+      // and reading that absence as "renews" promised a charge that never comes.
+      item.autoRenewingPlan?.autoRenewEnabled === true,
     accountToken:
       purchase.externalAccountIdentifiers?.obfuscatedExternalAccountId ?? null,
     needsAcknowledge:
@@ -139,13 +182,21 @@ export function storeAccountToken(userId: number, pepper: string): string {
 }
 
 /// Payments plan, Phase 5: App Store Connect, one subscription group, one product per cell.
-/// Apple has no base plans, so the length is in the product id.
+/// Apple has no base plans, so the length is in the product id. Its own four lengths, never Play's
+/// base-plan ids: those are named after Play Console prices (`249basic`) and change with them.
+const APP_STORE_LENGTHS: Record<string, StoreDuration> = {
+  p1m: '1M',
+  p3m: '3M',
+  p6m: '6M',
+  p1y: '12M',
+};
+
 const APP_STORE_PRODUCTS: Record<
   string,
   { tier: StoreTier; duration: StoreDuration }
 > = Object.fromEntries(
   (['BASIC', 'PRO'] as const).flatMap((tier) =>
-    Object.entries(PLAY_BASE_PLANS).map(([plan, duration]) => [
+    Object.entries(APP_STORE_LENGTHS).map(([plan, duration]) => [
       `eatzify.${tier.toLowerCase()}.${plan}`,
       { tier, duration },
     ]),
@@ -218,4 +269,3 @@ export function gstSplitMicros(amountPaise: number): {
     taxMicros: String((amountPaise - preTaxPaise) * MICROS_PER_PAISE),
   };
 }
-

@@ -6,6 +6,7 @@ import {
   grantFromPlay,
   gstSplitMicros,
   playProduct,
+  playProducts,
   storeAccountToken,
 } from '../src/billing/store/store-rules';
 
@@ -305,5 +306,73 @@ describe('Play notification endpoint', () => {
     const seen: unknown[] = [];
     await controller('s3cret', seen).receive('s3cret', { message: {} });
     expect(seen).toHaveLength(1);
+  });
+});
+
+/// The Play Console's own subscriptions, exactly as set up there: every base plan prepaid, and two
+/// of Pro's named without the "pro" suffix. A mismatch here is a plan that is never offered and a
+/// purchase that is refused.
+describe('Play Console products', () => {
+  it('should read every live base plan as its tier and length', () => {
+    const console = {
+      eatzify_basic: {
+        '249basic': '1M',
+        '699basic': '3M',
+        '1199basic': '6M',
+        '2099basic': '12M',
+      },
+      eatzify_premium: {
+        '649pro': '1M',
+        '1799': '3M',
+        '2799pro': '6M',
+        '4999': '12M',
+      },
+    } as const;
+    for (const [product, plans] of Object.entries(console)) {
+      for (const [plan, duration] of Object.entries(plans)) {
+        expect(playProduct(product, plan)).toEqual({
+          tier: product === 'eatzify_basic' ? 'BASIC' : 'PRO',
+          duration,
+        });
+      }
+    }
+  });
+
+  it('should offer exactly the Console plans', () => {
+    expect(
+      playProducts().map((p) => `${p.product_id}:${p.base_plan_id}`),
+    ).toEqual([
+      'eatzify_basic:249basic',
+      'eatzify_basic:699basic',
+      'eatzify_basic:1199basic',
+      'eatzify_basic:2099basic',
+      'eatzify_premium:649pro',
+      'eatzify_premium:1799',
+      'eatzify_premium:2799pro',
+      'eatzify_premium:4999',
+    ]);
+  });
+
+  /// Prepaid plans do not renew: Play sends `prepaidPlan`, not `autoRenewingPlan`. Reading the
+  /// absence as "renews" told a prepaid buyer they would be charged again.
+  it('should not call a prepaid plan auto-renewing', () => {
+    const grant = grantFromPlay('tok-prepaid', {
+      subscriptionState: 'SUBSCRIPTION_STATE_ACTIVE',
+      acknowledgementState: 'ACKNOWLEDGEMENT_STATE_PENDING',
+      lineItems: [
+        {
+          productId: 'eatzify_premium',
+          expiryTime: LATER,
+          offerDetails: { basePlanId: '1799' },
+          prepaidPlan: { allowExtendAfterTime: LATER },
+        },
+      ],
+    });
+
+    expect(grant).toMatchObject({
+      tier: 'PRO',
+      duration: '3M',
+      autoRenew: false,
+    });
   });
 });

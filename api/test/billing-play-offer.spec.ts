@@ -18,14 +18,15 @@ function service(live: string[]) {
 
 describe('Play offer on Android', () => {
   it('should offer only the plans live in Play', async () => {
-    const view = await service(['basic:p1m', 'pro:p1y']).entitlements(
-      1,
-      'android',
-    );
+    // The Play Console's own ids: eatzify_basic / eatzify_premium, base plans named by price.
+    const view = await service([
+      'eatzify_basic:249basic',
+      'eatzify_premium:4999',
+    ]).entitlements(1, 'android');
     expect(view.payments_mode).toBe('play');
     expect(
       view.play_products?.map((p) => `${p.product_id}:${p.base_plan_id}`),
-    ).toEqual(['basic:p1m', 'pro:p1y']);
+    ).toEqual(['eatzify_basic:249basic', 'eatzify_premium:4999']);
   });
 
   it('should draw no Pay button when Play sells nothing yet', async () => {
