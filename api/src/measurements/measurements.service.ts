@@ -5,7 +5,13 @@ import {
   UnprocessableEntityException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In, LessThan, QueryFailedError, Repository } from 'typeorm';
+import {
+  In,
+  LessThan,
+  LessThanOrEqual,
+  QueryFailedError,
+  Repository,
+} from 'typeorm';
 import { MeasurementEntity } from './entities/measurement.entity';
 import { ProfileEntity } from '../profile/entities/profile.entity';
 import { CreateMeasurementDto } from './dto/create-measurement.dto';
@@ -24,8 +30,10 @@ import {
   type MeasurementSource,
 } from './measurement-rules';
 import {
+  ACTIVITY_KINDS,
+  burnedByDay,
   kcalPer1000Steps,
-  type StrideDay,
+  type Body,
   type WalkingEnergy,
 } from './walking-energy';
 
@@ -54,9 +62,9 @@ export type HistoryView = {
   kcal_per_1000_steps?: WalkingEnergy | null;
 };
 
-/// How many days of measured strides to average — a month smooths one odd day out.
+/// How many days of activity the rate and the usual stride are taken over — a month smooths one odd
+/// day out.
 const STRIDE_WINDOW_DAYS = 30;
-const DEVICE_SOURCES: MeasurementSource[] = ['apple_health', 'health_connect'];
 
 export type RecordedView = {
   measurement: MeasurementView;
@@ -253,6 +261,7 @@ export class MeasurementsService {
   ): Promise<HistoryView> {
     // Steps carry the person's additions with them (D-221), so a steps history reads both kinds —
     // up to two rows a day, hence the doubled take — and folds them back into one.
+    if (kind === 'energy_burned_kcal') return this.burnedHistory(userId, limit);
     const steps = kind === 'steps';
     const rows = foldStepsAdded(
       await this.measurements.find({
@@ -282,48 +291,107 @@ export class MeasurementsService {
     };
   }
 
-  /// D-256. Stride from the days a DEVICE measured both steps and distance — a typed figure or a
-  /// person's added steps describe no walk — and the newest trustworthy weight, else the profile's.
+  /// D-268: calories burned per day are worked out, never the phone's own figure — the same
+  /// numbers Home shows. Points are the most recent [limit] days, oldest first.
+  private async burnedHistory(
+    userId: number,
+    limit: number,
+  ): Promise<HistoryView> {
+    const [rows, body] = await Promise.all([
+      this.activityRows(userId, limit),
+      this.body(userId),
+    ]);
+    const burned = burnedByDay(rows, body);
+    // The day's own row says where the figure came from (rule 10): the steps it was worked out
+    // from, or the calories someone reported on a day with none.
+    const sourceRow = (date: string) =>
+      rows.find((r) => r.diaryDate === date && r.kind === 'steps') ??
+      rows.find((r) => r.diaryDate === date);
+    const points = [...burned.entries()]
+      .sort(([a], [b]) => a.localeCompare(b))
+      .slice(-limit)
+      .map(([date, kcal]): MeasurementView => {
+        const row = sourceRow(date)!;
+        return {
+          id: row.id,
+          kind: 'energy_burned_kcal',
+          value: kcal,
+          unit: unitFor('energy_burned_kcal'),
+          diary_date: date,
+          is_suspect: false,
+          source: row.source as MeasurementSource,
+        };
+      });
+    const trend = points.map((p) => ({ value: p.value, isSuspect: false }));
+    return {
+      kind: 'energy_burned_kcal',
+      points,
+      change: trendChange(trend),
+      change_30d: windowedTrendChange(
+        points.map((p) => ({
+          ...p,
+          isSuspect: false,
+          diaryDate: p.diary_date,
+        })),
+        30,
+      ),
+    };
+  }
+
+  /// D-268: what [diaryDate] burned above resting, from its steps at the person's own weight, or
+  /// the figure reported for a day with no steps. Null when there is neither.
+  async burnedOn(userId: number, diaryDate: string): Promise<number | null> {
+    const [rows, body] = await Promise.all([
+      this.activityRows(userId, STRIDE_WINDOW_DAYS, diaryDate),
+      this.body(userId),
+    ]);
+    return burnedByDay(rows, body).get(diaryDate) ?? null;
+  }
+
+  /// D-268. Calories per 1,000 steps from the person's last month of activity and their weight.
   async walkingEnergy(userId: number): Promise<WalkingEnergy | null> {
-    const [rows, weight, profile] = await Promise.all([
-      this.measurements.find({
-        where: {
-          userId,
-          kind: In(['steps', 'distance_m']),
-          source: In(DEVICE_SOURCES),
-        },
-        order: { diaryDate: 'DESC' },
-        take: STRIDE_WINDOW_DAYS * 2,
-      }),
+    const [rows, body] = await Promise.all([
+      this.activityRows(userId, STRIDE_WINDOW_DAYS),
+      this.body(userId),
+    ]);
+    return kcalPer1000Steps(rows, body);
+  }
+
+  /// The newest trustworthy weight, else the profile's, and the profile's height.
+  async body(userId: number): Promise<Body> {
+    const [weight, profile] = await Promise.all([
       this.measurements.findOne({
         where: { userId, kind: 'weight', isSuspect: false },
         order: { diaryDate: 'DESC' },
       }),
       this.profiles.findOne({ where: { userId } }),
     ]);
-
-    const byDay = new Map<string, { steps?: number; distanceM?: number }>();
-    for (const row of rows) {
-      const day = byDay.get(row.diaryDate) ?? {};
-      byDay.set(row.diaryDate, {
-        ...day,
-        [row.kind === 'steps' ? 'steps' : 'distanceM']: Number(row.value),
-      });
-    }
-    const days: StrideDay[] = [...byDay.values()].flatMap((d) =>
-      d.steps === undefined || d.distanceM === undefined
-        ? []
-        : [{ steps: d.steps, distanceM: d.distanceM }],
-    );
-
-    return kcalPer1000Steps({
+    return {
       weightKg: weight
         ? Number(weight.value)
         : profile
           ? Number(profile.weightKg)
           : null,
       heightCm: profile?.heightCm ?? null,
-      days,
+    };
+  }
+
+  /// The activity rows of about the last [days] diary days up to [until] (inclusive).
+  // ponytail: a row cap, not a date range — a day rarely holds every kind, so it reaches back a
+  // little further than [days]; a date range if that ever matters.
+  private activityRows(
+    userId: number,
+    days: number,
+    until?: string,
+  ): Promise<MeasurementEntity[]> {
+    return this.measurements.find({
+      where: {
+        userId,
+        kind: In([...ACTIVITY_KINDS]),
+        ...(until && { diaryDate: LessThanOrEqual(until) }),
+      },
+      order: { diaryDate: 'DESC' },
+      take: days * ACTIVITY_KINDS.length,
     });
   }
 

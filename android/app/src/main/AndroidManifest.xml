@@ -4,7 +4,8 @@
          are non-personalised and docs/13 keeps health use away from ad identifiers. -->
     <uses-permission android:name="com.google.android.gms.permission.AD_ID" tools:node="remove" />
     <!--
-      Health Connect, READ ONLY, and exactly the three things docs/HEALTH-SYNC-TRACKER.md lists.
+      Health Connect, READ ONLY: what docs/HEALTH-SYNC-TRACKER.md lists, plus (D-268) the walking
+      speed, elevation and floors the walking calories are worked out from.
 
       Deliberately absent:
         - READ_TOTAL_CALORIES_BURNED — includes BMR, which the plan's TDEE already counts.
@@ -17,6 +18,9 @@
     <uses-permission android:name="android.permission.health.READ_ACTIVE_CALORIES_BURNED" />
     <uses-permission android:name="android.permission.health.READ_DISTANCE" />
     <uses-permission android:name="android.permission.health.READ_SLEEP" />
+    <uses-permission android:name="android.permission.health.READ_SPEED" />
+    <uses-permission android:name="android.permission.health.READ_ELEVATION_GAINED" />
+    <uses-permission android:name="android.permission.health.READ_FLOORS_CLIMBED" />
 
     <!--
       Reminders, scheduled on the phone (D-222). POST_NOTIFICATIONS comes from the plugin's own

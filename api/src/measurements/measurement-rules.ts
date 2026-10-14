@@ -31,6 +31,11 @@ export const MEASUREMENT_KINDS = [
   // Last night's sleep, read from Health Connect / HealthKit for the Home dashboard. Minutes
   // asleep in sessions that ended inside this diary day, so a night belongs to the morning after.
   'sleep_min',
+  // What the walking calories are worked out from (D-268), read from Health Connect / HealthKit:
+  // the day's average walking speed, elevation gained, and floors of stairs climbed.
+  'walking_speed_m_min',
+  'elevation_gain_m',
+  'floors',
 ] as const;
 export type MeasurementKind = (typeof MEASUREMENT_KINDS)[number];
 
@@ -127,6 +132,11 @@ export const BOUNDS: Record<
   water_ml: { min: 0, max: 10000, unit: 'ml' },
   // A whole day is the ceiling: more than that is two nights counted into one.
   sleep_min: { min: 0, max: 1440, unit: 'min' },
+  // A sprint, not a walk, past the top; the calorie maths ignores anything outside a walking pace.
+  walking_speed_m_min: { min: 0, max: 600, unit: 'm/min' },
+  // Past Everest twice over, and the calorie maths caps the grade anyway.
+  elevation_gain_m: { min: 0, max: 10000, unit: 'm' },
+  floors: { min: 0, max: 1000, unit: 'floors' },
 };
 
 /// Every unit any kind is measured in, derived from BOUNDS rather than listed again (D-80).

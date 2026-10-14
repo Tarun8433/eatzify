@@ -81,6 +81,7 @@ function serviceWith({
         return Promise.resolve();
       },
     } as never,
+    { body: () => Promise.resolve({ weightKg: 70, heightCm: 170 }) } as never,
   );
 
   return { service, audited, diaryReads };

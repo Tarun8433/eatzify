@@ -1350,7 +1350,8 @@
   },
   "logActivitySteps": "Steps today",
   "logActivityBurned": "Calories burned (if you know it)",
-  "logActivityBurnedCalculated": "Estimated from steps: ~{kcal} kcal",
+  "logActivityBurnedFromSteps": "Worked out from your steps and weight once saved.",
+  "logActivityBurnedCalculated": "Estimated from your steps and weight: ~{kcal} kcal",
   "@logActivityBurnedCalculated": {
     "placeholders": {
       "kcal": {
@@ -1521,7 +1522,7 @@
   "onboardingIncomplete": "Something above is still blank. Go back and check each step, then try again.",
   "accountHealthData": "Health data",
   "healthTitle": "Health data",
-  "healthExplainer": "Eatzify can read your steps, walking distance and calories burned from {platform}. It never writes anything back, and you can always enter these yourself.",
+  "healthExplainer": "Eatzify can read your steps, walking distance and speed, elevation, floors climbed, calories burned and sleep from {platform}, and works out the calories your walking burned from them and your weight. It never writes anything back, and you can always enter these yourself.",
   "@healthExplainer": {
     "placeholders": {
       "platform": {
@@ -1531,6 +1532,9 @@
     }
   },
   "healthReadsTitle": "What Eatzify reads",
+  "healthMetricSpeed": "Walking speed",
+  "healthMetricElevation": "Elevation gained",
+  "healthMetricFloors": "Floors climbed",
   "healthMetricSteps": "Steps",
   "healthMetricDistance": "Walking distance",
   "healthMetricEnergy": "Calories burned while active",

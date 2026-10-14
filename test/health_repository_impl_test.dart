@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:health/health.dart';
 import 'package:health_pro/core/storage/secure_store.dart';
+import 'package:health_pro/data/datasources/local/health_connect_extras.dart';
 import 'package:health_pro/data/repositories/health_repository_impl.dart';
 import 'package:health_pro/domain/entities/health_metric.dart';
 
@@ -109,18 +110,37 @@ HealthDataPoint bucket(HealthDataType type, DiaryWindow day, num value, {String 
       sourceName: source,
     );
 
+/// Stands in for MainActivity's bridge (D-268): the answers per window, or an error to throw.
+class _ExtrasDouble extends HealthConnectExtras {
+  Object answer = const <WalkingExtras>[];
+
+  @override
+  Future<bool> hasPermission() async => false;
+
+  @override
+  Future<bool> requestPermission() async => false;
+
+  @override
+  Future<List<WalkingExtras>> read(List<({DateTime start, DateTime end})> windows) async {
+    if (answer is List<WalkingExtras>) return answer as List<WalkingExtras>;
+    throw answer as Error;
+  }
+}
+
 void main() {
   late _PluginDouble plugin;
+  late _ExtrasDouble extras;
   late SecureStore store;
 
   setUp(() {
     plugin = _PluginDouble();
+    extras = _ExtrasDouble();
     store = SecureStore(storage: FakeSecureStorage());
   });
 
   HealthRepositoryImpl ios() => HealthRepositoryImpl(health: plugin, store: store, isIOS: true);
   HealthRepositoryImpl android() =>
-      HealthRepositoryImpl(health: plugin, store: store, isIOS: false);
+      HealthRepositoryImpl(health: plugin, store: store, isIOS: false, extras: extras);
 
   group('iOS permission', () {
     test('should say denied before anyone has connected', () async {
@@ -166,12 +186,54 @@ void main() {
     expect(await ios().wasOffered(), isFalse);
   });
 
+  group('walking extras (D-268)', () {
+    test('should read Android speed in m/min, elevation and floors from the bridge', () async {
+      plugin.answers[HealthDataType.STEPS] = [bucket(HealthDataType.STEPS, _d1, 6000)];
+      extras.answer = <WalkingExtras>[(speedMPerS: 1.25, elevationM: 40.0, floors: 6.0)];
+
+      final day = (await android().readDaily([_d1])).getOrElse(() => {})[_d1.diaryDate];
+
+      expect(day?[HealthMetric.walkingSpeed], 75);
+      expect(day?[HealthMetric.elevationGain], 40);
+      expect(day?[HealthMetric.floors], 6);
+    });
+
+    test('should leave out what the bridge did not record, never send it as zero', () async {
+      plugin.answers[HealthDataType.STEPS] = [bucket(HealthDataType.STEPS, _d1, 6000)];
+      extras.answer = <WalkingExtras>[(speedMPerS: null, elevationM: null, floors: 2.0)];
+
+      final day = (await android().readDaily([_d1])).getOrElse(() => {})[_d1.diaryDate];
+
+      expect(day?.keys, unorderedEquals([HealthMetric.steps, HealthMetric.floors]));
+    });
+
+    test('should still read the rest when the bridge refuses', () async {
+      plugin.answers[HealthDataType.STEPS] = [bucket(HealthDataType.STEPS, _d1, 6000)];
+      extras.answer = StateError('Health Connect updating');
+
+      final read = await android().readDaily([_d1]);
+
+      expect(read.getOrElse(() => {})[_d1.diaryDate], {HealthMetric.steps: 6000});
+    });
+
+    test('should convert an iPhone walking speed to m/min', () async {
+      plugin.answers[HealthDataType.WALKING_SPEED] = [
+        bucket(HealthDataType.WALKING_SPEED, _d1, 1.5),
+      ];
+
+      final day = (await ios().readDaily([_d1])).getOrElse(() => {})[_d1.diaryDate];
+
+      expect(day?[HealthMetric.walkingSpeed], 90);
+    });
+  });
+
   group('reading', () {
     test('should ask for one-day buckets across all the windows at once', () async {
       await ios().readDaily([_d1, _d2]);
 
-      // Sleep is sessions, read separately; every other metric is one bucketed query.
-      expect(plugin.asked, hasLength(HealthMetric.values.length - 1));
+      // Sleep is sessions, read separately, and an iPhone has no elevation; every other metric is
+      // one bucketed query.
+      expect(plugin.asked, hasLength(HealthMetric.values.length - 2));
       for (final call in plugin.asked) {
         expect(call.start, _d1.start);
         expect(call.end, _d2.end);
@@ -245,8 +307,11 @@ void main() {
 
     test('should fail when nothing at all could be read', () async {
       for (final metric in HealthMetric.values) {
-        plugin.answers[HealthRepositoryImpl.typeFor(metric, isIOS: false)] = StateError('gone');
+        if (HealthRepositoryImpl.typeFor(metric, isIOS: false) case final type?) {
+          plugin.answers[type] = StateError('gone');
+        }
       }
+      extras.answer = StateError('gone');
       expect((await android().readDaily([_d1])).isLeft(), isTrue);
     });
 

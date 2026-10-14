@@ -6361,3 +6361,35 @@ The phone's or a typed figure is used only on a day with no steps, or when there
 Workouts (`workout_kcal`) are still added in the app (D-246). Home says "Estimated from your steps
 and weight" whenever steps are counted. Today's weight is used for past days too. A per-day weight
 can come later if history needs it.
+
+## D-268 — One walking-calorie calculation, from the person's real activity (amends D-256, D-267)
+
+**When** 2026-10-14 · **Decision** Every walking-calorie figure in the product comes from
+`api/src/measurements/walking-energy.ts`. That covers Home's "burned", the Progress and coach
+"Calories burned" charts, the activity sheet's preview and the "per 1,000 steps" rate. Nothing else
+works calories out (the app's `CalculateWalkingCalories` is deleted). The calculation is done per
+diary day, with the ACSM walking equation:
+`VO2 = 3.5 + 0.1·v + 1.8·v·grade`, `kcal = MET × 3.5 × kg / 200 × minutes`.
+- **Minutes:** steps × stride ÷ v.
+- **Stride:** the day's own distance ÷ steps, else the person's 30-day stride, else 0.414 × height.
+- **v (speed):** the phone's average walking speed, used only inside 40–120 m/min. Otherwise the
+  default 80 m/min is used and the result is marked `is_estimated`.
+- **Grade:** (elevation gained − floors × 3 m) ÷ distance, capped at 20 %.
+- **Stairs:** never treated as an incline. They are priced on their own at 1.8 ml O₂/kg per metre
+  climbed.
+- **Rate per 1,000 steps:** the last month's activity calories ÷ its steps × 1,000. `kcal` is gross
+  (D-256); `active_kcal` is the same figure with resting removed (D-267).
+- **Day figure:** the day's active kcal. On a day with steps, any phone or typed calorie figure is
+  ignored, so it is never added or counted twice. Such a figure is kept only on a day with no steps,
+  and that is the only day the activity sheet takes a typed figure.
+
+**New reads:**
+- **Android:** walking speed, elevation gained and floors (`walking_speed_m_min`,
+  `elevation_gain_m`, `floors`). The plugin cannot total these, so `MainActivity.kt`'s
+  `eatzify/health_extras` channel reads Health Connect's own de-duplicated aggregate. New
+  permissions: `READ_SPEED`, `READ_ELEVATION_GAINED`, `READ_FLOORS_CLIMBED`. **The Play Console
+  health-permissions declaration must list them before release.**
+- **iOS:** walking speed and floors through the plugin. HealthKit has no daily elevation, so the
+  grade is 0 there.
+
+Age and gender are not read: the ACSM equation uses neither. Today's weight still prices past days.

@@ -31,13 +31,35 @@ void main() {
   group('the plugin can read every metric', () {
     for (final metric in HealthMetric.values) {
       test('should map ${metric.name} to a type iOS has', () {
-        expect(dataTypeKeysIOS, contains(HealthRepositoryImpl.typeFor(metric, isIOS: true)));
-      });
-
-      test('should map ${metric.name} to a type Android has', () {
-        expect(dataTypeKeysAndroid, contains(HealthRepositoryImpl.typeFor(metric, isIOS: false)));
+        final type = HealthRepositoryImpl.typeFor(metric, isIOS: true);
+        // HealthKit keeps no daily elevation; that one alone is never read on iOS.
+        if (metric.isAndroidOnly) return expect(type, isNull);
+        expect(dataTypeKeysIOS, contains(type));
       });
     }
+
+    /// D-268: the plugin cannot total these per day on Android; MainActivity's bridge does.
+    const androidExtras = {
+      HealthMetric.walkingSpeed,
+      HealthMetric.elevationGain,
+      HealthMetric.floors,
+    };
+    for (final metric in HealthMetric.values) {
+      test('should map ${metric.name} to a type Android has, or to the bridge', () {
+        final type = HealthRepositoryImpl.typeFor(metric, isIOS: false);
+        if (androidExtras.contains(metric)) return expect(type, isNull);
+        expect(dataTypeKeysAndroid, contains(type));
+      });
+    }
+
+    test('should have the bridge read each Android extra', () {
+      final activity = File(
+        'android/app/src/main/kotlin/com/zynthovo/eatzify/MainActivity.kt',
+      ).readAsStringSync();
+      for (final record in ['SpeedRecord', 'ElevationGainedRecord', 'FloorsClimbedRecord']) {
+        expect(activity, contains('getReadPermission($record::class)'));
+      }
+    });
 
     /// Total and basal energy both include resting metabolism, which the plan already counts.
     test('should read active energy and nothing that includes BMR', () {
@@ -56,6 +78,9 @@ void main() {
       HealthMetric.activeEnergy: 'READ_ACTIVE_CALORIES_BURNED',
       HealthMetric.distance: 'READ_DISTANCE',
       HealthMetric.sleep: 'READ_SLEEP',
+      HealthMetric.walkingSpeed: 'READ_SPEED',
+      HealthMetric.elevationGain: 'READ_ELEVATION_GAINED',
+      HealthMetric.floors: 'READ_FLOORS_CLIMBED',
     };
 
     test('should have a permission for each metric', () {
@@ -103,7 +128,7 @@ void main() {
       final activity = File(
         'android/app/src/main/kotlin/com/zynthovo/eatzify/MainActivity.kt',
       ).readAsStringSync();
-      expect(activity, contains('class MainActivity : FlutterFragmentActivity()'));
+      expect(activity, contains('class MainActivity : FlutterFragmentActivity() {'));
     });
   });
 

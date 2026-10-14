@@ -113,16 +113,30 @@ class MeasurementHistory {
 /// never added to calories burned, which would count resting metabolism twice. Always an estimate
 /// (no walking speed is read), and the copy says so.
 class WalkingEnergy {
-  const WalkingEnergy({required this.kcal, required this.isFromStride});
+  const WalkingEnergy({
+    required this.kcal,
+    required this.isFromStride,
+    this.activeKcal = 0,
+    this.isEstimated = true,
+  });
 
   WalkingEnergy.fromJson(Map<String, dynamic> json)
     : this(
         kcal: (json['kcal'] as num?)?.round() ?? 0,
         isFromStride: json['stride_from'] == 'distance',
+        activeKcal: (json['active_kcal'] as num?)?.round() ?? 0,
+        isEstimated: json['is_estimated'] != false,
       );
 
+  /// Gross kcal per 1,000 steps, resting included (D-256).
   final int kcal;
 
   /// True when the stride came from the person's own measured distance, false when from height.
   final bool isFromStride;
+
+  /// What 1,000 more steps add to the day's calories burned, above resting (D-268).
+  final int activeKcal;
+
+  /// True when a default pace or a stride from height stood in for a measurement.
+  final bool isEstimated;
 }

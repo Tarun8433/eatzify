@@ -136,6 +136,8 @@ class SyncHealth {
       // The day does not carry a distance, so only this instance's memory can say it is unchanged.
       HealthMetric.distance => true,
       HealthMetric.sleep => today.sleepMin != value,
+      // Not on the day either, like distance.
+      HealthMetric.walkingSpeed || HealthMetric.elevationGain || HealthMetric.floors => true,
     };
   }
 

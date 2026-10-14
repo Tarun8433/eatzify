@@ -11,9 +11,7 @@ import 'package:health_pro/core/widgets/view_state.dart';
 import 'package:health_pro/domain/entities/food.dart';
 import 'package:health_pro/domain/repositories/diary_repository.dart';
 import 'package:health_pro/domain/repositories/measurements_repository.dart';
-import 'package:health_pro/domain/repositories/profile_repository.dart';
 import 'package:health_pro/domain/usecases/adjust_steps.dart';
-import 'package:health_pro/domain/usecases/calculate_walking_calories.dart';
 import 'package:health_pro/presentation/features/home/home_controller.dart';
 import 'package:health_pro/presentation/features/onboarding/enum_labels.dart';
 import 'package:health_pro/presentation/l10n/app_localizations.dart';
@@ -50,6 +48,9 @@ class _ActivityLogTabState extends State<ActivityLogTab> {
   static const _stepsOpensAt = 1000;
   static const _burnedOpensAt = 200;
 
+  /// The server's rate is per this many steps.
+  static const _stepsPerRate = 1000;
+
   /// Today, for the count the change applies to. Always today's, whichever day Home is showing:
   /// this sheet writes to today.
   ViewState<DiaryDay> _today = const Loading();
@@ -63,9 +64,8 @@ class _ActivityLogTabState extends State<ActivityLogTab> {
   /// The server's `user_message`, verbatim (CLAUDE.md rule 7).
   String? _error;
 
-  double? _ratePer1000Steps;
-  double? _weightKg;
-  int? _heightCm;
+  /// The server's active kcal per 1,000 steps (D-268). The sheet never works calories out itself.
+  int? _activePer1000Steps;
   bool _userEditedBurned = false;
 
   int? get _currentSteps => switch (_today) {
@@ -86,36 +86,29 @@ class _ActivityLogTabState extends State<ActivityLogTab> {
     return AdjustSteps.total(current: _currentSteps, amount: change, remove: _removing);
   }
 
-  /// Calculates estimated calories burned for the day's steps, or the change on top of automatic sync.
+  /// Whether the day has steps, now or after this change. On such a day the server works the
+  /// calories out from them (D-268), so there is nothing to type.
+  bool get _hasSteps => (_stepsTotal ?? _currentSteps ?? 0) > 0;
+
+  /// The day's calories burned after the change: the server's figure, moved by the steps added or
+  /// taken off at the server's own rate. Null when the server has not said enough to know.
   int? get _calculatedBurned {
-    final total = _stepsTotal;
-    if (total == null) return null;
-
     final today = _today;
-    if (today is Ready<DiaryDay>) {
-      final data = today.data;
-      if (data.energyBurnedKcal != null && data.stepsSource.isAutomatic) {
-        final changeKcal = CalculateWalkingCalories.calculate(
-          steps: _stepsChange ?? 0,
-          ratePer1000Steps: _ratePer1000Steps,
-          weightKg: _weightKg,
-          heightCm: _heightCm,
-        );
-        return _removing
-            ? math.max(0, data.energyBurnedKcal! - changeKcal)
-            : data.energyBurnedKcal! + changeKcal;
-      }
-    }
-
-    return CalculateWalkingCalories.calculate(
-      steps: total,
-      ratePer1000Steps: _ratePer1000Steps,
-      weightKg: _weightKg,
-      heightCm: _heightCm,
-    );
+    if (today is! Ready<DiaryDay>) return null;
+    final total = _stepsTotal ?? _currentSteps ?? 0;
+    if (total <= 0) return null;
+    final base = (_currentSteps ?? 0) > 0 ? today.data.energyBurnedKcal ?? 0 : 0;
+    final change = total - (_currentSteps ?? 0);
+    if (change == 0) return base;
+    final rate = _activePer1000Steps;
+    if (rate == null) return null;
+    return math.max(0, base + (change * rate / _stepsPerRate).round());
   }
 
-  bool get _canSave => !_saving && (_stepsTotal != null || _burned != null);
+  /// A typed figure, only on a day with no steps: on any other day the server's figure stands.
+  int? get _typedBurned => _userEditedBurned && !_hasSteps ? _burned : null;
+
+  bool get _canSave => !_saving && (_stepsTotal != null || _typedBurned != null);
 
   @override
   void initState() {
@@ -132,36 +125,15 @@ class _ActivityLogTabState extends State<ActivityLogTab> {
   }
 
   Future<void> _loadWalkingEnergy() async {
-    try {
-      if (Get.isRegistered<MeasurementsRepository>()) {
-        final historyRes = await Get.find<MeasurementsRepository>().history('steps');
-        if (!mounted) return;
-        final energy = historyRes.fold((_) => null, (h) => h.walkingEnergy);
-        if (energy != null && energy.kcal > 0) {
-          setState(() {
-            _ratePer1000Steps = energy.kcal.toDouble();
-            if (!_userEditedBurned && _stepsChange != null) {
-              _burned = _calculatedBurned;
-            }
-          });
-          return;
-        }
-      }
-      if (Get.isRegistered<ProfileRepository>()) {
-        final profileRes = await Get.find<ProfileRepository>().profile();
-        if (!mounted) return;
-        final profile = profileRes.fold((_) => null, (p) => p);
-        if (profile != null) {
-          setState(() {
-            _weightKg = profile.weightKg;
-            _heightCm = profile.heightCm;
-            if (!_userEditedBurned && _stepsChange != null) {
-              _burned = _calculatedBurned;
-            }
-          });
-        }
-      }
-    } catch (_) {}
+    if (!Get.isRegistered<MeasurementsRepository>()) return;
+    final history = await Get.find<MeasurementsRepository>().history('steps');
+    if (!mounted) return;
+    final energy = history.fold((_) => null, (h) => h.walkingEnergy);
+    if (energy == null || energy.activeKcal <= 0) return;
+    setState(() {
+      _activePer1000Steps = energy.activeKcal;
+      if (!_userEditedBurned) _burned = _calculatedBurned;
+    });
   }
 
   void _onStepsChanged(int? newChange) {
@@ -193,7 +165,7 @@ class _ActivityLogTabState extends State<ActivityLogTab> {
     // Two rows, because they are two measurements. The server overwrites per kind per diary day,
     // so saving twice in one day corrects the figure rather than adding to it.
     final change = _stepsTotal == null ? null : _stepsChange;
-    final burnedToSave = _burned ?? (_stepsTotal != null ? _calculatedBurned : null);
+    final burnedToSave = _typedBurned;
 
     final results = [
       if (burnedToSave != null)
@@ -257,62 +229,79 @@ class _ActivityLogTabState extends State<ActivityLogTab> {
             child: _stepsEditor(l, theme),
           ),
           const SizedBox(height: AppSpacing.lg),
-          _FieldCard(
-            icon: Icons.local_fire_department_outlined,
-            // Warm, not green: this is the optional one, and the one the hint below warns about.
-            tint: AppColors.warmCoral,
-            title: l.logActivityBurned,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                NumberField(
-                  key: ValueKey('burned_${_userEditedBurned ? "custom" : (_burned ?? "empty")}'),
-                  initial: _burned != null ? '$_burned' : '',
-                  label: l.logActivityBurnedHint,
-                  helperText: l.logActivityBurnedRange(_maxBurned),
-                  picker: NumberPickerConfig(
-                    min: 0,
-                    max: _maxBurned,
-                    step: _burnedNotch,
-                    opensAt: _burned != null ? math.min(_burned!, _maxBurned) : _burnedOpensAt,
+          // D-268: a day with steps has its calories worked out on the server from them and the
+          // person's weight — shown, not typed. Only a day without steps takes a typed figure.
+          if (_hasSteps)
+            _FieldCard(
+              icon: Icons.local_fire_department_outlined,
+              tint: AppColors.warmCoral,
+              title: l.habitBurned,
+              child: Text(
+                _calculatedBurned == null
+                    ? l.logActivityBurnedFromSteps
+                    : l.logActivityBurnedCalculated(
+                        NumberFormat.decimalPattern().format(_calculatedBurned),
+                      ),
+                style: theme.textTheme.titleSmall?.copyWith(color: AppColors.warmCoral),
+              ),
+            )
+          else
+            _FieldCard(
+              icon: Icons.local_fire_department_outlined,
+              // Warm, not green: this is the optional one, and the one the hint below warns about.
+              tint: AppColors.warmCoral,
+              title: l.logActivityBurned,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  NumberField(
+                    key: ValueKey('burned_${_userEditedBurned ? "custom" : (_burned ?? "empty")}'),
+                    initial: _burned != null ? '$_burned' : '',
+                    label: l.logActivityBurnedHint,
+                    helperText: l.logActivityBurnedRange(_maxBurned),
+                    picker: NumberPickerConfig(
+                      min: 0,
+                      max: _maxBurned,
+                      step: _burnedNotch,
+                      opensAt: _burned != null ? math.min(_burned!, _maxBurned) : _burnedOpensAt,
+                    ),
+                    onLiveChange: (v) {
+                      setState(() {
+                        if (v.trim().isEmpty) {
+                          _userEditedBurned = false;
+                          _burned = _calculatedBurned;
+                        } else {
+                          _userEditedBurned = true;
+                          _burned = _bounded(v, _maxBurned);
+                        }
+                      });
+                    },
+                    onCommit: (v) {
+                      setState(() {
+                        if (v.trim().isEmpty) {
+                          _userEditedBurned = false;
+                          _burned = _calculatedBurned;
+                        } else {
+                          _userEditedBurned = true;
+                          _burned = _bounded(v, _maxBurned);
+                        }
+                      });
+                    },
                   ),
-                  onLiveChange: (v) {
-                    setState(() {
-                      if (v.trim().isEmpty) {
-                        _userEditedBurned = false;
-                        _burned = _calculatedBurned;
-                      } else {
-                        _userEditedBurned = true;
-                        _burned = _bounded(v, _maxBurned);
-                      }
-                    });
-                  },
-                  onCommit: (v) {
-                    setState(() {
-                      if (v.trim().isEmpty) {
-                        _userEditedBurned = false;
-                        _burned = _calculatedBurned;
-                      } else {
-                        _userEditedBurned = true;
-                        _burned = _bounded(v, _maxBurned);
-                      }
-                    });
-                  },
-                ),
-                if (_burned case final burned?) ...[
-                  const SizedBox(height: AppSpacing.sm),
-                  Text(
-                    _userEditedBurned
-                        ? l.logActivityBurnedCustom(NumberFormat.decimalPattern().format(burned))
-                        : l.logActivityBurnedCalculated(
-                            NumberFormat.decimalPattern().format(burned),
-                          ),
-                    style: theme.textTheme.titleSmall?.copyWith(color: AppColors.warmCoral),
-                  ),
+                  if (_burned case final burned?) ...[
+                    const SizedBox(height: AppSpacing.sm),
+                    Text(
+                      _userEditedBurned
+                          ? l.logActivityBurnedCustom(NumberFormat.decimalPattern().format(burned))
+                          : l.logActivityBurnedCalculated(
+                              NumberFormat.decimalPattern().format(burned),
+                            ),
+                      style: theme.textTheme.titleSmall?.copyWith(color: AppColors.warmCoral),
+                    ),
+                  ],
                 ],
-              ],
+              ),
             ),
-          ),
           const SizedBox(height: AppSpacing.lg),
           // The warning that a guessed figure changes what the user is told to eat is the most
           // important sentence on the screen, and as a grey caption under a field it was the least

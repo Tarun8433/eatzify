@@ -13,9 +13,22 @@ enum HealthMetric {
   distance(kind: 'distance_m', unit: 'm'),
 
   /// Minutes asleep in the sessions that ended inside a diary day — last night, for the morning.
-  sleep(kind: 'sleep_min', unit: 'min');
+  sleep(kind: 'sleep_min', unit: 'min'),
+
+  /// D-268: what the server works walking calories out from, beside steps and distance. The day's
+  /// average walking speed — with the distance, the walk's real minutes.
+  walkingSpeed(kind: 'walking_speed_m_min', unit: 'm/min'),
+
+  /// Elevation gained, for the walking grade. Android only: HealthKit keeps no daily figure.
+  elevationGain(kind: 'elevation_gain_m', unit: 'm'),
+
+  /// Floors of stairs climbed, priced on their own and never as an incline.
+  floors(kind: 'floors', unit: 'floors');
 
   const HealthMetric({required this.kind, required this.unit});
+
+  /// HealthKit keeps no daily elevation gained, so an iPhone never reads it.
+  bool get isAndroidOnly => this == elevationGain;
 
   /// The server's measurement kind.
   final String kind;

@@ -4,6 +4,7 @@ import 'package:dartz/dartz.dart';
 import 'package:health/health.dart';
 import 'package:health_pro/core/errors/failures.dart';
 import 'package:health_pro/core/storage/secure_store.dart';
+import 'package:health_pro/data/datasources/local/health_connect_extras.dart';
 import 'package:health_pro/domain/entities/health_metric.dart';
 import 'package:health_pro/domain/repositories/health_repository.dart';
 
@@ -16,30 +17,44 @@ import 'package:health_pro/domain/repositories/health_repository.dart';
 /// Several choices here look arbitrary and are not. Each was checked against the installed plugin's
 /// source, and `docs/HEALTH-SYNC-TRACKER.md` §4 keeps the reasons.
 class HealthRepositoryImpl implements HealthRepository {
-  HealthRepositoryImpl({Health? health, SecureStore? store, bool? isIOS})
-    : _health = health ?? Health(),
-      _store = store ?? SecureStore(),
-      _isIOS = isIOS ?? Platform.isIOS;
+  HealthRepositoryImpl({
+    Health? health,
+    SecureStore? store,
+    bool? isIOS,
+    HealthConnectExtras extras = const HealthConnectExtras(),
+  }) : _health = health ?? Health(),
+       _store = store ?? SecureStore(),
+       _isIOS = isIOS ?? Platform.isIOS,
+       _extras = extras;
 
   /// One instance for the app's life, configured once. The plugin builds throwaway instances of
   /// its own internally, and those never learn the device id.
   final Health _health;
   final SecureStore _store;
   final bool _isIOS;
+  final HealthConnectExtras _extras;
 
   /// Seconds per bucket. The server's diary days are exactly this long — IST has no daylight
   /// saving — so buckets anchored at the first window's start line up with every window after it.
   static final _bucketSeconds = const Duration(days: 1).inSeconds;
 
   /// The platform's name for each metric. **Per platform, and it has to be**: the plugin refuses a
-  /// type the platform does not have, and distance is spelt differently on each.
-  static HealthDataType typeFor(HealthMetric metric, {required bool isIOS}) => switch (metric) {
+  /// type the platform does not have, and distance is spelt differently on each. Null where the
+  /// plugin cannot read it — Android's walking extras go through [HealthConnectExtras] (D-268), and
+  /// HealthKit has no daily elevation at all.
+  static HealthDataType? typeFor(HealthMetric metric, {required bool isIOS}) => switch (metric) {
     HealthMetric.steps => HealthDataType.STEPS,
     HealthMetric.activeEnergy => HealthDataType.ACTIVE_ENERGY_BURNED,
     HealthMetric.distance =>
       isIOS ? HealthDataType.DISTANCE_WALKING_RUNNING : HealthDataType.DISTANCE_DELTA,
     HealthMetric.sleep => isIOS ? HealthDataType.SLEEP_ASLEEP : HealthDataType.SLEEP_SESSION,
+    HealthMetric.walkingSpeed => isIOS ? HealthDataType.WALKING_SPEED : null,
+    HealthMetric.floors => isIOS ? HealthDataType.FLIGHTS_CLIMBED : null,
+    HealthMetric.elevationGain => null,
   };
+
+  /// Metres per second, as both platforms give speed, to the metres per minute the server takes.
+  static const _secondsPerMinute = 60;
 
   /// Sleep is sessions, not a total, and each platform files it differently. Health Connect has
   /// one record per night. HealthKit has stage samples, and an Apple Watch since iOS 16 writes
@@ -60,8 +75,8 @@ class HealthRepositoryImpl implements HealthRepository {
     for (final metric in HealthMetric.values)
       if (metric == HealthMetric.sleep)
         ...sleepTypes(isIOS: _isIOS)
-      else
-        typeFor(metric, isIOS: _isIOS),
+      else if (typeFor(metric, isIOS: _isIOS) case final type?)
+        type,
   ];
 
   /// Read, and only read. Asking for write access is how a permission sheet starts looking
@@ -117,7 +132,7 @@ class HealthRepositoryImpl implements HealthRepository {
         final granted = await _health.hasPermissions([type], permissions: [HealthDataAccess.READ]);
         if (granted ?? false) return HealthPermission.granted;
       }
-      return HealthPermission.denied;
+      return await _extras.hasPermission() ? HealthPermission.granted : HealthPermission.denied;
     } on Object {
       return HealthPermission.denied;
     }
@@ -133,6 +148,13 @@ class HealthRepositoryImpl implements HealthRepository {
         if (!shown) return HealthPermission.denied;
         await _store.markHealthConnected();
         return HealthPermission.unknown;
+      }
+      // Health Connect's own sheet for what the plugin cannot ask for. Refusing it costs only the
+      // walking extras — the calories then fall back to a default pace on flat ground.
+      try {
+        await _extras.requestPermission();
+      } on Object {
+        // Nothing to tell anyone; the plugin's grant above stands on its own.
       }
       return await permission();
     } on Object {
@@ -154,12 +176,22 @@ class HealthRepositoryImpl implements HealthRepository {
 
     final totals = <String, Map<HealthMetric, num>>{};
     var failures = 0;
+    var reads = 0;
+
+    if (!_isIOS) {
+      reads++;
+      if (!await _readExtras(windows, totals)) failures++;
+    }
 
     for (final metric in HealthMetric.values) {
       if (metric == HealthMetric.sleep) {
+        reads++;
         if (!await _readSleep(windows, totals)) failures++;
         continue;
       }
+      final type = typeFor(metric, isIOS: _isIOS);
+      if (type == null) continue;
+      reads++;
       final List<HealthDataPoint> buckets;
       try {
         // The interval query, never `getTotalStepsInInterval`: that one answers 0 for "no
@@ -169,7 +201,7 @@ class HealthRepositoryImpl implements HealthRepository {
         buckets = await _health.getHealthIntervalDataFromTypes(
           startDate: windows.first.start,
           endDate: windows.last.end,
-          types: [typeFor(metric, isIOS: _isIOS)],
+          types: [type],
           interval: _bucketSeconds,
         );
       } on Object {
@@ -186,16 +218,41 @@ class HealthRepositoryImpl implements HealthRepository {
         final window = windows.where((w) => w.contains(bucket.dateFrom)).firstOrNull;
         if (window == null) continue;
 
-        (totals[window.diaryDate] ??= {})[metric] = value.numericValue;
+        (totals[window.diaryDate] ??= {})[metric] = metric == HealthMetric.walkingSpeed
+            ? value.numericValue * _secondsPerMinute
+            : value.numericValue;
       }
     }
 
-    if (failures == HealthMetric.values.length) {
+    if (failures == reads) {
       // Revoked mid-read, Health Connect updating, an OEM's own failure. There is nothing for a
       // user to do about it and nothing they asked for, so the caller keeps it off the screen.
       return const Left(UnexpectedFailure('Could not read activity from this phone.'));
     }
     return Right(totals);
+  }
+
+  /// Android's walking speed, elevation and floors (D-268), per window. False when Health Connect
+  /// refused; a value it did not record is left out, never sent as zero.
+  Future<bool> _readExtras(
+    List<DiaryWindow> windows,
+    Map<String, Map<HealthMetric, num>> totals,
+  ) async {
+    final List<WalkingExtras> days;
+    try {
+      days = await _extras.read([for (final w in windows) (start: w.start, end: w.end)]);
+    } on Object {
+      return false;
+    }
+    for (final (index, day) in days.indexed.take(windows.length)) {
+      final read = {
+        if (day.speedMPerS case final speed?) HealthMetric.walkingSpeed: speed * _secondsPerMinute,
+        if (day.elevationM case final elevation?) HealthMetric.elevationGain: elevation,
+        if (day.floors case final floors?) HealthMetric.floors: floors,
+      };
+      if (read.isNotEmpty) (totals[windows[index].diaryDate] ??= {}).addAll(read);
+    }
+    return true;
   }
 
   /// Adds each window's minutes asleep to [totals], filed under the window the session ENDED in —

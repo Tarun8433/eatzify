@@ -25,8 +25,14 @@ Widget tabUnderTest({
   int? added,
   MeasurementSource source = MeasurementSource.manual,
   Failure? failure,
+  int? burned,
+  WalkingEnergy? rate,
 }) {
-  measurements = FakeMeasurementsRepository();
+  measurements = FakeMeasurementsRepository(
+    historyResult: rate == null
+        ? null
+        : Right(MeasurementHistory(kind: 'steps', points: const [], walkingEnergy: rate)),
+  );
   final day = DiaryDay(
     diaryDate: '2026-09-17',
     entries: const [],
@@ -34,6 +40,7 @@ Widget tabUnderTest({
     steps: steps,
     stepsAdded: added,
     stepsSource: source,
+    energyBurnedKcal: burned,
   );
   Get
     ..reset()
@@ -174,7 +181,8 @@ void main() {
       NumberPickerConfig picker(int at) =>
           tester.widget<NumberField>(find.byType(NumberField).at(at)).picker!;
       expect(picker(0).opensAt, 1000);
-      expect(picker(1).opensAt, 200);
+      // A step day has no calories field: the server works them out (D-268).
+      expect(find.byType(NumberField), findsOneWidget);
 
       // Removing from 456: 1,000 is past the end, and the wheel only stops on 500s.
       await tester.tap(find.text('Remove'));
@@ -241,49 +249,51 @@ void main() {
       expect(find.textContaining('New total'), findsNothing);
     });
 
-    testWidgets('should automatically calculate calories burned when typing steps and save both', (
+    /// D-268: the server works a step day's calories out; the sheet only shows its figure.
+    const rate = WalkingEnergy(kcal: 35, isFromStride: true, activeKcal: 25);
+
+    testWidgets('should show the server-rate figure for typed steps and save only the steps', (
       tester,
     ) async {
-      await tester.pumpWidget(tabUnderTest());
+      await tester.pumpWidget(tabUnderTest(rate: rate));
       await settle(tester);
 
       await tester.enterText(find.byType(TextField).first, '5000');
       await tester.pumpAndSettle();
 
-      // For 5000 steps, default ~35.4 kcal / 1000 steps => 177 kcal
-      expect(find.text('Estimated from steps: ~177 kcal'), findsOneWidget);
+      // 5,000 steps × 25 active kcal per 1,000.
+      expect(find.text('Estimated from your steps and weight: ~125 kcal'), findsOneWidget);
 
       await _saveNow(tester);
-      final burnedCall = measurements.recordedCalls.firstWhere(
-        (c) => c.kind == 'energy_burned_kcal',
-      );
-      expect(burnedCall.value, 177.0);
-      expect(burnedCall.unit, 'kcal');
-
-      final stepsCall = measurements.recordedCalls.firstWhere((c) => c.kind == 'steps_added');
-      expect(stepsCall.value, 5000.0);
-      expect(stepsCall.unit, 'steps');
+      expect(measurements.recordedCalls.map((c) => c.kind), ['steps_added']);
+      expect(measurements.recordedCalls.single.value, 5000.0);
     });
 
-    testWidgets('should allow user to override calculated calories with custom burned entry', (
-      tester,
-    ) async {
-      await tester.pumpWidget(tabUnderTest());
+    testWidgets('should move the server figure by the steps added on a step day', (tester) async {
+      await tester.pumpWidget(tabUnderTest(steps: 10000, burned: 245, rate: rate));
       await settle(tester);
 
-      await tester.enterText(find.byType(TextField).first, '5000');
+      expect(find.text('Estimated from your steps and weight: ~245 kcal'), findsOneWidget);
+      await tester.enterText(find.byType(TextField).first, '1000');
       await tester.pumpAndSettle();
-      expect(find.text('Estimated from steps: ~177 kcal'), findsOneWidget);
+      expect(find.text('Estimated from your steps and weight: ~270 kcal'), findsOneWidget);
+    });
 
-      // Overwrite the burned field
+    testWidgets('should take a typed figure only on a day with no steps', (tester) async {
+      await tester.pumpWidget(tabUnderTest(rate: rate));
+      await settle(tester);
+      expect(
+        tester.widget<NumberField>(find.byType(NumberField).at(1)).picker!.opensAt,
+        200,
+      );
+
       await tester.enterText(find.byType(TextField).at(1), '300');
       await tester.pumpAndSettle();
       expect(find.text('Custom entry: 300 kcal'), findsOneWidget);
 
       await _saveNow(tester);
-      final burnedCall = measurements.recordedCalls.firstWhere(
-        (c) => c.kind == 'energy_burned_kcal',
-      );
+      final burnedCall = measurements.recordedCalls.single;
+      expect(burnedCall.kind, 'energy_burned_kcal');
       expect(burnedCall.value, 300.0);
     });
   });

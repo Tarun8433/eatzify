@@ -1,3 +1,5 @@
+import { burnedByDay } from '../measurements/walking-energy';
+import { MeasurementsService } from '../measurements/measurements.service';
 import { HttpStatus, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -81,6 +83,8 @@ export class CoachProgressService {
     private readonly metrics: ClientMetricsService,
     private readonly logs: LogsService,
     private readonly audit: AuditService,
+    /// D-268: the client's weight and height, for the calories-burned series.
+    private readonly walking: MeasurementsService,
   ) {}
 
   /**
@@ -118,12 +122,24 @@ export class CoachProgressService {
       // on a typo.
       if (row.isSuspect) continue;
       if (OUTSIDE_PROGRESS_SCOPE.has(row.kind)) continue;
+      if (NOT_CHARTED.has(row.kind)) continue;
 
       (series[row.kind] ??= []).push({
         date: row.diaryDate,
         value: Number(row.value),
       });
     }
+
+    // D-268: the same worked-out figure the client's own Home and Progress show, never the
+    // phone's. Replaces whatever the stored rows put there.
+    const burned = burnedByDay(
+      rows.filter((r) => r.diaryDate >= oldest),
+      await this.walking.body(clientUserId),
+    );
+    const burnedSeries = [...burned]
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([date, value]) => ({ date, value }));
+    if (burnedSeries.length > 0) series.energy_burned_kcal = burnedSeries;
 
     const weights = rows
       .filter((r) => r.kind === 'weight')
@@ -251,6 +267,15 @@ function summaryOf(metrics: ClientMetrics | undefined) {
 
 /// Kinds the `progress` grant does not cover (docs/10 §3), kept out of a coach's chart.
 const OUTSIDE_PROGRESS_SCOPE: ReadonlySet<string> = new Set(['sleep_min']);
+
+/// D-268: the stored calories are replaced by the worked-out series; the rest are its inputs, not
+/// progress a coach charts.
+const NOT_CHARTED: ReadonlySet<string> = new Set([
+  'energy_burned_kcal',
+  'walking_speed_m_min',
+  'elevation_gain_m',
+  'floors',
+]);
 
 /// docs/10: sleep is in no consent scope — not `progress`, whose steps sit right beside it in the
 /// day — so a coach's copy of a client's day never carries it.

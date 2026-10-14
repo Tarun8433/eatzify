@@ -238,16 +238,17 @@ class _WhatIsRead extends StatelessWidget {
           Text(l.healthReadsTitle, style: theme.textTheme.titleMedium),
           const SizedBox(height: AppSpacing.sm),
           for (final metric in HealthMetric.values)
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
-              child: Row(
-                children: [
-                  Icon(_iconFor(metric), color: theme.colorScheme.primary),
-                  const SizedBox(width: AppSpacing.md),
-                  Expanded(child: Text(_labelFor(l, metric), style: theme.textTheme.bodyLarge)),
-                ],
+            if (!metric.isAndroidOnly || Theme.of(context).platform != TargetPlatform.iOS)
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: AppSpacing.xs),
+                child: Row(
+                  children: [
+                    Icon(_iconFor(metric), color: theme.colorScheme.primary),
+                    const SizedBox(width: AppSpacing.md),
+                    Expanded(child: Text(_labelFor(l, metric), style: theme.textTheme.bodyLarge)),
+                  ],
+                ),
               ),
-            ),
           const SizedBox(height: AppSpacing.md),
           Text(
             l.healthNotRead,
@@ -263,6 +264,9 @@ class _WhatIsRead extends StatelessWidget {
     HealthMetric.activeEnergy => Icons.local_fire_department_outlined,
     HealthMetric.distance => Icons.route_outlined,
     HealthMetric.sleep => Icons.bedtime_outlined,
+    HealthMetric.walkingSpeed => Icons.speed_outlined,
+    HealthMetric.elevationGain => Icons.terrain_outlined,
+    HealthMetric.floors => Icons.stairs_outlined,
   };
 
   static String _labelFor(AppLocalizations l, HealthMetric metric) => switch (metric) {
@@ -270,5 +274,8 @@ class _WhatIsRead extends StatelessWidget {
     HealthMetric.activeEnergy => l.healthMetricEnergy,
     HealthMetric.distance => l.healthMetricDistance,
     HealthMetric.sleep => l.healthMetricSleep,
+    HealthMetric.walkingSpeed => l.healthMetricSpeed,
+    HealthMetric.elevationGain => l.healthMetricElevation,
+    HealthMetric.floors => l.healthMetricFloors,
   };
 }

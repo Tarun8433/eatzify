@@ -15,6 +15,7 @@ import { MessagesService } from './messages.service';
 import { ChatGateway } from './chat.gateway';
 import { MessageEntity } from './entities/message.entity';
 import { LogsModule } from '../logs/logs.module';
+import { MeasurementsModule } from '../measurements/measurements.module';
 import { ProfileEntity } from '../profile/entities/profile.entity';
 import { MeasurementEntity } from '../measurements/entities/measurement.entity';
 import { SubscriptionEntity } from '../billing/entities/subscription.entity';
@@ -49,6 +50,8 @@ import { CoachController } from './coach.controller';
     AdminModule,
     // A coaching partner may read a client's diary, which LogsService already assembles.
     LogsModule,
+    // D-268: the client's weight and height, for the calories-burned series.
+    MeasurementsModule,
     // The invite is addressed by phone, so answering one needs the caller's own number.
     UsersModule,
     // A completed check-in leaves the client a message (docs/02 FR-5.2).
