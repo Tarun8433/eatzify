@@ -13,6 +13,7 @@ import {
   ViewHeader,
   inputClass,
 } from '../ui';
+import { StoreAttemptsView } from './StoreAttemptsView';
 
 type Status = 'created' | 'paid' | 'failed' | 'refunded';
 
@@ -50,6 +51,7 @@ type Summary = {
   failure_reasons: { reason: string; count: number }[];
   refund_requests_open: number;
   store_subscriptions: { play: number; app_store: number };
+  store_attempts_today: { total: number; failed: number };
 };
 
 export const STATUS_LABEL: Record<Status, string> = {
@@ -67,9 +69,39 @@ const FILTERS: { key: '' | Status; label: string }[] = [
   { key: 'refunded', label: 'Refunded' },
 ];
 
+const SOURCES = [
+  { key: 'cashfree', label: 'Cashfree orders' },
+  { key: 'store', label: 'Google Play attempts' },
+] as const;
+
+/// Cashfree orders, or (D-266) the store purchase attempts the app reported.
+export function PaymentsView(props: { permissions: string[]; initialStatus?: '' | Status }) {
+  const [source, setSource] = useState<(typeof SOURCES)[number]['key']>('cashfree');
+  return (
+    <div className="flex min-h-0 flex-1 flex-col gap-3">
+      <div role="tablist" aria-label="Source" className="flex w-fit items-center gap-1 rounded-full bg-surface p-1">
+        {SOURCES.map((s) => (
+          <button
+            key={s.key}
+            role="tab"
+            aria-selected={s.key === source}
+            onClick={() => setSource(s.key)}
+            className={`rounded-full px-3.5 py-1.5 text-[12.5px] font-medium transition-colors ${
+              s.key === source ? 'bg-mint text-mint-ink' : 'text-ink-muted hover:bg-raised hover:text-ink'
+            }`}
+          >
+            {s.label}
+          </button>
+        ))}
+      </div>
+      {source === 'cashfree' ? <CashfreeOrdersView {...props} /> : <StoreAttemptsView />}
+    </div>
+  );
+}
+
 /// Admin panel plan, Phase B: Cashfree payments, failures and refunds. Play and App Store money
 /// is handled by the stores; their live plans are counted on the cards.
-export function PaymentsView({
+function CashfreeOrdersView({
   permissions,
   initialStatus = '',
 }: {
@@ -142,7 +174,7 @@ export function PaymentsView({
       </ViewHeader>
 
       {s && (
-        <section className="grid grid-cols-2 gap-3 md:grid-cols-4 xl:grid-cols-7">
+        <section className="grid grid-cols-2 gap-3 md:grid-cols-4 xl:grid-cols-8">
           <KpiCard label="Collected today" value={inr(s.today.collected_paise)} hint={`${s.today.orders} paid`} />
           <KpiCard label="Successful" value={inr(s.by_status.paid.amount_paise)} hint={`${s.by_status.paid.count} orders`} />
           <KpiCard label="Pending" value={s.by_status.created.count} hint="Started, never finished" />
@@ -150,6 +182,7 @@ export function PaymentsView({
           <KpiCard label="Refunded" value={inr(s.by_status.refunded.amount_paise)} hint={`${s.by_status.refunded.count} orders`} />
           <KpiCard label="Refund requests" value={s.refund_requests_open} highlight={s.refund_requests_open > 0} />
           <KpiCard label="Store plans" value={s.store_subscriptions.play + s.store_subscriptions.app_store} hint={`Play ${s.store_subscriptions.play} · Apple ${s.store_subscriptions.app_store}`} />
+          <KpiCard label="Play attempts today" value={s.store_attempts_today.total} hint={`${s.store_attempts_today.failed} failed`} highlight={s.store_attempts_today.failed > 0} />
         </section>
       )}
 

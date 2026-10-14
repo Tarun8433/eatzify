@@ -6334,3 +6334,17 @@ Android Cashfree needs User Choice Billing**: the route keeps the `cashfreeOffer
 (1–90). Permission `offers.manage`: super admin, admin, finance; create and revoke are audited
 (offer id and channel only — no amount, no PII). A Cashfree offer still refuses a person with a live
 plan (`ALREADY_SUBSCRIBED`), the same as a plain checkout. Coupons (D-236) are unchanged.
+
+## D-266 — Store purchase attempts are logged for support
+**When** 2026-10-14 · **Decision** Every Google Play / App Store `buy()` that started is reported by
+the app, fire-and-forget, to `POST /billing/store/attempts` (204), so the admin Payments page can
+show failed attempts — a Play failure such as `BillingResponse.developerError` never reached the
+server before. Table `store_purchase_attempt` (migration `1759900000000-StorePurchaseAttempts`):
+user (from the JWT), provider, product / base plan / offer ids, outcome
+(`cancelled|failed|pending|purchased|refused`), the app's failure reason name, and **Play's raw
+response code only** (`^[A-Za-z0-9._:-]{1,80}$`, else stored null). **No amounts, no card/UPI data,
+no purchase token, no store text.** At most **30 per user per hour**; past that the route still
+answers 204 and stores nothing, because the app must never break on a report (and the report never
+delays or changes the purchase result). Admin: `GET /admin/payments/store-attempts` (`payments.read`,
+contact through `withContact`) and `store_attempts_today` on the payments summary (demo users
+excluded); the dashboard's Payments page gains a "Google Play attempts" tab.

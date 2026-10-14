@@ -30,6 +30,8 @@ import { PaymentOrderEntity } from './entities/payment-order.entity';
 import { UserEntity } from '../users/infrastructure/persistence/relational/entities/user.entity';
 import { PartnerModule } from '../partner/partner.module';
 import { PersonalOfferEntity } from './entities/personal-offer.entity';
+import { StorePurchaseAttemptEntity } from './entities/store-purchase-attempt.entity';
+import { StoreAttemptsService } from './store/store-attempts.service';
 import { PersonalOffersService } from './offers/personal-offers.service';
 import { OfferPageController } from './offers/offer-page.controller';
 import { NotificationsModule } from '../notifications/notifications.module';
@@ -45,6 +47,7 @@ import { NotificationsModule } from '../notifications/notifications.module';
       TierPriceEntity,
       InvoiceEntity,
       PersonalOfferEntity,
+      StorePurchaseAttemptEntity,
       // Cashfree needs a contactable customer, and the number lives on the user row.
       UserEntity,
     ]),
@@ -78,6 +81,7 @@ import { NotificationsModule } from '../notifications/notifications.module';
     RefundRequestService,
     CashfreeClient,
     PersonalOffersService,
+    StoreAttemptsService,
   ],
   exports: [
     PersonalOffersService,

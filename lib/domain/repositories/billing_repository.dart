@@ -3,6 +3,7 @@ import 'package:health_pro/core/errors/failures.dart';
 import 'package:health_pro/domain/entities/billing.dart';
 import 'package:health_pro/domain/entities/invoice.dart';
 import 'package:health_pro/domain/entities/paid_order.dart';
+import 'package:health_pro/domain/repositories/store_gateway.dart';
 
 /// docs/09 §7. Entitlements, prices, and starting a purchase (D-194).
 ///
@@ -69,6 +70,10 @@ abstract class BillingRepository {
   /// [offerCode] (D-265) names the personal offer this purchase redeemed, so the server can mark it
   /// used. The purchase never depends on it: Play has already enforced the price.
   Future<Either<Failure, SubscriptionState>> verifyPlay(String purchaseToken, {String? offerCode});
+
+  /// D-266: how one store purchase attempt ended, for the support log. The caller ignores the
+  /// answer — a report must never stand in the way of a purchase.
+  Future<Either<Failure, Unit>> reportStoreAttempt(StoreAttempt attempt);
 
   /// Payments plan, Phase 5: StoreKit 2's signed transaction, checked with Apple by the SERVER.
   Future<Either<Failure, SubscriptionState>> verifyAppStore(String signedTransaction);

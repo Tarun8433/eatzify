@@ -554,6 +554,15 @@ class FakeBillingRepository implements BillingRepository {
     return const Right(SubscriptionState(tier: 'PRO', status: 'active'));
   }
 
+  /// D-266: what the store gateway reported, in order.
+  final List<StoreAttempt> reportedAttempts = [];
+
+  @override
+  Future<Either<Failure, Unit>> reportStoreAttempt(StoreAttempt attempt) async {
+    reportedAttempts.add(attempt);
+    return const Right(unit);
+  }
+
   @override
   Future<Either<Failure, SubscriptionState>> verifyPlay(
     String purchaseToken, {

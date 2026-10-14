@@ -32,3 +32,33 @@ abstract class StoreGateway {
   /// on a bad network, or a pending payment that cleared while the app was closed. Once per run.
   Future<void> resumePending();
 }
+
+/// D-266: how one store purchase ended, as the app saw it. [pending] is a purchase the store holds
+/// for later (a UPI payment still clearing); [refused] is one the server would not verify.
+enum StoreAttemptOutcome { cancelled, failed, pending, purchased, refused }
+
+/// D-266: one finished [StoreGateway.buy], reported to the server so support can see failed attempts
+/// that otherwise never reach it. No amount, no payment details — the plan asked for, how it ended
+/// and the store's own code.
+class StoreAttempt {
+  const StoreAttempt({
+    required this.provider,
+    required this.productId,
+    required this.outcome,
+    this.basePlanId,
+    this.offerId,
+    this.reason,
+    this.storeCode,
+  });
+
+  /// `play` or `app_store`, as the server names them.
+  final String provider;
+  final String productId;
+  final String? basePlanId;
+  final String? offerId;
+  final StoreAttemptOutcome outcome;
+
+  /// A [PaymentFailureReason] name, or `serverRefused`.
+  final String? reason;
+  final String? storeCode;
+}

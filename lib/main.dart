@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:app_links/app_links.dart';
-import 'package:flutter/foundation.dart' show kReleaseMode;
+import 'package:flutter/foundation.dart' show debugPrint, kReleaseMode;
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -407,6 +407,10 @@ class EatzifyApp extends StatelessWidget {
                       ? billing.verifyAppStore(token)
                       : billing.verifyPlay(token, offerCode: offerCode)))
                   .fold((f) => f.userMessage, (_) => null),
+          // D-266: every finished attempt goes to the support log. Never awaited by the purchase.
+          report: (attempt) async => (await billing.reportStoreAttempt(
+            attempt,
+          )).fold((f) => debugPrint('store: attempt not recorded (${f.runtimeType})'), (_) {}),
         ),
         permanent: true,
       );

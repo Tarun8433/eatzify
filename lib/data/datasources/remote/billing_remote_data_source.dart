@@ -5,6 +5,7 @@ import 'package:health_pro/core/network/error_mapper.dart';
 import 'package:health_pro/domain/entities/billing.dart';
 import 'package:health_pro/domain/entities/invoice.dart';
 import 'package:health_pro/domain/entities/paid_order.dart';
+import 'package:health_pro/domain/repositories/store_gateway.dart';
 
 class BillingRemoteDataSource {
   BillingRemoteDataSource(this._dio);
@@ -179,6 +180,18 @@ class BillingRemoteDataSource {
       return Left(mapDioError(e));
     }
   }
+
+  /// `POST /billing/store/attempts` (D-266): 204, also when the server drops it past its limit.
+  Future<Either<Failure, Unit>> reportStoreAttempt(StoreAttempt attempt) =>
+      _noContent('/billing/store/attempts', {
+        'provider': attempt.provider,
+        'product_id': attempt.productId,
+        if (attempt.basePlanId != null) 'base_plan_id': attempt.basePlanId!,
+        if (attempt.offerId != null) 'offer_id': attempt.offerId!,
+        'outcome': attempt.outcome.name,
+        if (attempt.reason != null) 'reason': attempt.reason!,
+        if (attempt.storeCode != null) 'store_code': attempt.storeCode!,
+      });
 
   /// `POST /billing/appstore/verify` (Payments plan, Phase 5).
   Future<Either<Failure, SubscriptionState>> verifyAppStore(String signedTransaction) => _state(

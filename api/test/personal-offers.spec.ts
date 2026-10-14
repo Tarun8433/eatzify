@@ -522,6 +522,7 @@ function controllerWith(cashfree: { mode: string; androidEnabled: boolean }) {
     {} as never,
     {} as never,
     offers as never,
+    {} as never,
   );
   return { controller, calls, line };
 }

@@ -32,6 +32,10 @@ import {
   type OrderStatus,
 } from '../billing/entities/payment-order.entity';
 import {
+  ATTEMPT_OUTCOMES,
+  type AttemptOutcome,
+} from '../billing/entities/store-purchase-attempt.entity';
+import {
   REFUND_REQUEST_STATUS,
   type RefundRequestStatus,
 } from '../billing/entities/refund-request.entity';
@@ -46,6 +50,7 @@ import {
   type PaymentDetail,
   type PaymentRow,
   type PaymentSummary,
+  type StoreAttemptRow,
 } from './admin-payments.service';
 import type { Actor } from './admin-users.service';
 import { AuditService } from './audit.service';
@@ -63,6 +68,31 @@ class PaymentListQuery {
   @IsInt()
   @Min(1)
   user?: number;
+
+  @IsOptional()
+  @IsDateString()
+  from?: string;
+
+  @IsOptional()
+  @IsDateString()
+  to?: string;
+
+  @IsOptional()
+  @IsDateString()
+  cursor?: string;
+
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(MAX_PAYMENTS_PAGE)
+  limit?: number;
+}
+
+class StoreAttemptQuery {
+  @IsOptional()
+  @IsIn([...ATTEMPT_OUTCOMES])
+  outcome?: AttemptOutcome;
 
   @IsOptional()
   @IsDateString()
@@ -143,6 +173,24 @@ export class AdminPaymentsController {
   @Get('payments/summary')
   summary(): Promise<PaymentSummary> {
     return this.payments.summary();
+  }
+
+  /// D-266: Google Play / App Store attempts as the app reported them. Declared before
+  /// `payments/:orderId`, which would otherwise take `store-attempts` for an order id.
+  @Get('payments/store-attempts')
+  async storeAttempts(
+    @Query() q: StoreAttemptQuery,
+    @Request() request: StaffRequest,
+  ): Promise<{ rows: StoreAttemptRow[]; next_cursor: string | null }> {
+    const page = await this.payments.storeAttempts({
+      outcome: q.outcome,
+      from: q.from ? new Date(q.from) : undefined,
+      to: q.to ? new Date(q.to) : undefined,
+      cursor: q.cursor ? new Date(q.cursor) : undefined,
+      limit: q.limit,
+    });
+    const role = request.user.role?.id;
+    return { ...page, rows: page.rows.map((r) => withContact(role, r)) };
   }
 
   @Get('payments/:orderId')

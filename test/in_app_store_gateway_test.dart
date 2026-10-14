@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:health_pro/data/datasources/remote/in_app_store_gateway.dart';
 import 'package:health_pro/domain/repositories/payment_gateway.dart';
+import 'package:health_pro/domain/repositories/store_gateway.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
 import 'package:in_app_purchase_android/billing_client_wrappers.dart';
 import 'package:in_app_purchase_android/in_app_purchase_android.dart';
@@ -18,6 +19,9 @@ class _FakeStore implements InAppPurchase {
   /// The param the last purchase sheet was opened with — which offer was asked for.
   PurchaseParam? lastParam;
 
+  /// When set, Play's product lookup fails with this error and lists nothing.
+  IAPError? lookupError;
+
   @override
   Stream<List<PurchaseDetails>> get purchaseStream => events.stream;
 
@@ -27,18 +31,20 @@ class _FakeStore implements InAppPurchase {
   @override
   Future<ProductDetailsResponse> queryProductDetails(Set<String> identifiers) async =>
       ProductDetailsResponse(
-        productDetails:
-            catalogue ??
-            [
-              ProductDetails(
-                id: identifiers.first,
-                title: 'Pro',
-                description: '',
-                price: '₹649',
-                rawPrice: 649,
-                currencyCode: 'INR',
-              ),
-            ],
+        error: lookupError,
+        productDetails: lookupError != null
+            ? const []
+            : catalogue ??
+                  [
+                    ProductDetails(
+                      id: identifiers.first,
+                      title: 'Pro',
+                      description: '',
+                      price: '₹649',
+                      rawPrice: 649,
+                      currencyCode: 'INR',
+                    ),
+                  ],
         notFoundIDs: const [],
       );
 
@@ -126,10 +132,16 @@ PurchaseDetails _purchased() => PurchaseDetails(
 void main() {
   late _FakeStore store;
   late InAppStoreGateway gateway;
+  late List<StoreAttempt> reports;
 
   setUp(() {
     store = _FakeStore();
-    gateway = InAppStoreGateway(verify: (_, {offerCode}) async => null, iap: store);
+    reports = [];
+    gateway = InAppStoreGateway(
+      verify: (_, {offerCode}) async => null,
+      report: (attempt) async => reports.add(attempt),
+      iap: store,
+    );
   });
 
   Future<PaymentResult> buy(String productId) =>
@@ -265,6 +277,7 @@ void main() {
           codes.add(offerCode);
           return null;
         },
+        report: (_) async {},
         iap: store,
       );
       store.catalogue = _proCatalogue();
@@ -283,6 +296,159 @@ void main() {
       // Two listeners share the fake's stream: the gateway from setUp has no purchase waiting, so
       // it verifies without a code; the one that bought the offer sends it.
       expect(codes, contains('Ab3_dE-f9GhIjKlMnOpQrS'));
+    });
+  });
+
+  /// The second path to the same bug: Play's PRODUCT LOOKUP failing ("BillingResponse.
+  /// developerError" when the app is not installed from Play) put its code on the paywall too.
+  group('product lookup failures', () {
+    test('should turn a lookup error into a reason, never show its text', () async {
+      store.lookupError = IAPError(
+        source: 'google_play',
+        code: 'purchase_error',
+        message: 'BillingResponse.developerError',
+      );
+
+      final result = await buy('eatzify_basic');
+
+      expect(result.outcome, PaymentOutcome.failed);
+      expect(result.reason, PaymentFailureReason.storeFailed);
+      expect(result.message, isNull);
+      expect(store.launches, 0, reason: 'no purchase sheet for a product Play would not list');
+    });
+
+    test('should say the plan is not on sale when Play simply does not list it', () async {
+      store.catalogue = const [];
+
+      final result = await buy('eatzify_basic');
+
+      expect(result.reason, PaymentFailureReason.productUnavailable);
+      expect(result.message, isNull);
+    });
+  });
+
+  /// D-266: every started buy is reported for the support log, without touching its result.
+  group('attempt reports', () {
+    Future<PaymentResult> buyPlay({InAppStoreGateway? using}) => (using ?? gateway).buy(
+      productId: 'pro',
+      basePlanId: 'p3m',
+      accountToken: 'acct',
+      offerId: 'personal-399',
+    );
+
+    test('should report a cancel when the sheet is closed', () async {
+      final result = buy('eatzify_basic');
+      await pumpEventQueue();
+      store.events.add([_anonymous(PurchaseStatus.canceled)]);
+      await result;
+
+      expect(reports.single.outcome, StoreAttemptOutcome.cancelled);
+      expect(reports.single.provider, 'app_store', reason: 'no base plan: the App Store');
+      expect(reports.single.productId, 'eatzify_basic');
+      expect(reports.single.reason, isNull);
+    });
+
+    test("should report Play's code and the reason when Play errors", () async {
+      store.catalogue = _proCatalogue();
+      final result = buyPlay();
+      await pumpEventQueue();
+      store.events.add([_anonymous(PurchaseStatus.error, code: 'BillingResponse.developerError')]);
+      final paid = await result;
+
+      final report = reports.single;
+      expect(report.provider, 'play');
+      expect(report.productId, 'pro');
+      expect(report.basePlanId, 'p3m');
+      expect(report.offerId, 'personal-399');
+      expect(report.outcome, StoreAttemptOutcome.failed);
+      expect(report.reason, 'storeFailed');
+      expect(report.storeCode, 'BillingResponse.developerError');
+      expect(paid.storeCode, 'BillingResponse.developerError');
+      expect(paid.message, isNull, reason: 'the code is for the log, never the paywall');
+    });
+
+    test("should report Play's code when the product lookup fails", () async {
+      store.lookupError = IAPError(
+        source: 'google_play',
+        code: 'purchase_error',
+        message: 'BillingResponse.developerError',
+      );
+
+      await buyPlay();
+
+      expect(reports.single.outcome, StoreAttemptOutcome.failed);
+      expect(reports.single.reason, 'storeFailed');
+      expect(reports.single.storeCode, 'BillingResponse.developerError');
+    });
+
+    test('should report pending when the store holds the payment for later', () async {
+      final result = buy('eatzify_basic');
+      await pumpEventQueue();
+      store.events.add([_anonymous(PurchaseStatus.pending)]);
+
+      expect((await result).outcome, PaymentOutcome.submitted);
+      expect(reports.single.outcome, StoreAttemptOutcome.pending);
+    });
+
+    test('should report purchased when the server verifies the purchase', () async {
+      store.catalogue = _proCatalogue();
+      final result = buyPlay();
+      await pumpEventQueue();
+      store.events.add([_purchased()]);
+
+      expect((await result).outcome, PaymentOutcome.submitted);
+      expect(reports.single.outcome, StoreAttemptOutcome.purchased);
+      expect(reports.single.reason, isNull);
+    });
+
+    test('should report refused when the server will not verify the purchase', () async {
+      final refusing = InAppStoreGateway(
+        verify: (_, {offerCode}) async => 'We could not confirm this purchase.',
+        report: (attempt) async => reports.add(attempt),
+        iap: store,
+      );
+      store.catalogue = _proCatalogue();
+      final result = buyPlay(using: refusing);
+      await pumpEventQueue();
+      store.events.add([_purchased()]);
+
+      final paid = await result;
+      expect(paid.message, 'We could not confirm this purchase.');
+      expect(reports.single.outcome, StoreAttemptOutcome.refused);
+      expect(reports.single.reason, 'serverRefused');
+    });
+
+    test('should keep the purchase result when the reporter throws', () async {
+      final throwing = InAppStoreGateway(
+        verify: (_, {offerCode}) async => null,
+        report: (_) => throw StateError('offline'),
+        iap: store,
+      );
+      final hanging = InAppStoreGateway(
+        verify: (_, {offerCode}) async => null,
+        report: (_) => Completer<void>().future,
+        iap: store,
+      );
+
+      for (final g in [throwing, hanging]) {
+        final result = g.buy(productId: 'eatzify_basic', basePlanId: null, accountToken: 'a');
+        await pumpEventQueue();
+        store.events.add([_anonymous(PurchaseStatus.canceled)]);
+        expect((await result).outcome, PaymentOutcome.cancelled);
+      }
+    });
+
+    test('should not report a second tap when a purchase is already open', () async {
+      final first = buy('eatzify_basic');
+      await pumpEventQueue();
+
+      final second = await buy('eatzify_basic');
+      expect(second.outcome, PaymentOutcome.cancelled);
+      expect(reports, isEmpty, reason: 'the second tap never started a purchase');
+
+      store.events.add([_anonymous(PurchaseStatus.canceled)]);
+      await first;
+      expect(reports, hasLength(1));
     });
   });
 }

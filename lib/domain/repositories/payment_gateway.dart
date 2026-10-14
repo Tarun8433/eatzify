@@ -35,7 +35,7 @@ enum PaymentFailureReason {
 }
 
 class PaymentResult {
-  const PaymentResult(this.outcome, {this.message, this.reason});
+  const PaymentResult(this.outcome, {this.message, this.reason, this.storeCode});
 
   const PaymentResult.submitted() : this(PaymentOutcome.submitted);
   const PaymentResult.cancelled() : this(PaymentOutcome.cancelled);
@@ -47,6 +47,10 @@ class PaymentResult {
 
   /// Set when the store failed without words, so the app can say which of the two it was.
   final PaymentFailureReason? reason;
+
+  /// D-266: the store's own response code ("BillingResponse.developerError"), set only by the store
+  /// gateway, for the support log. Never shown — the paywall words [reason] instead.
+  final String? storeCode;
 }
 
 /// Opens the payment gateway for a started order.

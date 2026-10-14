@@ -22,6 +22,7 @@ import { AdminUsersService } from './admin-users.service';
 import { AdminStaffService } from './admin-staff.service';
 import { BillingModule } from '../billing/billing.module';
 import { PaymentOrderEntity } from '../billing/entities/payment-order.entity';
+import { StorePurchaseAttemptEntity } from '../billing/entities/store-purchase-attempt.entity';
 import { CouponEntity } from '../billing/entities/coupon.entity';
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
@@ -75,6 +76,7 @@ import { RulePacksService } from './rule-packs.service';
     CampaignsModule,
     TypeOrmModule.forFeature([
       PaymentOrderEntity,
+      StorePurchaseAttemptEntity,
       CouponEntity,
       AuditLogEntity,
       AdminTotpEntity,

@@ -14,6 +14,15 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { IsIn, IsOptional, IsString, MaxLength } from 'class-validator';
+import {
+  ATTEMPT_OUTCOMES,
+  ATTEMPT_PROVIDERS,
+  ATTEMPT_REASONS,
+  type AttemptOutcome,
+  type AttemptReason,
+} from './entities/store-purchase-attempt.entity';
+import { StoreAttemptsService } from './store/store-attempts.service';
+import type { StoreProvider } from './store/store-rules';
 import { AuthGuard } from '@nestjs/passport';
 import type { Response } from 'express';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
@@ -94,6 +103,40 @@ class AppStoreVerifyDto {
   signed_transaction: string;
 }
 
+/// D-266: how one store purchase attempt ended, as the app saw it. Never names an amount; the user
+/// is the caller, never a body field.
+export class StoreAttemptDto {
+  @IsIn([...ATTEMPT_PROVIDERS])
+  provider: StoreProvider;
+
+  @IsString()
+  @MaxLength(100)
+  product_id: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  base_plan_id?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  offer_id?: string;
+
+  @IsIn([...ATTEMPT_OUTCOMES])
+  outcome: AttemptOutcome;
+
+  @IsOptional()
+  @IsIn([...ATTEMPT_REASONS])
+  reason?: AttemptReason;
+
+  /// Play's raw code. Anything not shaped like one is stored as null rather than refused.
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  store_code?: string;
+}
+
 class SimulateDto {
   @IsString()
   order_id: string;
@@ -156,6 +199,7 @@ export class BillingController {
     private readonly appStore: AppStoreBillingService,
     private readonly invoices: InvoiceService,
     private readonly personalOffers: PersonalOffersService,
+    private readonly storeAttempts: StoreAttemptsService,
   ) {}
 
   /// docs/09 §7: the current state, its renewal date, and whether renewing needs AFA.
@@ -332,6 +376,25 @@ export class BillingController {
       );
     }
     return this.subscriptions.state(userId, now);
+  }
+
+  /// D-266: a store purchase attempt, kept for support. 204 always — past the hourly limit the
+  /// attempt is dropped, because the app must never break on a report.
+  @Post('store/attempts')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  public async storeAttempt(
+    @Request() request: RequestWithUser<JwtPayloadType>,
+    @Body() dto: StoreAttemptDto,
+  ): Promise<void> {
+    await this.storeAttempts.record(Number(request.user.id), {
+      provider: dto.provider,
+      productId: dto.product_id,
+      basePlanId: dto.base_plan_id ?? null,
+      offerId: dto.offer_id ?? null,
+      outcome: dto.outcome,
+      reason: dto.reason ?? null,
+      storeCode: dto.store_code ?? null,
+    });
   }
 
   /// D-265: a personal offer, the caller's own and still live; 404 for every other case alike.

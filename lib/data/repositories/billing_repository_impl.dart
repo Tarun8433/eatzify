@@ -5,6 +5,7 @@ import 'package:health_pro/domain/entities/billing.dart';
 import 'package:health_pro/domain/entities/invoice.dart';
 import 'package:health_pro/domain/entities/paid_order.dart';
 import 'package:health_pro/domain/repositories/billing_repository.dart';
+import 'package:health_pro/domain/repositories/store_gateway.dart';
 
 class BillingRepositoryImpl implements BillingRepository {
   BillingRepositoryImpl(this._remote);
@@ -69,6 +70,10 @@ class BillingRepositoryImpl implements BillingRepository {
     String purchaseToken, {
     String? offerCode,
   }) => _remote.verifyPlay(purchaseToken, offerCode: offerCode);
+
+  @override
+  Future<Either<Failure, Unit>> reportStoreAttempt(StoreAttempt attempt) =>
+      _remote.reportStoreAttempt(attempt);
 
   @override
   Future<Either<Failure, SubscriptionState>> verifyAppStore(String signedTransaction) =>

@@ -7,6 +7,11 @@ import {
 } from '../billing/entities/payment-order.entity';
 import { RefundRequestEntity } from '../billing/entities/refund-request.entity';
 import { SubscriptionEntity } from '../billing/entities/subscription.entity';
+import {
+  StorePurchaseAttemptEntity,
+  type AttemptOutcome,
+} from '../billing/entities/store-purchase-attempt.entity';
+import { playProduct } from '../billing/store/store-rules';
 import { NotificationsService } from '../notifications/notifications.service';
 import { UserEntity } from '../users/infrastructure/persistence/relational/entities/user.entity';
 import { istDayStart } from './admin-dashboard.service';
@@ -56,6 +61,28 @@ export type PaymentSummary = {
   failure_reasons: { reason: string; count: number }[];
   refund_requests_open: number;
   store_subscriptions: { play: number; app_store: number };
+  /// D-266: store purchase attempts since IST midnight; `failed` counts refused ones too.
+  store_attempts_today: { total: number; failed: number };
+};
+
+export type StoreAttemptRow = {
+  id: string;
+  user_id: number;
+  user_name: string;
+  email?: string | null;
+  email_masked: string | null;
+  phone?: string | null;
+  phone_masked: string | null;
+  provider: string;
+  product_id: string;
+  base_plan_id: string | null;
+  offer_id: string | null;
+  /// "BASIC 1M" when the store ids map to a plan, else the ids themselves.
+  plan: string;
+  outcome: AttemptOutcome;
+  reason: string | null;
+  store_code: string | null;
+  created_at: string;
 };
 
 /// Admin panel plan, Phase B: what people paid through Cashfree, what failed and why. Play and
@@ -74,6 +101,8 @@ export class AdminPaymentsService {
     private readonly subscriptions: Repository<SubscriptionEntity>,
     private readonly notifications: NotificationsService,
     private readonly audit: AuditService,
+    @InjectRepository(StorePurchaseAttemptEntity)
+    private readonly attempts: Repository<StorePurchaseAttemptEntity>,
   ) {}
 
   /// Newest first, keyset-paged on creation time (the cursor is the last row's `created_at`).
@@ -104,6 +133,38 @@ export class AdminPaymentsService {
     const people = await this.people(page.map((o) => o.userId));
     return {
       rows: page.map((o) => this.row(o, people.get(o.userId))),
+      next_cursor:
+        found.length > limit
+          ? page[page.length - 1].createdAt.toISOString()
+          : null,
+    };
+  }
+
+  /// D-266: store purchase attempts, newest first, keyset-paged like [list].
+  async storeAttempts(filter: {
+    outcome?: AttemptOutcome;
+    from?: Date;
+    to?: Date;
+    cursor?: Date;
+    limit?: number;
+  }): Promise<{ rows: StoreAttemptRow[]; next_cursor: string | null }> {
+    const limit = Math.min(Math.max(filter.limit ?? 50, 1), MAX_PAYMENTS_PAGE);
+    const q = this.attempts
+      .createQueryBuilder('a')
+      .orderBy('a.createdAt', 'DESC')
+      .take(limit + 1);
+    if (filter.outcome)
+      q.andWhere('a.outcome = :outcome', { outcome: filter.outcome });
+    if (filter.from) q.andWhere('a.createdAt >= :from', { from: filter.from });
+    if (filter.to) q.andWhere('a.createdAt <= :to', { to: filter.to });
+    if (filter.cursor)
+      q.andWhere('a.createdAt < :cursor', { cursor: filter.cursor });
+
+    const found = await q.getMany();
+    const page = found.slice(0, limit);
+    const people = await this.people(page.map((a) => a.userId));
+    return {
+      rows: page.map((a) => attemptRow(a, people.get(a.userId))),
       next_cursor:
         found.length > limit
           ? page[page.length - 1].createdAt.toISOString()
@@ -149,41 +210,56 @@ export class AdminPaymentsService {
         .createQueryBuilder('o')
         .innerJoin(UserEntity, 'u', 'u.id = o."userId" AND u."isDemo" = false');
 
-    const [byStatus, today, failed, reasons, open, store] = await Promise.all([
-      real()
-        .select('o.status', 'status')
-        .addSelect('COUNT(*)', 'n')
-        .addSelect('COALESCE(SUM(o."amountPaise"), 0)', 'sum')
-        .groupBy('o.status')
-        .getRawMany<{ status: OrderStatus; n: string; sum: string }>(),
-      real()
-        .select('COUNT(*)', 'n')
-        .addSelect('COALESCE(SUM(o."amountPaise"), 0)', 'sum')
-        .where('o."paidAt" >= :since', { since })
-        .andWhere(`o.status IN ('paid', 'refunded')`)
-        .getRawOne<{ n: string; sum: string }>(),
-      real()
-        .where('o."createdAt" >= :since', { since })
-        .andWhere(`o.status = 'failed'`)
-        .getCount(),
-      real()
-        .select(`COALESCE(o."failureReason", 'Unknown')`, 'reason')
-        .addSelect('COUNT(*)', 'n')
-        .where(`o.status = 'failed'`)
-        .groupBy('reason')
-        .orderBy('n', 'DESC')
-        .limit(10)
-        .getRawMany<{ reason: string; n: string }>(),
-      this.requests.count({ where: { status: 'requested' } }),
-      this.subscriptions
-        .createQueryBuilder('s')
-        .select('s.provider', 'provider')
-        .addSelect('COUNT(*)', 'n')
-        .where(`s.provider IN ('play', 'app_store')`)
-        .andWhere(`s.status IN ('trialing', 'active', 'grace', 'past_due')`)
-        .groupBy('s.provider')
-        .getRawMany<{ provider: string; n: string }>(),
-    ]);
+    const [byStatus, today, failed, reasons, open, store, attempts] =
+      await Promise.all([
+        real()
+          .select('o.status', 'status')
+          .addSelect('COUNT(*)', 'n')
+          .addSelect('COALESCE(SUM(o."amountPaise"), 0)', 'sum')
+          .groupBy('o.status')
+          .getRawMany<{ status: OrderStatus; n: string; sum: string }>(),
+        real()
+          .select('COUNT(*)', 'n')
+          .addSelect('COALESCE(SUM(o."amountPaise"), 0)', 'sum')
+          .where('o."paidAt" >= :since', { since })
+          .andWhere(`o.status IN ('paid', 'refunded')`)
+          .getRawOne<{ n: string; sum: string }>(),
+        real()
+          .where('o."createdAt" >= :since', { since })
+          .andWhere(`o.status = 'failed'`)
+          .getCount(),
+        real()
+          .select(`COALESCE(o."failureReason", 'Unknown')`, 'reason')
+          .addSelect('COUNT(*)', 'n')
+          .where(`o.status = 'failed'`)
+          .groupBy('reason')
+          .orderBy('n', 'DESC')
+          .limit(10)
+          .getRawMany<{ reason: string; n: string }>(),
+        this.requests.count({ where: { status: 'requested' } }),
+        this.subscriptions
+          .createQueryBuilder('s')
+          .select('s.provider', 'provider')
+          .addSelect('COUNT(*)', 'n')
+          .where(`s.provider IN ('play', 'app_store')`)
+          .andWhere(`s.status IN ('trialing', 'active', 'grace', 'past_due')`)
+          .groupBy('s.provider')
+          .getRawMany<{ provider: string; n: string }>(),
+        this.attempts
+          .createQueryBuilder('a')
+          .innerJoin(
+            UserEntity,
+            'u',
+            'u.id = a."userId" AND u."isDemo" = false',
+          )
+          .select('COUNT(*)', 'total')
+          .addSelect(
+            `COUNT(*) FILTER (WHERE a.outcome IN ('failed', 'refused'))`,
+            'failed',
+          )
+          .where('a."createdAt" >= :since', { since })
+          .getRawOne<{ total: string; failed: string }>(),
+      ]);
 
     const zero = { count: 0, amount_paise: '0' };
     const by: PaymentSummary['by_status'] = {
@@ -211,6 +287,10 @@ export class AdminPaymentsService {
       store_subscriptions: {
         play: storeBy.get('play') ?? 0,
         app_store: storeBy.get('app_store') ?? 0,
+      },
+      store_attempts_today: {
+        total: Number(attempts?.total ?? 0),
+        failed: Number(attempts?.failed ?? 0),
       },
     };
   }
@@ -286,4 +366,31 @@ export class AdminPaymentsService {
       refunded_at: o.refundedAt?.toISOString() ?? null,
     };
   }
+}
+
+function attemptRow(
+  a: StorePurchaseAttemptEntity,
+  u: UserEntity | undefined,
+): StoreAttemptRow {
+  const mapped = playProduct(a.productId, a.basePlanId);
+  return {
+    id: a.id,
+    user_id: a.userId,
+    user_name: [u?.firstName, u?.lastName].filter(Boolean).join(' '),
+    email: u?.email ?? null,
+    email_masked: maskEmail(u?.email ?? null),
+    phone: u?.phone ?? null,
+    phone_masked: maskPhone(u?.phone ?? null),
+    provider: a.provider,
+    product_id: a.productId,
+    base_plan_id: a.basePlanId,
+    offer_id: a.offerId,
+    plan: mapped
+      ? `${mapped.tier} ${mapped.duration}`
+      : [a.productId, a.basePlanId].filter(Boolean).join(' / '),
+    outcome: a.outcome,
+    reason: a.reason,
+    store_code: a.storeCode,
+    created_at: a.createdAt.toISOString(),
+  };
 }
