@@ -6348,3 +6348,16 @@ answers 204 and stores nothing, because the app must never break on a report (an
 delays or changes the purchase result). Admin: `GET /admin/payments/store-attempts` (`payments.read`,
 contact through `withContact`) and `store_attempts_today` on the payments summary (demo users
 excluded); the dashboard's Payments page gains a "Google Play attempts" tab.
+
+## D-267 — Home's "burned" is the day's steps at the person's own weight (amends D-256, D-246)
+
+**When** 2026-10-14 · **Decision** `GET /logs/day`'s `activity.energy_burned_kcal` is computed by the
+server from the day's steps (they already include `steps_added`) and the same rate per 1,000 steps
+as D-256 (latest trustworthy weight, else the profile's; height or measured stride), with the resting
+1 MET removed: `steps / 1000 × rate × (MET − 1) / MET` at 80 m/min. That way it adds no energy the
+plan's TDEE already counts. **Why:** Health Connect's "active energy" ignored the person's weight.
+One user saw 875 kcal for 10,834 steps, which is about 3× the ACSM figure for their weight.
+The phone's or a typed figure is used only on a day with no steps, or when there is no weight at all.
+Workouts (`workout_kcal`) are still added in the app (D-246). Home says "Estimated from your steps
+and weight" whenever steps are counted. Today's weight is used for past days too. A per-day weight
+can come later if history needs it.

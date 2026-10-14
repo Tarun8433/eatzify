@@ -9,6 +9,7 @@ import { MeasurementEntity } from '../measurements/entities/measurement.entity';
 import { PlanEntity } from '../plans/entities/plan.entity';
 import { GymWorkoutEntity } from '../gym/entities/gym-workout.entity';
 import { PlansModule } from '../plans/plans.module';
+import { MeasurementsModule } from '../measurements/measurements.module';
 
 @Module({
   imports: [
@@ -21,6 +22,8 @@ import { PlansModule } from '../plans/plans.module';
     ]),
     // The active rule pack's steps goal, read from EngineService.
     PlansModule,
+    // D-267: the person's walking rate, for the day's burned figure.
+    MeasurementsModule,
   ],
   controllers: [LogsController, MealPhotoController],
   providers: [LogsService],

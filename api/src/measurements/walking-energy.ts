@@ -79,3 +79,23 @@ export function kcalPer1000Steps(input: {
     stride_from: measured === null ? 'height' : 'distance',
   };
 }
+
+/// The ACTIVE share of a walking MET at the default pace: what walking burns above resting. The
+/// gross rate holds the resting 1 MET, which the plan's TDEE already counts (D-267).
+export const ACTIVE_SHARE = (() => {
+  const met =
+    (HORIZONTAL_VO2_PER_M * DEFAULT_WALKING_SPEED_M_PER_MIN + RESTING_VO2) /
+    RESTING_VO2;
+  return (met - 1) / met;
+})();
+
+/// Active kcal for a day's [steps] at the person's own gross rate per 1,000 steps (D-267). This,
+/// not a device's own figure, is what Home calls "burned": it is the person's weight that moves it.
+export function activeKcalForSteps(
+  steps: number,
+  rate: WalkingEnergy,
+): number {
+  if (steps <= 0) return 0;
+  return Math.round((steps / STEPS_PER_RATE) * rate.kcal * ACTIVE_SHARE);
+}
+

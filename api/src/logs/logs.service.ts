@@ -22,6 +22,8 @@ import {
   recentDiaryWindows,
 } from '../plans/diary-date';
 import { foldStepsAdded } from '../measurements/measurement-rules';
+import { MeasurementsService } from '../measurements/measurements.service';
+import { activeKcalForSteps } from '../measurements/walking-energy';
 
 export type DiaryWindowView = {
   diary_date: string;
@@ -103,6 +105,19 @@ export type DayView = {
   water: { logged_ml: number | null; target_ml: number | null };
 };
 
+/// D-267: what Home calls "burned" — the day's steps at the person's own weight, the resting part
+/// removed. A phone's own figure (Health Connect's "active energy") ignored their weight; it is
+/// used only on a day with no steps to work from, or when there is no weight at all.
+// ponytail: today's weight prices every day, past ones too; a per-day weight if history matters.
+export function burnedFromSteps(
+  steps: number | null,
+  rate: Parameters<typeof activeKcalForSteps>[1] | null,
+  reported: number | null,
+): number | null {
+  if (steps === null || steps <= 0 || rate === null) return reported;
+  return activeKcalForSteps(steps, rate);
+}
+
 /// docs/08: a diary entry is editable for 48 hours, then locked.
 const EDIT_WINDOW_MS = 48 * 60 * 60 * 1000;
 
@@ -125,6 +140,10 @@ export class LogsService {
     /// For the steps goal. Optional for the same reason as [workouts].
     @Optional()
     private readonly engine?: EngineService,
+    /// D-267: the person's own walking rate, from their weight and height. Optional for the same
+    /// reason as [workouts].
+    @Optional()
+    private readonly walking?: MeasurementsService,
   ) {}
 
   /// docs/09 §5. The diary date is resolved here, never sent by the client (CLAUDE.md rule 8).
@@ -302,7 +321,7 @@ export class LogsService {
   async day(userId: number, date?: string): Promise<DayView> {
     const diaryDate = date ?? diaryDateFor(new Date());
 
-    const [rows, plan, activity, workouts] = await Promise.all([
+    const [rows, plan, activity, workouts, walkingRate] = await Promise.all([
       this.logs.find({
         where: { userId, diaryDate },
         relations: { food: true },
@@ -322,6 +341,7 @@ export class LogsService {
       }),
       this.workouts?.find({ where: { userId, diaryDate } }) ??
         Promise.resolve([]),
+      this.walking?.walkingEnergy(userId) ?? Promise.resolve(null),
     ]);
 
     const added = activity.find((m) => m.kind === 'steps_added');
@@ -377,7 +397,11 @@ export class LogsService {
         : null,
       activity: {
         steps: reported('steps'),
-        energy_burned_kcal: reported('energy_burned_kcal'),
+        energy_burned_kcal: burnedFromSteps(
+          reported('steps'),
+          walkingRate,
+          reported('energy_burned_kcal'),
+        ),
         steps_source: rowFor('steps')?.source ?? null,
         steps_added: added === undefined ? null : Number(added.value),
         workout_kcal: workouts.some((w) => w.energyKcal !== null)

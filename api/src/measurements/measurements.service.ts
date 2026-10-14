@@ -284,7 +284,7 @@ export class MeasurementsService {
 
   /// D-256. Stride from the days a DEVICE measured both steps and distance — a typed figure or a
   /// person's added steps describe no walk — and the newest trustworthy weight, else the profile's.
-  private async walkingEnergy(userId: number): Promise<WalkingEnergy | null> {
+  async walkingEnergy(userId: number): Promise<WalkingEnergy | null> {
     const [rows, weight, profile] = await Promise.all([
       this.measurements.find({
         where: {

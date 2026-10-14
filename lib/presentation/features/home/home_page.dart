@@ -312,9 +312,9 @@ class _CalorieSummaryCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     final theme = Theme.of(context);
-    // D-246 (amends D-242): one figure for energy out. The device's own number and the day's
-    // workouts are added together here rather than shown as two rivals — with the split named
-    // under the card, because the workout half is an estimate and the device half is measured.
+    // D-246 (amends D-242): one figure for energy out. The day's steps and its workouts are added
+    // together here rather than shown as two rivals. D-267: the steps half is the server's, from
+    // the person's own weight — the phone's figure ignored it — and is labelled as an estimate.
     final device = day.energyBurnedKcal;
     final workout = day.workoutKcal;
     final burned = device == null && workout == null ? null : (device ?? 0) + (workout ?? 0);
@@ -478,6 +478,21 @@ class _CalorieSummaryCard extends StatelessWidget {
               ),
             ],
           ),
+          if (device != null && (day.steps ?? 0) > 0) ...[
+            const SizedBox(height: AppSpacing.xs),
+            Text(
+              l.homeBurnedFromWeight,
+              style: theme.textTheme.bodySmall?.copyWith(color: AppColors.darkMuted),
+            ),
+          ],
+          // D-267: with steps, the server prices them at the person's own weight — say so.
+          if ((day.steps ?? 0) > 0) ...[
+            const SizedBox(height: AppSpacing.xs),
+            Text(
+              l.homeBurnedEstimated,
+              style: theme.textTheme.bodySmall?.copyWith(color: AppColors.darkMuted),
+            ),
+          ],
           // What the figure above is made of, when part of it was estimated rather than measured.
           if (workout != null) ...[
             const SizedBox(height: AppSpacing.xs),
