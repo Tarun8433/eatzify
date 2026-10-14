@@ -52,6 +52,7 @@ function harness({
   rows = [] as PersonalOfferEntity[],
   playConfigured = true,
   userExists = true,
+  cashfree = undefined as { mode: string; androidEnabled: boolean } | undefined,
 } = {}) {
   const store = [...rows];
   const checkouts: Record<string, unknown>[] = [];
@@ -126,6 +127,7 @@ function harness({
       },
     } as never,
     { getOrThrow: () => 'https://api.example.test' } as never,
+    cashfree as never,
   );
   return { service, store, checkouts };
 }
@@ -146,6 +148,43 @@ async function errorOf(run: Promise<unknown>) {
 }
 
 describe('creating a personal offer', () => {
+  const cashfreeOffer = {
+    userId: 7,
+    channel: 'cashfree' as const,
+    tier: 'BASIC' as const,
+    duration: '1M' as const,
+    amountPaise: 100,
+  };
+
+  /// The offer the phone screenshot showed: ₹1, with no way to pay it on Android.
+  it('should refuse a cashfree offer when no app can pay it yet', async () => {
+    const { service, store } = harness({
+      cashfree: { mode: 'production', androidEnabled: false },
+    });
+
+    const refused = await errorOf(service.create(cashfreeOffer, 1, NOW));
+
+    expect(refused.status).toBe(422);
+    expect(refused.body.error.user_message).toMatch(/Google Play offer/);
+    expect(store).toHaveLength(0);
+  });
+
+  it('should allow a cashfree offer when User Choice Billing is on', async () => {
+    const { service, store } = harness({
+      cashfree: { mode: 'production', androidEnabled: true },
+    });
+    await service.create(cashfreeOffer, 1, NOW);
+    expect(store).toHaveLength(1);
+  });
+
+  it('should allow a cashfree offer when in stub mode, which moves no money', async () => {
+    const { service, store } = harness({
+      cashfree: { mode: 'stub', androidEnabled: false },
+    });
+    await service.create(cashfreeOffer, 1, NOW);
+    expect(store).toHaveLength(1);
+  });
+
   it('should store a cashfree offer and answer with its code and link when valid', async () => {
     const { service, store } = harness();
     const view = await service.create(
@@ -505,6 +544,11 @@ function controllerWith(cashfree: { mode: string; androidEnabled: boolean }) {
       calls.push(['play', ...a]);
       return Promise.resolve(true);
     },
+    forCaller: (_u: number, code: string) =>
+      Promise.resolve({
+        code,
+        channel: code.startsWith('play') ? 'play' : 'cashfree',
+      }),
   };
   const line = {
     productId: 'eatzify_premium',
@@ -569,5 +613,48 @@ describe('the offer routes', () => {
     });
     await controller.verifyPlay(request, { purchase_token: 't' });
     expect(calls).toHaveLength(0);
+  });
+});
+
+/// An offer opened on a phone that may not pay it is answered in words, not with a Buy button the
+/// checkout would then refuse.
+describe('opening an offer the app cannot pay', () => {
+  const asUser = { user: { id: 7 } } as never;
+
+  it('should refuse a cashfree offer on Android before User Choice Billing', async () => {
+    const { controller } = controllerWith({
+      mode: 'production',
+      androidEnabled: false,
+    });
+
+    const refused = await errorOf(
+      controller.personalOffer(asUser, 'cashfree-code-0000000', 'android'),
+    );
+
+    expect(refused.status).toBe(409);
+    expect(refused.body.error.code).toBe('OFFER_NOT_PAYABLE');
+    expect(refused.body.error.user_message).not.toMatch(/version of the app/);
+  });
+
+  it('should still show a Play offer there', async () => {
+    const { controller } = controllerWith({
+      mode: 'production',
+      androidEnabled: false,
+    });
+
+    await expect(
+      controller.personalOffer(asUser, 'play-code-00000000000', 'android'),
+    ).resolves.toMatchObject({ channel: 'play' });
+  });
+
+  it('should show a cashfree offer once User Choice Billing is on', async () => {
+    const { controller } = controllerWith({
+      mode: 'production',
+      androidEnabled: true,
+    });
+
+    await expect(
+      controller.personalOffer(asUser, 'cashfree-code-0000000', 'android'),
+    ).resolves.toMatchObject({ channel: 'cashfree' });
   });
 });

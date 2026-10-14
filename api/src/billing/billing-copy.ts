@@ -75,5 +75,12 @@ export const OFFER_NOT_FOUND =
   'This offer has expired or is no longer available.';
 export const OFFER_NOT_CASHFREE =
   'This offer is bought through Google Play. Please open it in the Eatzify app on your phone.';
+/// D-265: a Cashfree offer on an app that may not take Cashfree (iPhone; Android before User Choice
+/// Billing). Said plainly, with no hint that updating the app would help — it would not.
+export const OFFER_NOT_PAYABLE =
+  "This offer can't be paid for in the app yet. Nothing has been charged.";
+/// To the admin, when creating one: no app can pay a Cashfree offer today.
+export const OFFER_CASHFREE_NOT_PAYABLE_ADMIN =
+  'Cashfree offers cannot be paid in the app until Google approves User Choice Billing. Use a Google Play offer instead.';
 export const OFFER_CATALOG_UNAVAILABLE =
   'Could not read the Google Play catalogue right now. Please try again shortly.';

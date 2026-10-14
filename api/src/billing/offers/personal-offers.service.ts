@@ -1,9 +1,12 @@
+import { CashfreeClient } from '../cashfree.client';
+import { cashfreeOffered } from '../payment-rails';
 import {
   ConflictException,
   HttpStatus,
   Injectable,
   Logger,
   NotFoundException,
+  Optional,
   ServiceUnavailableException,
   UnprocessableEntityException,
 } from '@nestjs/common';
@@ -16,6 +19,7 @@ import {
   OFFER_CATALOG_UNAVAILABLE,
   OFFER_NOT_CASHFREE,
   OFFER_NOT_FOUND,
+  OFFER_CASHFREE_NOT_PAYABLE_ADMIN,
 } from '../billing-copy';
 import { CheckoutService, type CheckoutView } from '../checkout.service';
 import { PersonalOfferEntity } from '../entities/personal-offer.entity';
@@ -89,10 +93,21 @@ export class PersonalOffersService {
     private readonly play: PlayClient,
     private readonly checkout_: CheckoutService,
     private readonly config: ConfigService<AllConfigType>,
+    /// Whether the app may take Cashfree at all. Optional so older hand-built tests compile; the
+    /// module always provides it.
+    @Optional() private readonly cashfree?: CashfreeClient,
   ) {}
 
   /// The live Play catalogue. Empty when Play is not configured; an error when Play is and fails,
   /// so an admin is not told "there are no offers" when there may be.
+  /// Cashfree can be paid in the app on Android (the only platform it may be offered on) — stub
+  /// mode moves no money, so it always can.
+  private cashfreePayableInApp(): boolean {
+    const cashfree = this.cashfree;
+    if (!cashfree) return true;
+    return cashfreeOffered(cashfree.mode, 'android', cashfree.androidEnabled);
+  }
+
   async playCatalog(now = Date.now()): Promise<PlayCatalogueOffer[]> {
     if (!this.play.configured) return [];
     if (this.catalog && now - this.catalog.at < CATALOG_TTL_MS) {
@@ -125,6 +140,11 @@ export class PersonalOffersService {
     const listPaise = await this.prices.priceOf(input.tier, input.duration);
     const error = offerRequestError(input, listPaise);
     if (error) throw invalid(error);
+    // D-249: no app can pay a Cashfree offer today — iPhone never, Android only once Google
+    // approves User Choice Billing. Creating one would send a person a link they cannot use.
+    if (input.channel === 'cashfree' && !this.cashfreePayableInApp()) {
+      throw invalid(OFFER_CASHFREE_NOT_PAYABLE_ADMIN);
+    }
 
     if (input.channel === 'play') {
       const match = (await this.playCatalog()).find(

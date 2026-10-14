@@ -1,4 +1,5 @@
 import {
+  ConflictException,
   Body,
   Controller,
   ForbiddenException,
@@ -45,7 +46,11 @@ import {
 } from './refund-request.service';
 import { CashfreeClient } from './cashfree.client';
 import { CashfreeMode } from './cashfree.config';
-import { PAYMENTS_NOT_OFFERED, STUB_MODE } from './billing-copy';
+import {
+  OFFER_NOT_PAYABLE,
+  PAYMENTS_NOT_OFFERED,
+  STUB_MODE,
+} from './billing-copy';
 import { type Tier } from './tiers';
 import { type PriceMatrix } from './price.service';
 import { PlayBillingService } from './store/play-billing.service';
@@ -399,15 +404,32 @@ export class BillingController {
 
   /// D-265: a personal offer, the caller's own and still live; 404 for every other case alike.
   @Get('offers/:code')
-  public personalOffer(
+  public async personalOffer(
     @Request() request: RequestWithUser<JwtPayloadType>,
     @Param('code') code: string,
+    @Headers('X-Client-Platform') platform?: string,
   ): Promise<AppOfferView> {
-    return this.personalOffers.forCaller(
+    const offer = await this.personalOffers.forCaller(
       Number(request.user.id),
       code,
       new Date(),
     );
+    // A Cashfree offer this app may not pay (D-249) is not shown with a Buy button that the
+    // checkout would then refuse: it is answered here, in words, before the person tries.
+    if (
+      offer.channel === 'cashfree' &&
+      !cashfreeOffered(
+        this.cashfree.mode,
+        platformFrom(platform),
+        this.cashfree.androidEnabled,
+      )
+    ) {
+      throw new ConflictException({
+        status: HttpStatus.CONFLICT,
+        error: { code: 'OFFER_NOT_PAYABLE', user_message: OFFER_NOT_PAYABLE },
+      });
+    }
+    return offer;
   }
 
   /// D-265: pay for a Cashfree personal offer. Same gate and same answer as `POST /checkout`; the
