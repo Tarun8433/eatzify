@@ -114,7 +114,6 @@ class GymTodayCard extends StatelessWidget {
                           minimumSize: const Size(0, AppSpacing.xxl),
                           padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
                           textStyle: theme.textTheme.labelLarge,
-                          
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,

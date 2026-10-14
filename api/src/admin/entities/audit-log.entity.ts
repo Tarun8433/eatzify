@@ -58,6 +58,9 @@ export const AUDIT_ACTIONS = [
   'campaign_cancel',
   'announcement_publish',
   'coupon_update',
+  // D-265: personal offers.
+  'personal_offer_create',
+  'personal_offer_revoke',
 ] as const;
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];
 

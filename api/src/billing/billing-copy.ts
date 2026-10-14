@@ -68,3 +68,12 @@ export const REFUND_REQUEST_OPEN =
 export const REFUND_REQUEST_NOT_FOUND = 'That refund request no longer exists.';
 export const REFUND_REQUEST_DECIDED =
   'That refund request has already been decided.';
+
+/// D-265: personal offers. One message for unknown, someone else's, expired, used and revoked —
+/// which one it was is not something a link-holder should learn.
+export const OFFER_NOT_FOUND =
+  'This offer has expired or is no longer available.';
+export const OFFER_NOT_CASHFREE =
+  'This offer is bought through Google Play. Please open it in the Eatzify app on your phone.';
+export const OFFER_CATALOG_UNAVAILABLE =
+  'Could not read the Google Play catalogue right now. Please try again shortly.';

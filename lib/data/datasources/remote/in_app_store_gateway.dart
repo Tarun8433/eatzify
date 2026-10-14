@@ -9,8 +9,9 @@ import 'package:in_app_purchase_android/billing_client_wrappers.dart';
 import 'package:in_app_purchase_android/in_app_purchase_android.dart';
 
 /// Sends a purchase token to the server. Returns the server's `user_message` when it refused, or
-/// null when the purchase is now on the account.
-typedef VerifyPurchase = Future<String?> Function(String purchaseToken);
+/// null when the purchase is now on the account. [offerCode] is the personal offer (D-265) the
+/// purchase redeemed, when it was bought from one.
+typedef VerifyPurchase = Future<String?> Function(String purchaseToken, {String? offerCode});
 
 /// Google Play Billing and StoreKit 2, wrapped so the rest of the app never imports the plugin.
 /// [verify] is the platform's own server route (`play/verify` or `appstore/verify`).
@@ -31,6 +32,7 @@ class InAppStoreGateway implements StoreGateway {
   final InAppPurchase _iap;
 
   String? _pendingProduct;
+  String? _pendingOfferCode;
   Completer<PaymentResult>? _waiting;
   bool _resumed = false;
 
@@ -39,6 +41,8 @@ class InAppStoreGateway implements StoreGateway {
     required String productId,
     required String? basePlanId,
     required String accountToken,
+    String? offerId,
+    String? offerCode,
   }) async {
     // A second tap while the sheet is up would leave the first caller waiting forever.
     if (_waiting != null && !_waiting!.isCompleted) return const PaymentResult.cancelled();
@@ -49,10 +53,10 @@ class InAppStoreGateway implements StoreGateway {
     }
 
     final found = await _iap.queryProductDetails({productId});
-    final param = _param(found.productDetails, basePlanId, accountToken);
+    final param = _param(found.productDetails, basePlanId, accountToken, offerId: offerId);
     if (param == null) {
       debugPrint(
-        'store: no offer for $productId/${basePlanId ?? '-'} '
+        'store: no offer for $productId/${basePlanId ?? '-'}/${offerId ?? '-'} '
         '(not found: ${found.notFoundIDs}, error: ${found.error?.message})',
       );
       return _failed(found.error?.message, PaymentFailureReason.productUnavailable);
@@ -60,6 +64,7 @@ class InAppStoreGateway implements StoreGateway {
 
     final waiting = Completer<PaymentResult>();
     _pendingProduct = productId;
+    _pendingOfferCode = offerCode;
     _waiting = waiting;
 
     try {
@@ -69,9 +74,27 @@ class InAppStoreGateway implements StoreGateway {
         _finish(_failed(null));
       }
     } on Exception catch (e) {
-      _finish(_failed(e.toString()));
+      debugPrint('store: purchase sheet failed to open for $productId: $e');
+      _finish(_failed(null, PaymentFailureReason.storeFailed));
     }
     return waiting.future;
+  }
+
+  @override
+  Future<String?> offerPrice({
+    required String productId,
+    required String basePlanId,
+    required String offerId,
+  }) async {
+    try {
+      if (!await _iap.isAvailable()) return null;
+      final found = await _iap.queryProductDetails({productId});
+      // Play's figure for the offer's first pricing phase — what its sheet opens on.
+      return _param(found.productDetails, basePlanId, '', offerId: offerId)?.productDetails.price;
+    } on Exception catch (e) {
+      debugPrint('store: offer price unavailable for $productId/$basePlanId/$offerId: $e');
+      return null;
+    }
   }
 
   @override
@@ -86,7 +109,10 @@ class InAppStoreGateway implements StoreGateway {
 
   Future<void> _onPurchases(List<PurchaseDetails> purchases) async {
     for (final p in purchases) {
-      final waitedOn = p.productID == _pendingProduct;
+      // Play reports a closed sheet, or an error before any purchase exists, as one event with NO
+      // product id. Only one purchase is ever in flight, so a nameless event is that one's answer —
+      // matching on the id alone left it waiting forever, and the paywall stuck on "Please wait…".
+      final waitedOn = _waiting != null && (p.productID == _pendingProduct || p.productID.isEmpty);
       switch (p.status) {
         case PurchaseStatus.pending:
           // Money has not moved. Nothing to verify yet; Play re-reports it when it clears.
@@ -94,12 +120,22 @@ class InAppStoreGateway implements StoreGateway {
         case PurchaseStatus.canceled:
           if (waitedOn) _finish(const PaymentResult.cancelled());
         case PurchaseStatus.error:
-          if (waitedOn) _finish(_failed(p.error?.message));
+          if (waitedOn) _finish(_storeError(p.error));
         case PurchaseStatus.purchased:
         case PurchaseStatus.restored:
           // A restored purchase already acknowledged is one the server already has.
           if (p.status == PurchaseStatus.restored && !p.pendingCompletePurchase) continue;
-          final refused = await verify(p.verificationData.serverVerificationData);
+          // No token means nothing to verify; end the wait rather than hang on it.
+          if (p.verificationData.serverVerificationData.isEmpty) {
+            if (waitedOn) _finish(_failed(null));
+            continue;
+          }
+          // Read before the await: [_finish] for another event may clear it meanwhile.
+          final offerCode = waitedOn ? _pendingOfferCode : null;
+          final refused = await verify(
+            p.verificationData.serverVerificationData,
+            offerCode: offerCode,
+          );
           // The server acknowledges on verify; this is the backup, and Play ignores a second one.
           if (refused == null && p.pendingCompletePurchase) {
             await _iap.completePurchase(p).catchError((_) {});
@@ -118,6 +154,7 @@ class InAppStoreGateway implements StoreGateway {
   void _finish(PaymentResult result) {
     final waiting = _waiting;
     _pendingProduct = null;
+    _pendingOfferCode = null;
     _waiting = null;
     if (waiting != null && !waiting.isCompleted) waiting.complete(result);
   }
@@ -125,13 +162,39 @@ class InAppStoreGateway implements StoreGateway {
   static PaymentResult _failed(String? message, [PaymentFailureReason? reason]) =>
       PaymentResult(PaymentOutcome.failed, message: message, reason: reason);
 
-  /// Play: the base plan's own offer (no offer id) before any promotional offer on it.
+  /// Play's failure, as a reason the paywall words in the person's language. The code itself
+  /// ("BillingResponse.developerError") goes to the log — it once went straight onto the screen.
+  static PaymentResult _storeError(IAPError? error) {
+    final code = error?.message ?? '';
+    // Reaches logcat in release too: the store's code and its own debug text, nothing personal.
+    debugPrint('store: purchase failed: $code (${error?.details ?? '-'})');
+    return _failed(null, reasonForStoreCode(code));
+  }
+
+  /// Play's response codes, by what a person can do about them. Anything unrecognised — a code a
+  /// later plugin adds — is the generic failure, never shown raw.
+  @visibleForTesting
+  static PaymentFailureReason reasonForStoreCode(String code) => switch (code.split('.').last) {
+    'networkError' ||
+    'serviceUnavailable' ||
+    'serviceDisconnected' ||
+    'serviceTimeout' => PaymentFailureReason.storeBusy,
+    'billingUnavailable' || 'featureNotSupported' => PaymentFailureReason.storeUnavailable,
+    'itemUnavailable' => PaymentFailureReason.productUnavailable,
+    'itemAlreadyOwned' => PaymentFailureReason.alreadyOwned,
+    _ => PaymentFailureReason.storeFailed,
+  };
+
+  /// Play: the base plan's own offer (no offer id) before any promotional offer on it — or, given
+  /// [offerId] (D-265), exactly that offer and nothing else: falling back to the base price would
+  /// charge someone more than the offer they were sent.
   /// App Store (no [basePlanId]): the product itself; the account token must be a UUID.
   static PurchaseParam? _param(
     List<ProductDetails> found,
     String? basePlanId,
-    String accountToken,
-  ) {
+    String accountToken, {
+    String? offerId,
+  }) {
     if (basePlanId == null) {
       final product = found.firstOrNull;
       return product == null
@@ -141,7 +204,9 @@ class InAppStoreGateway implements StoreGateway {
     final plans = found.whereType<GooglePlayProductDetails>().where(
       (d) => _basePlanOf(d) == basePlanId,
     );
-    final offer = plans.where((d) => _offerOf(d) == null).firstOrNull ?? plans.firstOrNull;
+    final offer = offerId != null
+        ? plans.where((d) => _offerOf(d) == offerId).firstOrNull
+        : plans.where((d) => _offerOf(d) == null).firstOrNull ?? plans.firstOrNull;
     return offer == null
         ? null
         : GooglePlayPurchaseParam(productDetails: offer, applicationUserName: accountToken);

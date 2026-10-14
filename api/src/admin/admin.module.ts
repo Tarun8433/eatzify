@@ -7,6 +7,7 @@ import { AdminCampaignsService } from './admin-campaigns.service';
 import { AdminAlertsService } from './admin-alerts.service';
 import { CampaignsModule } from '../campaigns/campaigns.module';
 import { AdminPaymentsController } from './admin-payments.controller';
+import { AdminOffersController } from './admin-offers.controller';
 import { AdminPaymentsService } from './admin-payments.service';
 import { RefundRequestEntity } from '../billing/entities/refund-request.entity';
 import { NotificationEntity } from '../notifications/entities/notification.entity';
@@ -118,6 +119,7 @@ import { RulePacksService } from './rule-packs.service';
     AdminPayoutsController,
     AdminUsersController,
     AdminPaymentsController,
+    AdminOffersController,
     AdminCommsController,
     AdminReportsController,
   ],

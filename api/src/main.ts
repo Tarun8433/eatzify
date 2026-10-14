@@ -78,7 +78,8 @@ async function bootstrap() {
   app.setGlobalPrefix(
     configService.getOrThrow('app.apiPrefix', { infer: true }),
     {
-      exclude: ['/'],
+      // D-265: a personal-offer link is `https://<backend>/offer/<code>`, not under `/api`.
+      exclude: ['/', 'offer/:code'],
     },
   );
   app.enableVersioning({

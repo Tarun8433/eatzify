@@ -251,3 +251,70 @@ class UpgradeQuote {
   /// Nothing left to pay: the credit covered the whole price.
   bool get isFree => amountDuePaise == 0;
 }
+
+/// D-265: an offer an admin made for this one account, as `GET /billing/offers/:code` reports it.
+///
+/// The link carries only [code]. Every price here is the SERVER's (Cashfree) or Google Play's
+/// (a Play offer) — never anything the link or the phone could have said (rule 2/3).
+class PersonalOffer {
+  const PersonalOffer({
+    required this.code,
+    required this.channel,
+    required this.tier,
+    required this.months,
+    required this.expiresAt,
+    this.pricePaise,
+    this.regularPricePaise,
+    this.play,
+  });
+
+  PersonalOffer.fromJson(Map<String, dynamic> json)
+    : this(
+        code: json['code']?.toString() ?? '',
+        channel: json['channel']?.toString() ?? '',
+        tier: json['tier']?.toString() ?? '',
+        months: int.tryParse((json['duration']?.toString() ?? '').replaceAll('M', '')) ?? 0,
+        expiresAt: DateTime.tryParse(json['expires_at']?.toString() ?? '')?.toLocal(),
+        pricePaise: (json['price_paise'] as num?)?.toInt(),
+        regularPricePaise: (json['regular_price_paise'] as num?)?.toInt(),
+        play: json['play'] is Map<String, dynamic>
+            ? PlayOffer.fromJson(json['play'] as Map<String, dynamic>)
+            : null,
+      );
+
+  final String code;
+
+  /// `play` (a Google Play subscription offer) or `cashfree` (the server's own checkout).
+  final String channel;
+  final String tier;
+  final int months;
+  final DateTime? expiresAt;
+
+  /// Cashfree: what will be charged. Play: the catalogue price if the server knows it — the sheet
+  /// prefers Play's own figure, which is what the purchase sheet will actually say.
+  final int? pricePaise;
+
+  /// The plan's normal price, shown struck through when known.
+  final int? regularPricePaise;
+
+  /// Play only: which offer to ask the store for.
+  final PlayOffer? play;
+
+  bool get isPlay => channel == 'play';
+}
+
+/// The three ids that name one Play subscription offer. Server-named, never built on the phone.
+class PlayOffer {
+  const PlayOffer({required this.productId, required this.basePlanId, required this.offerId});
+
+  PlayOffer.fromJson(Map<String, dynamic> json)
+    : this(
+        productId: json['product_id']?.toString() ?? '',
+        basePlanId: json['base_plan_id']?.toString() ?? '',
+        offerId: json['offer_id']?.toString() ?? '',
+      );
+
+  final String productId;
+  final String basePlanId;
+  final String offerId;
+}

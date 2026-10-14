@@ -27,6 +27,8 @@ export const PERMISSIONS = [
   /// Scan policy, rule packs, prices, TDS rates.
   'settings.manage',
   'audit.read',
+  /// D-265: personal offers — one user's special price, sent as a link.
+  'offers.manage',
 ] as const;
 
 export type Permission = (typeof PERMISSIONS)[number];
@@ -55,6 +57,7 @@ export const ROLE_PERMISSIONS: Partial<
     'refunds.manage',
     'payouts.manage',
     'reports.read',
+    'offers.manage',
   ],
   [RoleEnum.content]: ['panel.access', 'content.manage', 'notify.send'],
 };
@@ -77,14 +80,15 @@ export function can(
   return permissionsFor(roleId).includes(permission);
 }
 
-/// D-261: the full email shows only to a role allowed to see contact details (`users.reveal`).
-/// Everyone else gets the masked one. Phone numbers stay masked for all, behind the audited reveal.
-export function withContact<T extends { email?: string | null }>(
-  roleId: number | string | undefined,
-  row: T,
-): T {
+/// D-261, amended by D-264: the full email — and, where a row carries it, the full mobile number —
+/// shows only to a role allowed to see contact details (`users.reveal`). Everyone else gets the
+/// masked ones; the full values are removed here, never left to the dashboard to hide.
+export function withContact<
+  T extends { email?: string | null; phone?: string | null },
+>(roleId: number | string | undefined, row: T): T {
   if (can(roleId, 'users.reveal')) return row;
-  const { email: _email, ...rest } = row;
+  const { email: _email, phone: _phone, ...rest } = row;
   void _email;
+  void _phone;
   return rest as T;
 }

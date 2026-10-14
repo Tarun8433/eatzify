@@ -1731,5 +1731,38 @@
   "recipeLog": "इसे लॉग करें",
   "recipeLogMeal": "कौन सा भोजन?",
   "recipeLogServings": "कितनी सर्विंग?",
-  "recipeLogged": "आपकी डायरी में जोड़ दिया गया"
+  "recipeLogged": "आपकी डायरी में जोड़ दिया गया",
+  "billingAlreadyOwned": "यह प्लान आपके Google Play खाते में पहले से है। इसे वापस पाने के लिए Eatzify बंद करके फिर खोलें। दोबारा कोई पैसा नहीं कटा।",
+  "billingStoreBusy": "Google Play से जुड़ नहीं पाए। अपना इंटरनेट कनेक्शन जाँचें और फिर कोशिश करें। कोई पैसा नहीं कटा।",
+  "billingStoreFailed": "Google Play यह खरीदारी पूरी नहीं कर पाया। कोई पैसा नहीं कटा। कृपया थोड़ी देर बाद फिर कोशिश करें।",
+  "offerSheetTitle": "आपके लिए एक खास ऑफ़र",
+  "offerPlan": "{tier} · {duration}",
+  "@offerPlan": {
+    "placeholders": {
+      "tier": {
+        "type": "String"
+      },
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "offerSpecialPrice": "खास कीमत",
+  "offerRegularPrice": "सामान्य कीमत {price}",
+  "@offerRegularPrice": {
+    "placeholders": {
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "offerEnds": "ऑफ़र {date} को खत्म होगा",
+  "@offerEnds": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "offerBuy": "यह ऑफ़र लें"
 }

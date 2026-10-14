@@ -206,6 +206,16 @@ class _Plans extends StatelessWidget {
   }
 }
 
+/// Every store failure in the person's own words — never the store's code. Shared with the
+/// personal-offer sheet (D-265).
+String storeProblemText(AppLocalizations l, PaymentFailureReason problem) => switch (problem) {
+  PaymentFailureReason.storeUnavailable => l.billingStoreUnavailable,
+  PaymentFailureReason.productUnavailable => l.billingPlanNotOnSale,
+  PaymentFailureReason.alreadyOwned => l.billingAlreadyOwned,
+  PaymentFailureReason.storeBusy => l.billingStoreBusy,
+  PaymentFailureReason.storeFailed => l.billingStoreFailed,
+};
+
 /// The sheet's one action: buy the selected row.
 ///
 /// It says the PRICE, because a button reading "Continue" on a screen of ten prices is a button
@@ -259,9 +269,7 @@ class _PayButton extends StatelessWidget {
               Padding(
                 padding: const EdgeInsets.only(bottom: AppSpacing.sm),
                 child: Text(
-                  problem == PaymentFailureReason.storeUnavailable
-                      ? l.billingStoreUnavailable
-                      : l.billingPlanNotOnSale,
+                  storeProblemText(l, problem),
                   textAlign: TextAlign.center,
                   style: theme.textTheme.bodySmall?.copyWith(color: theme.colorScheme.error),
                 ),

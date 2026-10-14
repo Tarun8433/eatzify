@@ -22,6 +22,16 @@ enum PaymentFailureReason {
 
   /// The store does not sell this plan (missing or inactive in the store's console).
   productUnavailable,
+
+  /// This store account already owns the plan. Reopening the app restores it.
+  alreadyOwned,
+
+  /// The store could not be reached just now (network, or its service is busy). Worth a retry.
+  storeBusy,
+
+  /// The store refused for a reason of its own (Play's `developerError`, `error`, or a code this
+  /// build does not know). Never shown as the store's code — that is for the log, not a person.
+  storeFailed,
 }
 
 class PaymentResult {

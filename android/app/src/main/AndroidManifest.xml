@@ -56,6 +56,18 @@
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
+            <!-- D-265: personal-offer links, eatzify://offer/<code>. The server's /offer/<code> page
+                 redirects here through an intent:// URL. The code is opaque; the app asks the
+                 server what it is. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="eatzify" android:host="offer" />
+            </intent-filter>
+            <!-- app_links reads the link; Flutter's own deep linking would also push it as a route,
+                 which this app (one shell, no named routes) has nowhere to put. -->
+            <meta-data android:name="flutter_deeplinking_enabled" android:value="false" />
         </activity>
 
         <!--

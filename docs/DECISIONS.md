@@ -6300,3 +6300,37 @@ a detail page and a log sheet. **Not done, by decision:** the plan generator doe
 that touches docs/04 and the golden vectors and needs sign-off. **Known ceilings:** the list is
 filtered in memory (fine for tens to hundreds of recipes); a recipe's entries are written one at a
 time, so a failure part-way leaves the earlier entries logged and visible.
+
+## D-264 — Full mobile number in admin Payments for roles that may see contact details
+**When** 2026-10-14 · **Decision** Product owner: in the Payments list and detail "the phone number
+and gmail will be full". Super admin, Admin and Support (`users.reveal`) now see the full mobile
+number there beside the full email; Finance and Content keep the masked ones, and the API removes the
+full values (`withContact`), so hiding them is not left to the dashboard. **Amends** D-261, which kept
+mobiles masked for everyone behind the audited Reveal — that reveal is unchanged everywhere else.
+**Departs from** docs/13 §4 ("mask by default") for these roles, at the product owner's request.
+
+
+## D-265 — Personal offers: a single-use link to one user's special price
+**When** 2026-10-14 · **Decision** Product owner: an admin can make a special price for ONE person
+and send it as a link (WhatsApp/email), on **both** payment channels. Table `personal_offer`
+(migration `1759800000000-PersonalOffers`, plus nullable `payment_order.personalOfferId`).
+**The link carries only an opaque code** (128 random bits, base64url, 22 chars):
+`https://<BACKEND_DOMAIN>/offer/<code>`, a public page outside the `/api` prefix that reads nothing
+from the database and only redirects to `intent://offer/<code>#Intent;scheme=eatzify;…` (Play
+listing as fallback). The app then asks `GET /billing/offers/:code` signed in; unknown, another
+user's, expired, used and revoked all answer the same 404 `OFFER_NOT_FOUND`, so a link cannot be
+edited into anything but "not found". Every price comes from the server row (Cashfree) or Play.
+**Channels:** `play` — an offer configured in Play Console, picked from the live catalogue
+(`GET /admin/offers/play-catalog`, androidpublisher `monetization.subscriptions.list` +
+`basePlans.offers.list`). **Play offers need AUTO-RENEWING base plans**: Play does not allow offers on
+prepaid base plans, and today's base plans are prepaid. Those new base plans must use ids that
+`playProduct()` maps (`p1m`/`p3m`/`p6m`/`p1y`), or the catalogue leaves them out. Eligibility is
+"developer determined", so only the app (told by the server) shows the offer; it is marked used in
+`POST /billing/play/verify` (`offer_code`) when the purchased line's product, base plan and offer id
+match. `cashfree` — any amount 1..the plan's normal price (PriceService, re-capped at checkout),
+via `POST /billing/offers/:code/checkout`, marked used by the verified webhook in `markPaid`. **On
+Android Cashfree needs User Choice Billing**: the route keeps the `cashfreeOffered` gate
+(`PAYMENTS_NOT_OFFERED`), and the dashboard says so. **Expiry** is the admin's choice, default 7 days
+(1–90). Permission `offers.manage`: super admin, admin, finance; create and revoke are audited
+(offer id and channel only — no amount, no PII). A Cashfree offer still refuses a person with a live
+plan (`ALREADY_SUBSCRIBED`), the same as a plain checkout. Coupons (D-236) are unchanged.

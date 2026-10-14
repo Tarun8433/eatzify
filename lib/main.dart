@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:app_links/app_links.dart';
 import 'package:flutter/foundation.dart' show kReleaseMode;
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
@@ -74,6 +75,10 @@ import 'package:health_pro/domain/usecases/sync_health.dart';
 import 'package:health_pro/presentation/features/account/account_controller.dart';
 import 'package:health_pro/presentation/features/auth/login_controller.dart';
 import 'package:health_pro/presentation/features/auth/login_page.dart';
+import 'package:health_pro/presentation/features/billing/billing_controller.dart';
+import 'package:health_pro/presentation/features/billing/offer_controller.dart';
+import 'package:health_pro/presentation/features/billing/offer_link_controller.dart';
+import 'package:health_pro/presentation/features/billing/offer_sheet.dart';
 import 'package:health_pro/presentation/features/gym/gym_controller.dart';
 import 'package:health_pro/presentation/features/home/home_controller.dart';
 import 'package:health_pro/presentation/features/onboarding/onboarding_controller.dart';
@@ -395,10 +400,12 @@ class EatzifyApp extends StatelessWidget {
       final billing = Get.find<BillingRepository>();
       Get.put<StoreGateway>(
         InAppStoreGateway(
-          verify: (token) async =>
+          // D-265: a Play purchase from a personal offer carries its code, so the server can mark
+          // the offer used. Apple has no offers here.
+          verify: (token, {offerCode}) async =>
               (await (GetPlatform.isIOS
                       ? billing.verifyAppStore(token)
-                      : billing.verifyPlay(token)))
+                      : billing.verifyPlay(token, offerCode: offerCode)))
                   .fold((f) => f.userMessage, (_) => null),
         ),
         permanent: true,
@@ -444,6 +451,45 @@ class EatzifyApp extends StatelessWidget {
       );
 
     attachSessionCleanup(session);
+
+    // D-265: personal-offer links (`eatzify://offer/<code>`). Constructed here, at launch, so the
+    // link that cold-started the app is on `app_links`' stream before anything could miss it.
+    if (!GetPlatform.isWeb && (GetPlatform.isAndroid || GetPlatform.isIOS)) {
+      Get.put(
+        OfferLinkController(
+          links: AppLinks().uriLinkStream,
+          session: session,
+          store: SecureStore(),
+          open: _openOffer,
+        ),
+        permanent: true,
+      );
+    }
+  }
+
+  /// Puts the offer sheet up over whatever is on screen. After a frame, because a sign-in that
+  /// releases a waiting code is the same frame the shell is swapped in; `scheduleFrame` because a
+  /// link that arrives while the app sits idle would otherwise wait for one that never comes.
+  static void _openOffer(String code) {
+    WidgetsBinding.instance
+      ..addPostFrameCallback((_) {
+        final context = Get.context;
+        if (context == null || !Get.isRegistered<BillingRepository>()) return;
+        OfferSheet.show(
+          context,
+          OfferController(
+            code: code,
+            billing: Get.find<BillingRepository>(),
+            gateway: Get.isRegistered<PaymentGateway>() ? Get.find<PaymentGateway>() : null,
+            store: Get.isRegistered<StoreGateway>() ? Get.find<StoreGateway>() : null,
+            // The tabs' own copy of the tier, re-read from the server (rule 3).
+            onPurchased: () async {
+              if (Get.isRegistered<BillingController>()) await Get.find<BillingController>().load();
+            },
+          ),
+        );
+      })
+      ..scheduleFrame();
   }
 
   /// Wires [clearUserScopedState] to the end of a session.

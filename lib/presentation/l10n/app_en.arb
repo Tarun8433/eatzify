@@ -3300,5 +3300,38 @@
   "recipeLog": "Log this",
   "recipeLogMeal": "Which meal?",
   "recipeLogServings": "How many servings?",
-  "recipeLogged": "Added to your diary"
+  "recipeLogged": "Added to your diary",
+  "billingAlreadyOwned": "You already have this plan on Google Play. Close and reopen Eatzify to restore it. Nothing was charged again.",
+  "billingStoreBusy": "We couldn't reach Google Play. Check your internet connection and try again. Nothing was charged.",
+  "billingStoreFailed": "Google Play couldn't complete this purchase. Nothing was charged. Please try again in a little while.",
+  "offerSheetTitle": "A special offer for you",
+  "offerPlan": "{tier} · {duration}",
+  "@offerPlan": {
+    "placeholders": {
+      "tier": {
+        "type": "String"
+      },
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "offerSpecialPrice": "Special price",
+  "offerRegularPrice": "Regular price {price}",
+  "@offerRegularPrice": {
+    "placeholders": {
+      "price": {
+        "type": "String"
+      }
+    }
+  },
+  "offerEnds": "Offer ends {date}",
+  "@offerEnds": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "offerBuy": "Get this offer"
 }

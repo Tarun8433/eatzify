@@ -85,7 +85,9 @@ Rect anchorRect(WidgetTester tester, ClientTab tab) =>
 
 void main() {
   group('the walker travels with the tabs', () {
-    testWidgets('the landscape path is under his feet, not his waist (D-63, D-138)', (tester) async {
+    testWidgets('the landscape path is under his feet, not his waist (D-63, D-138)', (
+      tester,
+    ) async {
       await tester.pumpWidget(shellUnderTest());
       await settle(tester);
 

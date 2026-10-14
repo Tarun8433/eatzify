@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { AllConfigType } from '../../config/config.type';
 import { PlayClient } from './play.client';
+import type { PlayLine } from '../offers/personal-offer-rules';
 import { StoreGrantService } from './store-grant.service';
 import {
   purchaseNotActive,
@@ -34,10 +35,12 @@ export class PlayBillingService {
     private readonly config: ConfigService<AllConfigType>,
   ) {}
 
-  /// `POST /billing/play/verify`, straight after a purchase on the phone.
-  async verify(userId: number, token: string, now: Date): Promise<void> {
+  /// `POST /billing/play/verify`, straight after a purchase on the phone. Answers with what was
+  /// bought (product, base plan, offer) so a personal offer can be matched against it (D-265).
+  async verify(userId: number, token: string, now: Date): Promise<PlayLine> {
     this.requireConfigured();
-    const grant = grantFromPlay(token, await this.play.subscription(token));
+    const purchase = await this.play.subscription(token);
+    const grant = grantFromPlay(token, purchase);
     if (!grant || grant.status === 'expired') throw purchaseNotActive();
     // The app attaches this account's token at purchase; one for another account is a replay.
     if (
@@ -49,6 +52,13 @@ export class PlayBillingService {
 
     await this.grants.apply(userId, grant, now);
     if (grant.needsAcknowledge) await this.acknowledge(grant.productId, token);
+
+    const item = purchase.lineItems?.[0];
+    return {
+      productId: item?.productId ?? null,
+      basePlanId: item?.offerDetails?.basePlanId ?? null,
+      offerId: item?.offerDetails?.offerId ?? null,
+    };
   }
 
   /// Real-time developer notifications: renewals, cancellations, refunds, grace, holds. The

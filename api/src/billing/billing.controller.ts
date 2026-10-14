@@ -45,6 +45,10 @@ import { InvoiceService, type InvoiceView } from './invoice/invoice.service';
 import type { RequestWithUser } from '../utils/types/request-with-user.type';
 import type { JwtPayloadType } from '../auth/strategies/types/jwt-payload.type';
 import { cashfreeOffered, platformFrom } from './payment-rails';
+import {
+  PersonalOffersService,
+  type AppOfferView,
+} from './offers/personal-offers.service';
 
 // D-248: 9 months is no longer sold — Google Play and the App Store cannot bill it, and one plan
 // list on every payment method is what users see.
@@ -74,6 +78,13 @@ class PlayVerifyDto {
   @IsString()
   @MaxLength(1024)
   purchase_token: string;
+
+  /// D-265: the personal offer this purchase was made from, if any. Only marks the link spent —
+  /// the purchase itself never depends on it, because Play has already enforced the price.
+  @IsOptional()
+  @IsString()
+  @MaxLength(64)
+  offer_code?: string;
 }
 
 class AppStoreVerifyDto {
@@ -144,6 +155,7 @@ export class BillingController {
     private readonly play: PlayBillingService,
     private readonly appStore: AppStoreBillingService,
     private readonly invoices: InvoiceService,
+    private readonly personalOffers: PersonalOffersService,
   ) {}
 
   /// docs/09 §7: the current state, its renewal date, and whether renewing needs AFA.
@@ -310,8 +322,48 @@ export class BillingController {
   ): Promise<SubscriptionStateView> {
     const userId = Number(request.user.id);
     const now = new Date();
-    await this.play.verify(userId, dto.purchase_token, now);
+    const line = await this.play.verify(userId, dto.purchase_token, now);
+    if (dto.offer_code) {
+      await this.personalOffers.markUsedByPlay(
+        userId,
+        dto.offer_code,
+        line,
+        now,
+      );
+    }
     return this.subscriptions.state(userId, now);
+  }
+
+  /// D-265: a personal offer, the caller's own and still live; 404 for every other case alike.
+  @Get('offers/:code')
+  public personalOffer(
+    @Request() request: RequestWithUser<JwtPayloadType>,
+    @Param('code') code: string,
+  ): Promise<AppOfferView> {
+    return this.personalOffers.forCaller(
+      Number(request.user.id),
+      code,
+      new Date(),
+    );
+  }
+
+  /// D-265: pay for a Cashfree personal offer. Same gate and same answer as `POST /checkout`; the
+  /// amount is the offer's, read from its row.
+  @Post('offers/:code/checkout')
+  @HttpCode(HttpStatus.OK)
+  public personalOfferCheckout(
+    @Request() request: RequestWithUser<JwtPayloadType>,
+    @Param('code') code: string,
+    @Headers('Idempotency-Key') idempotencyKey?: string,
+    @Headers('X-Client-Platform') platform?: string,
+  ): Promise<CheckoutView> {
+    this.refuseUnlessCashfreeOffered(platform);
+    return this.personalOffers.startCheckout(
+      Number(request.user.id),
+      code,
+      idempotencyKey ?? null,
+      new Date(),
+    );
   }
 
   /// D-255: this account's GST invoices and credit notes, newest first. Empty until the business

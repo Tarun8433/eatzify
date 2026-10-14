@@ -21,7 +21,6 @@ class PremiumPill extends StatelessWidget {
 
     // The reference pill is the quiet green tint with the brand green on it, not a gold banner —
     // the scheme's secondaryContainer pair, so dark mode gets its own tint for free.
-   
 
     return Obx(() {
       if (!billing.showPremium) return const SizedBox.shrink();
@@ -32,17 +31,14 @@ class PremiumPill extends StatelessWidget {
           shape: const StadiumBorder(),
           minimumSize: const Size(0, AppSpacing.xxl),
           padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-           textStyle: theme.textTheme.labelLarge,
+          textStyle: theme.textTheme.labelLarge,
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             const Icon(Icons.workspace_premium, size: AppSpacing.lg),
             const SizedBox(width: AppSpacing.xs),
-            Text(
-              l.premiumGo,
-              
-            ),
+            Text(l.premiumGo),
             const Icon(Icons.chevron_right, size: AppSpacing.lg),
           ],
         ),

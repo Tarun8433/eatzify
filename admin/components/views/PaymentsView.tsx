@@ -22,6 +22,9 @@ type Payment = {
   user_name: string;
   email?: string | null;
   email_masked: string | null;
+  /// Full only for a role allowed to see contact details; the API removes it otherwise (D-264).
+  phone?: string | null;
+  phone_masked: string | null;
   amount_paise: string;
   discount_paise: string;
   coupon: string | null;
@@ -37,7 +40,6 @@ type Payment = {
 };
 
 type Detail = Payment & {
-  phone_masked: string | null;
   refund_requests: { id: string; status: string; reason: string; created_at: string }[];
   subscription: { tier: string; status: string; ends_at: string | null } | null;
 };
@@ -183,8 +185,12 @@ export function PaymentsView({
                 <tr key={p.order_id} onClick={() => setOpen(p.order_id)} className="cursor-pointer border-t border-line hover:bg-raised/50">
                   <td className="px-3 py-2 font-mono text-[12px] text-ink-muted">{p.order_id}</td>
                   <td className="px-3 py-2 text-ink">
-                    {p.user_name || p.email || p.email_masked || '—'}
+                    {p.user_name || '—'}
                     <span className="ml-1.5 text-[12px] text-ink-muted">#{p.user_id}</span>
+                    {/* Who paid, reachable: the email and mobile under the name (D-264). */}
+                    <div className="text-[12px] text-ink-muted">
+                      {[p.email ?? p.email_masked, p.phone ?? p.phone_masked].filter(Boolean).join(' · ') || '—'}
+                    </div>
                   </td>
                   <td className="px-3 py-2 text-right text-ink">{inr(p.amount_paise)}</td>
                   <td className="px-3 py-2 text-ink-muted">{p.plan}</td>
@@ -242,7 +248,7 @@ function PaymentDetail({
         ['Order', p.order_id],
         ['User', `${p.user_name || '—'} #${p.user_id}`],
         ['Email', p.email ?? p.email_masked ?? '—'],
-        ['Mobile', p.phone_masked ?? '—'],
+        ['Mobile', p.phone ?? p.phone_masked ?? '—'],
         ['Amount', inr(p.amount_paise)],
         ['Discount', p.coupon ? `${inr(p.discount_paise)} (${p.coupon})` : '—'],
         ['Plan', `${p.plan} · ${p.kind}`],

@@ -29,6 +29,9 @@ import { TierPriceEntity } from './entities/tier-price.entity';
 import { PaymentOrderEntity } from './entities/payment-order.entity';
 import { UserEntity } from '../users/infrastructure/persistence/relational/entities/user.entity';
 import { PartnerModule } from '../partner/partner.module';
+import { PersonalOfferEntity } from './entities/personal-offer.entity';
+import { PersonalOffersService } from './offers/personal-offers.service';
+import { OfferPageController } from './offers/offer-page.controller';
 import { NotificationsModule } from '../notifications/notifications.module';
 
 @Module({
@@ -41,6 +44,7 @@ import { NotificationsModule } from '../notifications/notifications.module';
       RefundRequestEntity,
       TierPriceEntity,
       InvoiceEntity,
+      PersonalOfferEntity,
       // Cashfree needs a contactable customer, and the number lives on the user row.
       UserEntity,
     ]),
@@ -54,6 +58,7 @@ import { NotificationsModule } from '../notifications/notifications.module';
     CashfreeWebhookController,
     PlayNotificationController,
     AppStoreNotificationController,
+    OfferPageController,
   ],
   providers: [
     CouponsService,
@@ -72,8 +77,10 @@ import { NotificationsModule } from '../notifications/notifications.module';
     RefundService,
     RefundRequestService,
     CashfreeClient,
+    PersonalOffersService,
   ],
   exports: [
+    PersonalOffersService,
     BillingService,
     RefundService,
     RefundRequestService,

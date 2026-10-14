@@ -5,6 +5,7 @@ import { call, errorText } from '@/lib/client';
 import { inr, stamp } from '@/lib/format';
 import { Button, ConfirmDialog, ErrorNote, Loadable, ViewHeader, type ConfirmField } from '../ui';
 import { STATE_LABEL, type UserRow } from './UsersView';
+import { SpecialOfferSection } from './SpecialOfferSection';
 
 type Detail = UserRow & {
   provider: string;
@@ -189,6 +190,7 @@ export function UserDetail({
                 ])}
               />
             </Section>
+            {can('offers.manage') && <SpecialOfferSection userId={userId} />}
             <Section title="Support tickets">
               <SimpleTable
                 empty="No tickets."

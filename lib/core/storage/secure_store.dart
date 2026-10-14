@@ -36,6 +36,11 @@ class SecureStore {
   /// the email code can be entered after the app was closed. Cleared with the session.
   static const _kJoinAs = 'signup.join_as';
 
+  /// D-265: a personal-offer code from a link opened while signed out, held until sign-in. Only the
+  /// opaque code — the offer itself is the server's. [clear] removes it: a sign-out ends whatever
+  /// the last person was in the middle of.
+  static const _kPendingOffer = 'offer.pending_code';
+
   Future<void> save(Session session) async {
     await Future.wait([
       _storage.write(key: _kAccess, value: session.accessToken),
@@ -120,6 +125,20 @@ class SecureStore {
       return null;
     }
   }
+
+  Future<void> writePendingOfferCode(String code) =>
+      _storage.write(key: _kPendingOffer, value: code);
+
+  /// Null when none is waiting or the keychain cannot be read — a lost link is re-tappable.
+  Future<String?> readPendingOfferCode() async {
+    try {
+      return await _storage.read(key: _kPendingOffer);
+    } on Object {
+      return null;
+    }
+  }
+
+  Future<void> clearPendingOfferCode() => _storage.delete(key: _kPendingOffer);
 
   /// False rather than throwing when the keychain is unreadable. [clear] is the recovery path for
   /// exactly that failure, so a read in it that can throw would strand the app on the splash — the

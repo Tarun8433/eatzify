@@ -22,6 +22,9 @@ export type PaymentRow = {
   user_name: string;
   email?: string | null;
   email_masked: string | null;
+  /// The full mobile number; removed by the controller for a role without `users.reveal` (D-264).
+  phone?: string | null;
+  phone_masked: string | null;
   amount_paise: string;
   discount_paise: string;
   coupon: string | null;
@@ -38,7 +41,6 @@ export type PaymentRow = {
 };
 
 export type PaymentDetail = PaymentRow & {
-  phone_masked: string | null;
   refund_requests: {
     id: string;
     status: string;
@@ -124,7 +126,6 @@ export class AdminPaymentsService {
     const person = people.get(order.userId);
     return {
       ...this.row(order, person),
-      phone_masked: maskPhone(person?.phone ?? null),
       refund_requests: requests.map((r) => ({
         id: r.id,
         status: r.status,
@@ -269,6 +270,8 @@ export class AdminPaymentsService {
       user_name: [u?.firstName, u?.lastName].filter(Boolean).join(' '),
       email: u?.email ?? null,
       email_masked: maskEmail(u?.email ?? null),
+      phone: u?.phone ?? null,
+      phone_masked: maskPhone(u?.phone ?? null),
       amount_paise: String(o.amountPaise),
       discount_paise: String(o.discountPaise ?? '0'),
       coupon: o.couponCode,

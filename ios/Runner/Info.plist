@@ -32,7 +32,21 @@
 				<string>com.googleusercontent.apps.1013683869281-pdor2hci093rm4jvtm8m0hkukemp0i2n</string>
 			</array>
 		</dict>
+		<!-- D-265: personal-offer links, eatzify://offer/<code>. -->
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+			<key>CFBundleURLName</key>
+			<string>com.zynthovo.eatzify.offer</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>eatzify</string>
+			</array>
+		</dict>
 	</array>
+	<!-- app_links reads the link; Flutter's own deep linking would also push it as a route. -->
+	<key>FlutterDeepLinkingEnabled</key>
+	<false/>
 	<key>CFBundleSignature</key>
 	<string>????</string>
 	<key>CFBundleVersion</key>

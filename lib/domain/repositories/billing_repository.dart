@@ -27,6 +27,17 @@ abstract class BillingRepository {
     String? couponCode,
   });
 
+  /// D-265: the personal offer behind [code], if it is this account's and still open. Anything else
+  /// — unknown, someone else's, expired, used, revoked — is the same `OFFER_NOT_FOUND` failure.
+  Future<Either<Failure, PersonalOffer>> offer(String code);
+
+  /// D-265: a Cashfree order for a `cashfree` offer, at the offer's amount — which the SERVER reads
+  /// from the offer. Like [checkout] it grants nothing by itself.
+  Future<Either<Failure, CheckoutSession>> offerCheckout({
+    required String code,
+    required String idempotencyKey,
+  });
+
   /// docs/09 §7: the plan someone holds, its renewal date, and whether renewing needs the bank's
   /// approval.
   Future<Either<Failure, SubscriptionState>> subscription();
@@ -54,7 +65,10 @@ abstract class BillingRepository {
 
   /// Payments plan, Phase 4: a Google Play purchase token, checked with Google by the SERVER before
   /// anything is granted. Answers with the plan as it now stands.
-  Future<Either<Failure, SubscriptionState>> verifyPlay(String purchaseToken);
+  ///
+  /// [offerCode] (D-265) names the personal offer this purchase redeemed, so the server can mark it
+  /// used. The purchase never depends on it: Play has already enforced the price.
+  Future<Either<Failure, SubscriptionState>> verifyPlay(String purchaseToken, {String? offerCode});
 
   /// Payments plan, Phase 5: StoreKit 2's signed transaction, checked with Apple by the SERVER.
   Future<Either<Failure, SubscriptionState>> verifyAppStore(String signedTransaction);

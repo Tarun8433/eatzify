@@ -46,6 +46,36 @@ class BillingRemoteDataSource {
     }
   }
 
+  /// `GET /billing/offers/:code` (D-265). A 404 is `OFFER_NOT_FOUND` with the server's one message
+  /// for every reason, which [mapDioError] carries through as the failure's text.
+  Future<Either<Failure, PersonalOffer>> offer(String code) async {
+    try {
+      final res = await _dio.get<Map<String, dynamic>>(
+        '/billing/offers/${Uri.encodeComponent(code)}',
+      );
+      return Right(PersonalOffer.fromJson(res.data ?? const {}));
+    } on DioException catch (e) {
+      return Left(mapDioError(e));
+    }
+  }
+
+  /// `POST /billing/offers/:code/checkout` (D-265): the same `CheckoutView` as [checkout], at the
+  /// offer's amount. Sends nothing but the code; `X-Client-Platform` rides on every request.
+  Future<Either<Failure, CheckoutSession>> offerCheckout({
+    required String code,
+    required String idempotencyKey,
+  }) async {
+    try {
+      final res = await _dio.post<Map<String, dynamic>>(
+        '/billing/offers/${Uri.encodeComponent(code)}/checkout',
+        options: Options(headers: {'Idempotency-Key': idempotencyKey}),
+      );
+      return Right(CheckoutSession.fromJson(res.data ?? const {}));
+    } on DioException catch (e) {
+      return Left(mapDioError(e));
+    }
+  }
+
   /// `GET /billing/subscription` (docs/09 §7).
   Future<Either<Failure, SubscriptionState>> subscription() =>
       _state(() => _dio.get<Map<String, dynamic>>('/billing/subscription'));
@@ -159,10 +189,14 @@ class BillingRemoteDataSource {
   );
 
   /// `POST /billing/play/verify` (Payments plan, Phase 4).
-  Future<Either<Failure, SubscriptionState>> verifyPlay(String purchaseToken) => _state(
+  /// [offerCode] (D-265): the personal offer this purchase redeemed, for the server to mark used.
+  Future<Either<Failure, SubscriptionState>> verifyPlay(
+    String purchaseToken, {
+    String? offerCode,
+  }) => _state(
     () => _dio.post<Map<String, dynamic>>(
       '/billing/play/verify',
-      data: {'purchase_token': purchaseToken},
+      data: {'purchase_token': purchaseToken, if (offerCode != null) 'offer_code': offerCode},
     ),
   );
 

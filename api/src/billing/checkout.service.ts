@@ -8,10 +8,11 @@ import {
   Optional,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In, Repository } from 'typeorm';
+import { In, IsNull, Repository } from 'typeorm';
 import { randomUUID } from 'node:crypto';
 import { CouponsService } from './coupons.service';
 import { PaymentOrderEntity } from './entities/payment-order.entity';
+import { PersonalOfferEntity } from './entities/personal-offer.entity';
 import { SubscriptionEntity } from './entities/subscription.entity';
 import { UserEntity } from '../users/infrastructure/persistence/relational/entities/user.entity';
 import { CashfreeClient } from './cashfree.client';
@@ -81,6 +82,10 @@ export class CheckoutService {
     @Optional() private readonly play: PlayBillingService | null = null,
     // D-255: the GST invoice. Optional for the same reason.
     @Optional() private readonly invoices: InvoiceService | null = null,
+    // D-265: a paid order spends the personal offer it redeems. Optional for the same reason.
+    @Optional()
+    @InjectRepository(PersonalOfferEntity)
+    private readonly personalOffers: Repository<PersonalOfferEntity> | null = null,
   ) {}
 
   /**
@@ -178,6 +183,7 @@ export class CheckoutService {
     now,
     couponCode,
     externalTransactionToken,
+    personalOffer,
   }: {
     userId: number;
     tier: Exclude<Tier, 'FREE'>;
@@ -186,6 +192,9 @@ export class CheckoutService {
     now: Date;
     couponCode?: string | null;
     externalTransactionToken?: string | null;
+    /// D-265: the amount comes from the offer ROW (already checked against the list price by
+    /// the caller), never from a request. No coupon stacks on it.
+    personalOffer?: { id: string; amountPaise: bigint } | null;
   }): Promise<CheckoutView> {
     if (idempotencyKey) {
       // docs/09: a retried POST must not create a second order, and must not re-charge.
@@ -200,10 +209,10 @@ export class CheckoutService {
 
     // D-236: the offer, applied server-side against the recomputed list price — the body still
     // never carries an amount. percentOff is capped at 90 on creation, so this cannot reach 0.
-    let amountPaise = BigInt(listPaise);
+    let amountPaise = personalOffer?.amountPaise ?? BigInt(listPaise);
     let discountPaise = 0n;
     let appliedCoupon: string | null = null;
-    if (couponCode) {
+    if (couponCode && !personalOffer) {
       const offer = await this.coupons_.discountFor(
         couponCode,
         amountPaise,
@@ -241,6 +250,7 @@ export class CheckoutService {
         couponCode: appliedCoupon,
         discountPaise: String(discountPaise),
         externalTransactionToken: externalTransactionToken ?? null,
+        personalOfferId: personalOffer?.id ?? null,
         status: 'created',
         idempotencyKey,
       }),
@@ -292,6 +302,13 @@ export class CheckoutService {
     // D-236: a use is spent only here, where the payment is known to be real — an abandoned
     // checkout never burns one.
     if (order.couponCode) await this.coupons_.redeem(order.couponCode);
+    // D-265: the same for a personal offer — spent only once the money is known to be real.
+    if (order.personalOfferId) {
+      await this.personalOffers?.update(
+        { id: order.personalOfferId, usedAt: IsNull() },
+        { usedAt: now },
+      );
+    }
 
     const renewal = await this.activate(order, now);
 

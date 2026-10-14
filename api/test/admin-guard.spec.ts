@@ -5,7 +5,10 @@ import { AdminUsersController } from '../src/admin/admin-users.controller';
 import { AdminPaymentsController } from '../src/admin/admin-payments.controller';
 import { AdminCommsController } from '../src/admin/admin-comms.controller';
 import { AdminReportsController } from '../src/admin/admin-reports.controller';
+import { AdminOffersController } from '../src/admin/admin-offers.controller';
 import { PermissionsGuard } from '../src/admin/permissions.guard';
+import { can } from '../src/admin/permissions';
+import { RoleEnum } from '../src/roles/roles.enum';
 
 /// D-238. The guard decorators once sat on a DTO class that had been inserted between them and
 /// `@Controller`, so every `/admin/*` route on this controller answered without a login. The
@@ -20,6 +23,7 @@ describe.each([
   ['AdminPaymentsController', AdminPaymentsController, 'payments.read'],
   ['AdminCommsController', AdminCommsController, 'notify.send'],
   ['AdminReportsController', AdminReportsController, 'reports.read'],
+  ['AdminOffersController', AdminOffersController, 'offers.manage'],
 ])('%s', (_name, controller, permission) => {
   it('should guard the whole class with the JWT and permissions guards', () => {
     const guards: unknown[] =
@@ -32,5 +36,18 @@ describe.each([
 
   it('should default every route to a named permission', () => {
     expect(Reflect.getMetadata('admin-permit', controller)).toBe(permission);
+  });
+});
+
+/// D-265: personal offers are for super admin, admin and finance only.
+describe('offers.manage', () => {
+  it.each([
+    [RoleEnum.super_admin, true],
+    [RoleEnum.admin, true],
+    [RoleEnum.finance, true],
+    [RoleEnum.support, false],
+    [RoleEnum.content, false],
+  ])('should grant it when role id is %s: %s', (role, granted) => {
+    expect(can(role, 'offers.manage')).toBe(granted);
   });
 });

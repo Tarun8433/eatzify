@@ -31,6 +31,15 @@ class BillingRepositoryImpl implements BillingRepository {
   );
 
   @override
+  Future<Either<Failure, PersonalOffer>> offer(String code) => _remote.offer(code);
+
+  @override
+  Future<Either<Failure, CheckoutSession>> offerCheckout({
+    required String code,
+    required String idempotencyKey,
+  }) => _remote.offerCheckout(code: code, idempotencyKey: idempotencyKey);
+
+  @override
   Future<Either<Failure, SubscriptionState>> subscription() => _remote.subscription();
 
   @override
@@ -56,8 +65,10 @@ class BillingRepositoryImpl implements BillingRepository {
       _remote.completeStubPayment(orderId);
 
   @override
-  Future<Either<Failure, SubscriptionState>> verifyPlay(String purchaseToken) =>
-      _remote.verifyPlay(purchaseToken);
+  Future<Either<Failure, SubscriptionState>> verifyPlay(
+    String purchaseToken, {
+    String? offerCode,
+  }) => _remote.verifyPlay(purchaseToken, offerCode: offerCode);
 
   @override
   Future<Either<Failure, SubscriptionState>> verifyAppStore(String signedTransaction) =>

@@ -39,7 +39,11 @@ import 'package:intl/intl.dart';
 /// docs/05 §6 shapes the tone: no red for going over, no "you failed today". A number over target
 /// is stated, not scored.
 class HomePage extends StatelessWidget {
-  const HomePage({super.key});
+  const HomePage({super.key, this.clock = DateTime.now});
+
+  /// The phone's time, for the greeting only. A test passes a fixed one: "Good Evening!" recorded
+  /// at night failed the golden in the afternoon.
+  final DateTime Function() clock;
 
   @override
   Widget build(BuildContext context) {
@@ -75,7 +79,7 @@ class HomePage extends StatelessWidget {
         // Draws nothing; puts up the once-per-account connect sheet when Home asks for it.
         HomeHealthPrompt(controller: c),
         TabScaffold(
-          title: homeGreeting(l10n, DateTime.now()),
+          title: homeGreeting(l10n, clock()),
           titleIcon: Icons.waving_hand,
           subtitle: l10n.homeTagline,
           action: Row(

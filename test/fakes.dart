@@ -501,6 +501,53 @@ class FakeBillingRepository implements BillingRepository {
   /// Tokens sent to `POST /billing/play/verify` or `/billing/appstore/verify`.
   final List<String> verified = [];
 
+  /// The `offer_code` each Play verify carried (D-265), null for a plain purchase.
+  final List<String?> verifiedOfferCodes = [];
+
+  /// What `GET /billing/offers/:code` answers (D-265). Null is the server's 404.
+  Either<Failure, PersonalOffer>? offerResult;
+
+  /// Holds the offer read open so a test can see the loading state.
+  Completer<void>? offerHold;
+
+  /// When set, `POST /billing/offers/:code/checkout` refuses.
+  Failure? offerCheckoutFailure;
+
+  /// Every offer checkout, with the idempotency key it was sent with.
+  final List<({String code, String idempotencyKey})> offerCheckouts = [];
+
+  @override
+  Future<Either<Failure, PersonalOffer>> offer(String code) async {
+    await offerHold?.future;
+    return offerResult ??
+        const Left(
+          ApiFailure(
+            'This offer has expired or is no longer available.',
+            code: 'OFFER_NOT_FOUND',
+            status: 404,
+          ),
+        );
+  }
+
+  @override
+  Future<Either<Failure, CheckoutSession>> offerCheckout({
+    required String code,
+    required String idempotencyKey,
+  }) async {
+    offerCheckouts.add((code: code, idempotencyKey: idempotencyKey));
+    final failure = offerCheckoutFailure;
+    if (failure != null) return Left(failure);
+    return Right(
+      CheckoutSession(
+        orderId: 'eatzify_offer_1',
+        amountPaise: 49900,
+        tier: 'PRO',
+        mode: paymentsMode,
+        paymentSessionId: paymentsMode == 'stub' ? null : 'session_offer_1',
+      ),
+    );
+  }
+
   @override
   Future<Either<Failure, SubscriptionState>> verifyAppStore(String signedTransaction) async {
     verified.add(signedTransaction);
@@ -508,8 +555,12 @@ class FakeBillingRepository implements BillingRepository {
   }
 
   @override
-  Future<Either<Failure, SubscriptionState>> verifyPlay(String purchaseToken) async {
+  Future<Either<Failure, SubscriptionState>> verifyPlay(
+    String purchaseToken, {
+    String? offerCode,
+  }) async {
     verified.add(purchaseToken);
+    verifiedOfferCodes.add(offerCode);
     return const Right(SubscriptionState(tier: 'PRO', status: 'active'));
   }
 
@@ -1015,6 +1066,17 @@ class FakeSecureStorage extends FlutterSecureStorage {
     MacOsOptions? mOptions,
     WindowsOptions? wOptions,
   }) async => data.clear();
+
+  @override
+  Future<void> delete({
+    required String key,
+    IOSOptions? iOptions,
+    AndroidOptions? aOptions,
+    LinuxOptions? lOptions,
+    WebOptions? webOptions,
+    MacOsOptions? mOptions,
+    WindowsOptions? wOptions,
+  }) async => data.remove(key);
 }
 
 /// Enough of the auth contract for a `SessionController` to exist in a widget test.
@@ -1121,17 +1183,33 @@ class FakeStoreGateway implements StoreGateway {
 
   /// Every base plan it was asked to sell, with the account token attached.
   final List<({String productId, String? basePlanId, String accountToken})> bought = [];
+
+  /// The offer id and offer code of each purchase (D-265), null for a plain one.
+  final List<({String? offerId, String? offerCode})> offers = [];
   int resumed = 0;
+
+  /// What Play would say the offer costs. Null is a store that cannot say.
+  String? price;
 
   @override
   Future<PaymentResult> buy({
     required String productId,
     required String? basePlanId,
     required String accountToken,
+    String? offerId,
+    String? offerCode,
   }) async {
     bought.add((productId: productId, basePlanId: basePlanId, accountToken: accountToken));
+    offers.add((offerId: offerId, offerCode: offerCode));
     return result;
   }
+
+  @override
+  Future<String?> offerPrice({
+    required String productId,
+    required String basePlanId,
+    required String offerId,
+  }) async => price;
 
   @override
   Future<void> resumePending() async => resumed++;

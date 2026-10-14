@@ -4,6 +4,8 @@ import { google, type androidpublisher_v3 } from 'googleapis';
 import type { AllConfigType } from '../../config/config.type';
 
 const LIVE_PLANS_TTL_MS = 10 * 60_000;
+/// Play's own maximum page size for the monetization list calls.
+const CATALOG_PAGE = 1000;
 
 /// The Google Play Developer API, and nothing else. Thin on purpose: every decision about what a
 /// purchase means is in `store-rules.ts`, where it is tested without a network.
@@ -54,6 +56,40 @@ export class PlayClient {
     }
     this.live = { at: now, plans };
     return plans;
+  }
+
+  /// D-265: every subscription (with its base plans) and every offer in the app, as Play Console
+  /// holds them. Offers are not part of a subscription's own resource, so they are read with
+  /// `basePlans.offers.list` across all products (`-`). What they mean is `playCatalogue`'s job.
+  async subscriptionCatalog(): Promise<{
+    subscriptions: androidpublisher_v3.Schema$Subscription[];
+    offers: androidpublisher_v3.Schema$SubscriptionOffer[];
+  }> {
+    const api = this.client().monetization.subscriptions;
+    const subscriptions: androidpublisher_v3.Schema$Subscription[] = [];
+    const offers: androidpublisher_v3.Schema$SubscriptionOffer[] = [];
+    let pageToken: string | undefined;
+    do {
+      const res = await api.list({
+        packageName: this.packageName,
+        pageSize: CATALOG_PAGE,
+        pageToken,
+      });
+      subscriptions.push(...(res.data.subscriptions ?? []));
+      pageToken = res.data.nextPageToken ?? undefined;
+    } while (pageToken);
+    do {
+      const res = await api.basePlans.offers.list({
+        packageName: this.packageName,
+        productId: '-',
+        basePlanId: '-',
+        pageSize: CATALOG_PAGE,
+        pageToken,
+      });
+      offers.push(...(res.data.subscriptionOffers ?? []));
+      pageToken = res.data.nextPageToken ?? undefined;
+    } while (pageToken);
+    return { subscriptions, offers };
   }
 
   async subscription(

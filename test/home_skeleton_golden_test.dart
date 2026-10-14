@@ -111,7 +111,8 @@ void main() {
           GlobalCupertinoLocalizations.delegate,
         ],
         supportedLocales: AppLocalizations.supportedLocales,
-        home: const Scaffold(body: HomePage()),
+        // A fixed hour, so the greeting — and the golden — do not change with the time of day.
+        home: Scaffold(body: HomePage(clock: () => DateTime(2026, 10, 14, 9))),
       ),
     );
     // The walker is always mid-stride, so nothing ever settles (see pumping.dart).

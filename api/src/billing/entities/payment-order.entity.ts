@@ -107,6 +107,11 @@ export class PaymentOrderEntity extends BaseEntity {
   @Column({ type: 'bigint', default: 0 })
   discountPaise: string;
 
+  /// D-265: the personal offer this order redeems. Its amount is the offer's; the offer is marked
+  /// used when this order is confirmed paid, never before.
+  @Column({ type: 'uuid', nullable: true })
+  personalOfferId: string | null;
+
   /// Why a payment failed, as the gateway described it. For support, never for the user (rule 7).
   @Column({ type: 'varchar', nullable: true })
   failureReason: string | null;
