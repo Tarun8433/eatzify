@@ -116,8 +116,11 @@ void main() {
       expect(find.text('Steps'), findsOneWidget);
       expect(find.text('Walking distance'), findsOneWidget);
       expect(find.text('Calories burned while active'), findsOneWidget);
-      await tester.scrollUntilVisible(find.textContaining('Sleep, heart rate, weight'), 100);
-      expect(find.textContaining('Sleep, heart rate, weight'), findsOneWidget);
+      expect(find.text('Sleep'), findsOneWidget);
+      await tester.scrollUntilVisible(find.textContaining('Heart rate, weight'), 100);
+      expect(find.textContaining('Heart rate, weight'), findsOneWidget);
+      // Sleep is read now, so the page must no longer promise it stays on the phone.
+      expect(find.textContaining('Sleep, heart rate'), findsNothing);
     });
   });
 

@@ -55,6 +55,7 @@ void main() {
       HealthMetric.steps: 'READ_STEPS',
       HealthMetric.activeEnergy: 'READ_ACTIVE_CALORIES_BURNED',
       HealthMetric.distance: 'READ_DISTANCE',
+      HealthMetric.sleep: 'READ_SLEEP',
     };
 
     test('should have a permission for each metric', () {

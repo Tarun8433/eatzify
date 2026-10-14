@@ -482,7 +482,7 @@
     }
   },
   "loginTitle": "Welcome back",
-  "loginSubtitle": "Sign in with your email and password.",
+  "loginSubtitle": "Sign in to continue your wellness journey.",
   "loginPhoneLabel": "Phone number",
   "otpTitle": "Check your email",
   "otpSubtitle": "Enter the 6-digit code sent to {email}. It expires in 10 minutes.",
@@ -663,7 +663,7 @@
   "homeSlotEmpty": "Nothing yet",
   "logDecrease": "Less",
   "logIncrease": "More",
-  "homeSupplied": "supplied",
+  "homeSupplied": "consumed",
   "homeBurned": "burned",
   "homeBurnedUnavailable": "Calories burned aren't counted unless you enter them. Tap + to add today's activity.",
   "planDailyTarget": "Daily target",
@@ -1348,6 +1348,22 @@
   },
   "logActivitySteps": "Steps today",
   "logActivityBurned": "Calories burned (if you know it)",
+  "logActivityBurnedCalculated": "Estimated from steps: ~{kcal} kcal",
+  "@logActivityBurnedCalculated": {
+    "placeholders": {
+      "kcal": {
+        "type": "String"
+      }
+    }
+  },
+  "logActivityBurnedCustom": "Custom entry: {kcal} kcal",
+  "@logActivityBurnedCustom": {
+    "placeholders": {
+      "kcal": {
+        "type": "String"
+      }
+    }
+  },
   "logActivityHint": "From a watch or a treadmill. Leave it blank if you are not sure — a guess here changes what you are told to eat.",
   "logActivitySave": "Save activity",
   "logSheetActivity": "Activity",
@@ -1376,7 +1392,7 @@
   "homeDayEarlier": "Earlier day",
   "homeDayLater": "Later day",
   "homeDayPast": "You are looking at a past day. Anything you log now goes to today.",
-  "homeCalorieSummary": "Calorie summary",
+  "homeCalorieSummary": "Calorie Summary",
   "homeMacros": "Macronutrients",
   "homeDetails": "Details",
   "homeSlotShare": "{pct}% of your day",
@@ -1516,7 +1532,7 @@
   "healthMetricSteps": "Steps",
   "healthMetricDistance": "Walking distance",
   "healthMetricEnergy": "Calories burned while active",
-  "healthNotRead": "Sleep, heart rate, weight and anything medical stay on your phone. Eatzify does not ask for them.",
+  "healthNotRead": "Heart rate, weight and anything medical stay on your phone. Eatzify does not ask for them.",
   "healthConnect": "Connect {platform}",
   "@healthConnect": {
     "placeholders": {
@@ -3165,5 +3181,124 @@
     }
   },
   "billingStoreUnavailable": "Google Play payments aren't available on this phone. Install Eatzify from the Play Store and sign in to Google Play, then try again. Nothing was charged.",
-  "billingPlanNotOnSale": "This plan isn't on sale yet. Please try again a little later. Nothing was charged."
+  "billingPlanNotOnSale": "This plan isn't on sale yet. Please try again a little later. Nothing was charged.",
+  "loginTagline": "Eat better · Live healthier",
+  "loginPerkNutrition": "Better nutrition",
+  "loginPerkLifestyle": "Healthier lifestyle",
+  "loginPerkInsights": "Personalised insights",
+  "loginOrContinue": "Or continue with",
+  "loginJoinSubtitle": "Choose how you want to join our community.",
+  "joinSheetTitle": "Who are you?",
+  "joinSheetSubtitle": "Choose the option that best describes you, so Eatzify fits the way you use it.",
+  "joinIndividualTitle": "Individual",
+  "joinIndividualBody": "Track your meals, set goals and look after your health.",
+  "joinIndividualPoint1": "Food and calorie tracking",
+  "joinIndividualPoint2": "Set personal goals",
+  "joinIndividualPoint3": "Track progress",
+  "joinIndividualPoint4": "Guided recommendations",
+  "joinIndividualCta": "Continue as individual",
+  "joinProfessionalTitle": "Professional",
+  "joinProfessionalBody": "Join as a nutritionist, trainer, doctor or wellness professional to support your clients.",
+  "joinProfessionalPoint1": "Manage your clients",
+  "joinProfessionalPoint2": "Create personalised plans",
+  "joinProfessionalPoint3": "Track client progress",
+  "joinProfessionalPoint4": "Grow your practice",
+  "joinProfessionalCta": "Continue as professional",
+  "loginJoinWho": "For individuals and professionals",
+  "createPasswordTitle": "Create a password",
+  "createPasswordSubtitle": "So you can also sign in with your email, not only with Google.",
+  "createPasswordSave": "Save password",
+  "healthMetricSleep": "Sleep",
+  "homeGreetingMorning": "Good Morning!",
+  "homeGreetingAfternoon": "Good Afternoon!",
+  "homeGreetingEvening": "Good Evening!",
+  "homeTagline": "Let's build a healthier you today",
+  "homeTarget": "Target",
+  "homeConsumed": "Consumed",
+  "homeRemaining": "Remaining",
+  "homeWaterIntake": "Water Intake",
+  "homeLogWater": "Log water",
+  "homeSteps": "Steps",
+  "homeStepsOfGoal": "of {goal}",
+  "@homeStepsOfGoal": {
+    "placeholders": {
+      "goal": {
+        "type": "String"
+      }
+    }
+  },
+  "homeBubble": "Small steps,\nbig results",
+  "homePickDay": "Choose a day",
+  "homeSourceWithYou": "{source} + you",
+  "@homeSourceWithYou": {
+    "placeholders": {
+      "source": {
+        "type": "String"
+      }
+    }
+  },
+  "recipesTitle": "Recipes",
+  "recipesEntryBody": "Dishes that suit your diet, ready to log",
+  "recipesAllMeals": "All meals",
+  "recipesEmptyTitle": "No recipes yet",
+  "recipesEmptyBody": "Recipes that suit your diet will appear here.",
+  "recipesShowAll": "Show all meals",
+  "recipeServings": "{count, plural, =1{Makes 1 serving} other{Makes {count} servings}}",
+  "@recipeServings": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "recipePerServing": "Per serving",
+  "recipeKcal": "{kcal} kcal",
+  "@recipeKcal": {
+    "placeholders": {
+      "kcal": {
+        "type": "int",
+        "format": "decimalPattern"
+      }
+    }
+  },
+  "recipeMacros": "Protein {protein} g · Carbs {carbs} g · Fat {fat} g",
+  "@recipeMacros": {
+    "placeholders": {
+      "protein": {
+        "type": "num",
+        "format": "decimalPattern"
+      },
+      "carbs": {
+        "type": "num",
+        "format": "decimalPattern"
+      },
+      "fat": {
+        "type": "num",
+        "format": "decimalPattern"
+      }
+    }
+  },
+  "recipeIngredients": "Ingredients",
+  "recipeGrams": "{grams} g",
+  "@recipeGrams": {
+    "placeholders": {
+      "grams": {
+        "type": "num",
+        "format": "decimalPattern"
+      }
+    }
+  },
+  "recipeMethod": "Method",
+  "recipeContains": "Contains: {allergens}",
+  "@recipeContains": {
+    "placeholders": {
+      "allergens": {
+        "type": "String"
+      }
+    }
+  },
+  "recipeLog": "Log this",
+  "recipeLogMeal": "Which meal?",
+  "recipeLogServings": "How many servings?",
+  "recipeLogged": "Added to your diary"
 }

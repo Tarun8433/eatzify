@@ -11,26 +11,23 @@ import 'package:health_pro/core/widgets/view_state.dart';
 import 'package:health_pro/domain/entities/food.dart';
 import 'package:health_pro/domain/repositories/diary_repository.dart';
 import 'package:health_pro/domain/repositories/measurements_repository.dart';
+import 'package:health_pro/domain/repositories/profile_repository.dart';
 import 'package:health_pro/domain/usecases/adjust_steps.dart';
+import 'package:health_pro/domain/usecases/calculate_walking_calories.dart';
 import 'package:health_pro/presentation/features/home/home_controller.dart';
 import 'package:health_pro/presentation/features/onboarding/enum_labels.dart';
 import 'package:health_pro/presentation/l10n/app_localizations.dart';
 import 'package:intl/intl.dart';
 
-/// Manual activity entry (D-80): steps, and calories burned if the user happens to know them.
+/// Manual activity entry (D-80): steps, and calories burned.
 ///
-/// Deliberately NOT a calculator. Turning steps into calories needs a MET table and a stride
-/// length, and the number it produced would go straight into "kcal left" — the app computing an
-/// energy figure the user then eats against, which is the line CLAUDE.md rule 2 draws. Either the
-/// user's watch tells them, or the figure stays unknown and Home keeps saying so.
-///
-/// Both fields are optional and either can be sent alone. Someone who walked and does not own a
-/// watch has steps and nothing else, and that is a complete answer.
+/// Automatically calculates estimated calories burned from steps using the ACSM walking equation
+/// (matching the server's walking-energy calculation), while allowing the user to provide their own
+/// custom reading from a watch or treadmill if they know it.
 ///
 /// Steps are a CHANGE to today's count (D-220): it shows what the day already holds, and what is
 /// typed is added to it or taken off it. The change is stored apart from what the phone counted
-/// (D-221), so a later sync adds to it instead of wiping it. Calories burned stays a figure,
-/// because nobody adds to a watch's calorie reading by hand.
+/// (D-221), so a later sync adds to it instead of wiping it.
 class ActivityLogTab extends StatefulWidget {
   const ActivityLogTab({super.key});
 
@@ -66,6 +63,11 @@ class _ActivityLogTabState extends State<ActivityLogTab> {
   /// The server's `user_message`, verbatim (CLAUDE.md rule 7).
   String? _error;
 
+  double? _ratePer1000Steps;
+  double? _weightKg;
+  int? _heightCm;
+  bool _userEditedBurned = false;
+
   int? get _currentSteps => switch (_today) {
     Ready<DiaryDay>(:final data) => data.steps,
     _ => null,
@@ -84,6 +86,35 @@ class _ActivityLogTabState extends State<ActivityLogTab> {
     return AdjustSteps.total(current: _currentSteps, amount: change, remove: _removing);
   }
 
+  /// Calculates estimated calories burned for the day's steps, or the change on top of automatic sync.
+  int? get _calculatedBurned {
+    final total = _stepsTotal;
+    if (total == null) return null;
+
+    final today = _today;
+    if (today is Ready<DiaryDay>) {
+      final data = today.data;
+      if (data.energyBurnedKcal != null && data.stepsSource.isAutomatic) {
+        final changeKcal = CalculateWalkingCalories.calculate(
+          steps: _stepsChange ?? 0,
+          ratePer1000Steps: _ratePer1000Steps,
+          weightKg: _weightKg,
+          heightCm: _heightCm,
+        );
+        return _removing
+            ? math.max(0, data.energyBurnedKcal! - changeKcal)
+            : data.energyBurnedKcal! + changeKcal;
+      }
+    }
+
+    return CalculateWalkingCalories.calculate(
+      steps: total,
+      ratePer1000Steps: _ratePer1000Steps,
+      weightKg: _weightKg,
+      heightCm: _heightCm,
+    );
+  }
+
   bool get _canSave => !_saving && (_stepsTotal != null || _burned != null);
 
   @override
@@ -97,6 +128,58 @@ class _ActivityLogTabState extends State<ActivityLogTab> {
     final result = await Get.find<DiaryRepository>().day();
     if (!mounted) return;
     setState(() => _today = result.fold(Failed.new, Ready.new));
+    await _loadWalkingEnergy();
+  }
+
+  Future<void> _loadWalkingEnergy() async {
+    try {
+      if (Get.isRegistered<MeasurementsRepository>()) {
+        final historyRes = await Get.find<MeasurementsRepository>().history('steps');
+        if (!mounted) return;
+        final energy = historyRes.fold((_) => null, (h) => h.walkingEnergy);
+        if (energy != null && energy.kcal > 0) {
+          setState(() {
+            _ratePer1000Steps = energy.kcal.toDouble();
+            if (!_userEditedBurned && _stepsChange != null) {
+              _burned = _calculatedBurned;
+            }
+          });
+          return;
+        }
+      }
+      if (Get.isRegistered<ProfileRepository>()) {
+        final profileRes = await Get.find<ProfileRepository>().profile();
+        if (!mounted) return;
+        final profile = profileRes.fold((_) => null, (p) => p);
+        if (profile != null) {
+          setState(() {
+            _weightKg = profile.weightKg;
+            _heightCm = profile.heightCm;
+            if (!_userEditedBurned && _stepsChange != null) {
+              _burned = _calculatedBurned;
+            }
+          });
+        }
+      }
+    } catch (_) {}
+  }
+
+  void _onStepsChanged(int? newChange) {
+    setState(() {
+      _stepsChange = newChange;
+      if (!_userEditedBurned) {
+        _burned = _calculatedBurned;
+      }
+    });
+  }
+
+  void _onRemovingChanged(bool removing) {
+    setState(() {
+      _removing = removing;
+      if (!_userEditedBurned) {
+        _burned = _calculatedBurned;
+      }
+    });
   }
 
   Future<void> _save() async {
@@ -110,7 +193,15 @@ class _ActivityLogTabState extends State<ActivityLogTab> {
     // Two rows, because they are two measurements. The server overwrites per kind per diary day,
     // so saving twice in one day corrects the figure rather than adding to it.
     final change = _stepsTotal == null ? null : _stepsChange;
+    final burnedToSave = _burned ?? (_stepsTotal != null ? _calculatedBurned : null);
+
     final results = [
+      if (burnedToSave != null)
+        await measurements.record(
+          kind: 'energy_burned_kcal',
+          value: burnedToSave.toDouble(),
+          unit: 'kcal',
+        ),
       if (change != null)
         await measurements.record(
           kind: 'steps_added',
@@ -120,12 +211,6 @@ class _ActivityLogTabState extends State<ActivityLogTab> {
             remove: _removing,
           ).toDouble(),
           unit: 'steps',
-        ),
-      if (_burned != null)
-        await measurements.record(
-          kind: 'energy_burned_kcal',
-          value: _burned!.toDouble(),
-          unit: 'kcal',
         ),
     ];
 
@@ -177,17 +262,55 @@ class _ActivityLogTabState extends State<ActivityLogTab> {
             // Warm, not green: this is the optional one, and the one the hint below warns about.
             tint: AppColors.warmCoral,
             title: l.logActivityBurned,
-            child: NumberField(
-              label: l.logActivityBurnedHint,
-              helperText: l.logActivityBurnedRange(_maxBurned),
-              picker: const NumberPickerConfig(
-                min: 0,
-                max: _maxBurned,
-                step: _burnedNotch,
-                opensAt: _burnedOpensAt,
-              ),
-              onLiveChange: (v) => setState(() => _burned = _bounded(v, _maxBurned)),
-              onCommit: (v) => setState(() => _burned = _bounded(v, _maxBurned)),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                NumberField(
+                  key: ValueKey('burned_${_userEditedBurned ? "custom" : (_burned ?? "empty")}'),
+                  initial: _burned != null ? '$_burned' : '',
+                  label: l.logActivityBurnedHint,
+                  helperText: l.logActivityBurnedRange(_maxBurned),
+                  picker: NumberPickerConfig(
+                    min: 0,
+                    max: _maxBurned,
+                    step: _burnedNotch,
+                    opensAt: _burned != null ? math.min(_burned!, _maxBurned) : _burnedOpensAt,
+                  ),
+                  onLiveChange: (v) {
+                    setState(() {
+                      if (v.trim().isEmpty) {
+                        _userEditedBurned = false;
+                        _burned = _calculatedBurned;
+                      } else {
+                        _userEditedBurned = true;
+                        _burned = _bounded(v, _maxBurned);
+                      }
+                    });
+                  },
+                  onCommit: (v) {
+                    setState(() {
+                      if (v.trim().isEmpty) {
+                        _userEditedBurned = false;
+                        _burned = _calculatedBurned;
+                      } else {
+                        _userEditedBurned = true;
+                        _burned = _bounded(v, _maxBurned);
+                      }
+                    });
+                  },
+                ),
+                if (_burned case final burned?) ...[
+                  const SizedBox(height: AppSpacing.sm),
+                  Text(
+                    _userEditedBurned
+                        ? l.logActivityBurnedCustom(NumberFormat.decimalPattern().format(burned))
+                        : l.logActivityBurnedCalculated(
+                            NumberFormat.decimalPattern().format(burned),
+                          ),
+                    style: theme.textTheme.titleSmall?.copyWith(color: AppColors.warmCoral),
+                  ),
+                ],
+              ],
             ),
           ),
           const SizedBox(height: AppSpacing.lg),
@@ -289,7 +412,7 @@ class _ActivityLogTabState extends State<ActivityLogTab> {
             ),
           ],
           selected: {_removing},
-          onSelectionChanged: (choice) => setState(() => _removing = choice.first),
+          onSelectionChanged: (choice) => _onRemovingChanged(choice.first),
         ),
         const SizedBox(height: AppSpacing.md),
         NumberField(
@@ -304,8 +427,8 @@ class _ActivityLogTabState extends State<ActivityLogTab> {
             // On a notch, or Done would commit a number the wheel is not showing.
             opensAt: math.min(_stepsOpensAt, limit - limit % _stepsNotch),
           ),
-          onLiveChange: (v) => setState(() => _stepsChange = _change(v)),
-          onCommit: (v) => setState(() => _stepsChange = _change(v)),
+          onLiveChange: (v) => _onStepsChanged(_change(v)),
+          onCommit: (v) => _onStepsChanged(_change(v)),
         ),
         if (outcome != null) ...[
           const SizedBox(height: AppSpacing.sm),

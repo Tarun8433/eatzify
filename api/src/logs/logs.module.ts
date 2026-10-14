@@ -8,6 +8,7 @@ import { FoodEntity } from '../foods/entities/food.entity';
 import { MeasurementEntity } from '../measurements/entities/measurement.entity';
 import { PlanEntity } from '../plans/entities/plan.entity';
 import { GymWorkoutEntity } from '../gym/entities/gym-workout.entity';
+import { PlansModule } from '../plans/plans.module';
 
 @Module({
   imports: [
@@ -18,6 +19,8 @@ import { GymWorkoutEntity } from '../gym/entities/gym-workout.entity';
       MeasurementEntity,
       GymWorkoutEntity,
     ]),
+    // The active rule pack's steps goal, read from EngineService.
+    PlansModule,
   ],
   controllers: [LogsController, MealPhotoController],
   providers: [LogsService],

@@ -13,6 +13,7 @@ import type { GrantScope } from '../src/coach/entities/coach-grant.entity';
 const NOW = new Date('2026-09-16T10:00:00Z');
 
 function serviceWith({
+  activity = undefined as Record<string, unknown> | undefined,
   scopes = ['basic', 'progress'] as GrantScope[],
   role = RoleEnum.coach_l2 as RoleEnum,
   rows = [
@@ -71,7 +72,7 @@ function serviceWith({
     {
       day: (userId: number, date?: string) => {
         diaryReads.push({ userId, date });
-        return Promise.resolve({ diary_date: date, entries: [] });
+        return Promise.resolve({ diary_date: date, entries: [], activity });
       },
     } as never,
     {
@@ -109,6 +110,24 @@ describe('what a coach may read of a client logs', () => {
 
   /// An absent kind is absent, not an empty array. An empty chart draws a flat line, which is a
   /// claim about somebody who simply never recorded it.
+  it('should leave sleep out of the chart, which the progress grant does not cover', async () => {
+    const { service } = serviceWith({
+      rows: [
+        {
+          userId: 6,
+          kind: 'sleep_min',
+          value: '450',
+          diaryDate: '2026-09-14',
+          isSuspect: false,
+        },
+      ],
+    });
+
+    const view = await service.progress(25, 6, NOW);
+
+    expect(view.series.sleep_min).toBeUndefined();
+  });
+
   it('should omit a kind the client never logged', async () => {
     const { service } = serviceWith();
 
@@ -189,6 +208,23 @@ describe('the two gates', () => {
 });
 
 describe('the food diary', () => {
+  /// docs/10: sleep is in no consent scope, so a coach's copy of the day leaves it out even where
+  /// the steps beside it are allowed.
+  it('should keep last night’s sleep out of a coach’s copy of the day', async () => {
+    const { service } = serviceWith({
+      role: RoleEnum.coach_l3,
+      activity: { steps: 8200, sleep_min: 450, sleep_source: 'health_connect' },
+    });
+
+    const view = await service.diary(25, 6, '2026-09-15', NOW);
+
+    expect((view.day as { activity: unknown }).activity).toMatchObject({
+      steps: 8200,
+      sleep_min: null,
+      sleep_source: null,
+    });
+  });
+
   /// docs/10 §2: food logs are `📊 adherence %` for coach_l2 and `✅` for coach_l3. A verified
   /// coach with no coaching relationship has no purpose a meal-by-meal diary serves.
   it('should give the diary to a coaching partner', async () => {

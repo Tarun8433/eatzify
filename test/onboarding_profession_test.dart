@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
+import 'package:health_pro/core/session/session_controller.dart';
 import 'package:health_pro/core/theme/app_theme.dart';
 import 'package:health_pro/domain/entities/profession.dart';
 import 'package:health_pro/domain/repositories/plan_repository.dart';
 import 'package:health_pro/domain/repositories/profile_repository.dart';
+import 'package:health_pro/presentation/features/onboarding/onboarding_controller.dart';
 import 'package:health_pro/presentation/features/onboarding/onboarding_page.dart';
 import 'package:health_pro/presentation/l10n/app_localizations.dart';
 
@@ -45,6 +47,44 @@ Future<void> tapProfession(WidgetTester tester, String label) async {
 }
 
 void main() {
+  group('who-are-you from sign-up', () {
+    Future<void> pumpWith(WidgetTester tester, JoinAs? choice) async {
+      final widget = app();
+      if (choice != null) await Get.find<SessionController>().rememberJoinAs(choice);
+      await tester.pumpWidget(widget);
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('should not ask an individual whether they work in fitness', (tester) async {
+      await pumpWith(tester, JoinAs.individual);
+
+      expect(find.text('Trainer'), findsNothing);
+      expect(Get.find<OnboardingController>().profession.value, Profession.none);
+    });
+
+    testWidgets('should ask a professional', (tester) async {
+      await pumpWith(tester, JoinAs.professional);
+
+      await tester.scrollUntilVisible(
+        find.text('Trainer'),
+        120,
+        scrollable: find.byType(Scrollable).first,
+      );
+      expect(find.text('Trainer'), findsOneWidget);
+    });
+
+    testWidgets('should still ask when nothing was recorded', (tester) async {
+      await pumpWith(tester, null);
+
+      await tester.scrollUntilVisible(
+        find.text('Trainer'),
+        120,
+        scrollable: find.byType(Scrollable).first,
+      );
+      expect(find.text('Trainer'), findsOneWidget);
+    });
+  });
+
   /// The reply has to arrive while the answer is still the thing on screen. Held back to a later
   /// step it reads as an unrelated advert.
   testWidgets('offers the partner route as soon as a trainer says so', (tester) async {
@@ -61,10 +101,13 @@ void main() {
 
   /// The overwhelming majority. A sheet about partnering, in the middle of being asked about your
   /// own health, is a sheet about a thing you are not.
-  testWidgets('says nothing to someone here for themselves', (tester) async {
-    await tapProfession(tester, 'No, just for myself');
+  // There is no "just for myself" chip any more: picking nothing is that answer.
+  testWidgets('says nothing to someone who picks no profession', (tester) async {
+    await tester.pumpWidget(app());
+    await tester.pumpAndSettle();
 
     expect(find.text('Work with clients on Eatzify'), findsNothing);
+    expect(Get.find<OnboardingController>().profession.value, Profession.none);
   });
 
   /// docs/12 §6 forbids implying accreditation. The sheet says what happens next — which is

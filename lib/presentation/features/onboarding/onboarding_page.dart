@@ -515,8 +515,15 @@ class _BasicsStep extends StatelessWidget {
           maxLength: 80,
           onChanged: (v) => controller.name.value = v,
         ),
-        const SizedBox(height: AppSpacing.lg),
-        _ProfessionQuestion(controller: controller),
+        // Not asked of someone who already said "individual" at sign-up (see [JoinAs]).
+        Obx(
+          () => controller.askProfession.value
+              ? Padding(
+                  padding: const EdgeInsets.only(top: AppSpacing.lg),
+                  child: _ProfessionQuestion(controller: controller),
+                )
+              : const SizedBox.shrink(),
+        ),
         const SizedBox(height: AppSpacing.lg),
         // Paired (D-90). Two fit a phone side by side, and the weights especially belong together:
         // the gap between current and target is the thing being decided, and it is only visible

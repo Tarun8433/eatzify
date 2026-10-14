@@ -173,7 +173,7 @@ void main() {
       expect(tester.takeException(), isNull);
       // The nutrient tiles sit under the hero (D-138) — below the fold on the test surface, and a
       // lazily built list has not made them yet, so the check is for the card that IS above it.
-      expect(find.text('supplied'), findsOneWidget);
+      expect(find.text('consumed'), findsOneWidget);
     });
 
     testWidgets('Home in light mode at 200 % font scale', (tester) async {

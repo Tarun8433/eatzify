@@ -3,10 +3,12 @@ import 'dart:async';
 import 'package:get/get.dart';
 import 'package:health_pro/core/errors/failures.dart';
 import 'package:health_pro/core/session/session_controller.dart';
+import 'package:health_pro/domain/entities/profession.dart';
+import 'package:health_pro/domain/entities/session.dart';
 import 'package:health_pro/domain/repositories/auth_repository.dart';
 
 /// Which question the sign-in screen is asking.
-enum AuthStep { signIn, signUp, verify, forgot, forgotSent }
+enum AuthStep { signIn, signUp, verify, forgot, forgotSent, createPassword }
 
 /// Email and password sign-in, with a 6-digit code emailed the first time (D-250).
 ///
@@ -93,7 +95,16 @@ class LoginController extends GetxController {
 
   /// Moves to another step, keeping the email typed so far — someone who tapped "Forgot password?"
   /// should not have to type it again.
+  /// The "Who are you?" answer: remembered for onboarding, then on to the form.
+  Future<void> joinAs(JoinAs choice) async {
+    await session.rememberJoinAs(choice);
+    goTo(AuthStep.signUp);
+  }
+
   void goTo(AuthStep next) {
+    // Leaving the password step drops the Google session it was holding: nothing was adopted, and
+    // the next Google sign-in asks again.
+    if (next != AuthStep.createPassword) _pendingGoogle = null;
     failure.value = null;
     password.value = '';
     code.value = '';
@@ -124,6 +135,23 @@ class LoginController extends GetxController {
   bool get canVerify => isCodeValid && !busy.value;
   bool get canResend => resendIn.value == 0 && !busy.value;
   bool get canSendReset => isEmailValid && !busy.value;
+  bool get canCreatePassword => isPasswordValid && !busy.value;
+
+  /// A Google session whose account has no password yet, held until one is set. Not adopted, so
+  /// nothing past the sign-in screen is reachable without it.
+  Session? _pendingGoogle;
+
+  /// Saves the first password for the Google account just signed in, then signs in with it.
+  Future<void> createPassword() async {
+    final pending = _pendingGoogle;
+    if (pending == null || !canCreatePassword) return;
+    final result = await _run(() => auth.setPassword(session: pending, password: password.value));
+    await result?.fold((f) async => failure.value = f, (_) async {
+      _pendingGoogle = null;
+      password.value = '';
+      await session.adopt(pending);
+    });
+  }
 
   /// Called when the country changes. The number is cleared with it: digits typed for one country
   /// are rarely valid for the next.
@@ -197,7 +225,17 @@ class LoginController extends GetxController {
 
     final result = await auth.signInWithGoogle(idToken: idToken, deviceId: deviceId);
     busy.value = false;
-    await result.fold((f) async => failure.value = f, session.adopt);
+    await result.fold((f) async => failure.value = f, (signedIn) async {
+      // A Google account with no password yet is asked for one first, so the same person can also
+      // sign in with email. Nothing is adopted until it is saved.
+      if (signedIn.needsPassword) {
+        password.value = '';
+        goTo(AuthStep.createPassword);
+        _pendingGoogle = signedIn;
+        return;
+      }
+      await session.adopt(signedIn);
+    });
   }
 
   /// One request at a time, with the last failure cleared first.

@@ -38,6 +38,10 @@ abstract class AuthRepository {
     required String deviceId,
   });
 
+  /// `POST /auth/password`. A first password for an account made with Google, so it can also sign
+  /// in with email. [session] is the one Google sign-in just returned.
+  Future<Either<Failure, Unit>> setPassword({required Session session, required String password});
+
   /// `POST /auth/refresh`. Rotates; docs/09 says reuse revokes the whole token family.
   Future<Either<Failure, Session>> refresh(Session current);
 

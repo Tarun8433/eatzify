@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:health_pro/core/theme/app_spacing.dart';
+import 'package:health_pro/core/widgets/form_fields.dart';
 import 'package:health_pro/presentation/l10n/app_localizations.dart';
 
 /// A text field bound to one of the controller's values. It owns its `TextEditingController`, seeded
@@ -10,6 +11,7 @@ class AuthTextField extends StatefulWidget {
     required this.value,
     required this.label,
     this.hint,
+    this.icon,
     this.keyboardType,
     this.autofillHints,
     this.obscure = false,
@@ -21,6 +23,9 @@ class AuthTextField extends StatefulWidget {
   final RxString value;
   final String label;
   final String? hint;
+
+  /// The leading disc, as on every other form in the app (`FieldIcon`).
+  final IconData? icon;
   final TextInputType? keyboardType;
   final Iterable<String>? autofillHints;
   final bool obscure;
@@ -58,6 +63,7 @@ class _AuthTextFieldState extends State<AuthTextField> {
       decoration: InputDecoration(
         labelText: widget.label,
         hintText: widget.hint,
+        prefixIcon: FieldIcon.maybe(widget.icon),
         suffixIcon: widget.obscure
             ? IconButton(
                 // Icon-only, so it carries its own label (rule 12).
@@ -83,6 +89,7 @@ class AuthEmailField extends StatelessWidget {
       value: value,
       label: l.loginEmailLabel,
       hint: l.loginEmailHint,
+      icon: Icons.mail_outline_rounded,
       keyboardType: TextInputType.emailAddress,
       autofillHints: const [AutofillHints.email],
     );
@@ -112,6 +119,7 @@ class AuthPasswordField extends StatelessWidget {
       value: value,
       label: l.loginPasswordLabel,
       hint: isNew ? l.loginPasswordHint : null,
+      icon: Icons.lock_outline_rounded,
       obscure: true,
       keyboardType: TextInputType.visiblePassword,
       autofillHints: [if (isNew) AutofillHints.newPassword else AutofillHints.password],

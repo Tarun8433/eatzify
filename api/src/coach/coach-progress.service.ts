@@ -117,6 +117,7 @@ export class CoachProgressService {
       // client's: a mistyped 7 kg is not a data point, and a coach acting on one would be acting
       // on a typo.
       if (row.isSuspect) continue;
+      if (OUTSIDE_PROGRESS_SCOPE.has(row.kind)) continue;
 
       (series[row.kind] ??= []).push({
         date: row.diaryDate,
@@ -178,7 +179,7 @@ export class CoachProgressService {
     );
     await this.recordRead(coachUserId, clientUserId, 'diary');
 
-    return { client_user_id: String(clientUserId), day };
+    return { client_user_id: String(clientUserId), day: withoutSleep(day) };
   }
 
   /**
@@ -245,5 +246,18 @@ function summaryOf(metrics: ClientMetrics | undefined) {
     window_days: metrics?.windowDays ?? 0,
     streak_days: metrics?.streakDays ?? 0,
     last_logged_date: metrics?.lastLoggedDate ?? null,
+  };
+}
+
+/// Kinds the `progress` grant does not cover (docs/10 §3), kept out of a coach's chart.
+const OUTSIDE_PROGRESS_SCOPE: ReadonlySet<string> = new Set(['sleep_min']);
+
+/// docs/10: sleep is in no consent scope — not `progress`, whose steps sit right beside it in the
+/// day — so a coach's copy of a client's day never carries it.
+function withoutSleep<T extends { activity?: object }>(day: T): T {
+  if (!day.activity) return day;
+  return {
+    ...day,
+    activity: { ...day.activity, sleep_min: null, sleep_source: null },
   };
 }

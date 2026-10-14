@@ -240,6 +240,52 @@ void main() {
       expect(tester.widget<FilledButton>(_save).onPressed, isNull);
       expect(find.textContaining('New total'), findsNothing);
     });
+
+    testWidgets('should automatically calculate calories burned when typing steps and save both', (
+      tester,
+    ) async {
+      await tester.pumpWidget(tabUnderTest());
+      await settle(tester);
+
+      await tester.enterText(find.byType(TextField).first, '5000');
+      await tester.pumpAndSettle();
+
+      // For 5000 steps, default ~35.4 kcal / 1000 steps => 177 kcal
+      expect(find.text('Estimated from steps: ~177 kcal'), findsOneWidget);
+
+      await _saveNow(tester);
+      final burnedCall = measurements.recordedCalls.firstWhere(
+        (c) => c.kind == 'energy_burned_kcal',
+      );
+      expect(burnedCall.value, 177.0);
+      expect(burnedCall.unit, 'kcal');
+
+      final stepsCall = measurements.recordedCalls.firstWhere((c) => c.kind == 'steps_added');
+      expect(stepsCall.value, 5000.0);
+      expect(stepsCall.unit, 'steps');
+    });
+
+    testWidgets('should allow user to override calculated calories with custom burned entry', (
+      tester,
+    ) async {
+      await tester.pumpWidget(tabUnderTest());
+      await settle(tester);
+
+      await tester.enterText(find.byType(TextField).first, '5000');
+      await tester.pumpAndSettle();
+      expect(find.text('Estimated from steps: ~177 kcal'), findsOneWidget);
+
+      // Overwrite the burned field
+      await tester.enterText(find.byType(TextField).at(1), '300');
+      await tester.pumpAndSettle();
+      expect(find.text('Custom entry: 300 kcal'), findsOneWidget);
+
+      await _saveNow(tester);
+      final burnedCall = measurements.recordedCalls.firstWhere(
+        (c) => c.kind == 'energy_burned_kcal',
+      );
+      expect(burnedCall.value, 300.0);
+    });
   });
 
   group('AdjustSteps', () {

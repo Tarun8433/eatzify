@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { RefreshIcon, SpinnerIcon } from '../icons';
+import { AddFoodForm } from './AddFoodForm';
 
 interface FoodRow {
   id: string;
@@ -45,6 +46,14 @@ export function FoodReviewView() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
+  const [adding, setAdding] = useState(false);
+
+  /// A new food is a draft, so the queue shows the draft step once it is saved.
+  function saved() {
+    setAdding(false);
+    if (status === 'draft') void load();
+    else setStatus('draft');
+  }
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -92,6 +101,14 @@ export function FoodReviewView() {
         </div>
 
         <div className="flex items-center gap-2">
+          {!adding && (
+            <button
+              onClick={() => setAdding(true)}
+              className="rounded-full bg-mint px-4 py-1.5 text-[12.5px] font-medium text-mint-ink transition-opacity hover:opacity-90"
+            >
+              Add food
+            </button>
+          )}
           <div role="tablist" aria-label="Step" className="flex items-center gap-1 rounded-full bg-surface p-1">
             {STEPS.map((s) => (
               <button
@@ -117,6 +134,8 @@ export function FoodReviewView() {
           </button>
         </div>
       </header>
+
+      {adding && <AddFoodForm onSaved={saved} onCancel={() => setAdding(false)} />}
 
       {error && <p className="rounded-tile bg-[#3a1f1f] px-4 py-3 text-[13px] text-[#ffb4b4]">{error}</p>}
 

@@ -262,11 +262,13 @@ class _WhatIsRead extends StatelessWidget {
     HealthMetric.steps => Icons.directions_walk,
     HealthMetric.activeEnergy => Icons.local_fire_department_outlined,
     HealthMetric.distance => Icons.route_outlined,
+    HealthMetric.sleep => Icons.bedtime_outlined,
   };
 
   static String _labelFor(AppLocalizations l, HealthMetric metric) => switch (metric) {
     HealthMetric.steps => l.healthMetricSteps,
     HealthMetric.activeEnergy => l.healthMetricEnergy,
     HealthMetric.distance => l.healthMetricDistance,
+    HealthMetric.sleep => l.healthMetricSleep,
   };
 }

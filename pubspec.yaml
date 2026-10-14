@@ -141,12 +141,14 @@ flutter:
     # of PNG and re-encoded to 1.7 MB of JPG at display resolution — a photo stored as PNG is
     # lossless data nobody can see, and in this app's market bundle size is install conversion.
     - assets/onboarding/
+    - assets/branding/app_icon_source.png
     - assets/onboarding/dark/
     - assets/welcome/
     - assets/meal_slots/
     # D-185: the partner hero. Supplied at 1536 px / 1.4 MB and re-encoded to 760 px / 412 KB —
     # four times the ~190 pt it is drawn at, which is past 3x and still a third of the bytes.
     - assets/requirement_screens_img/
+    - assets/google_icons.png
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

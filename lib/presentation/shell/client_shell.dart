@@ -91,6 +91,96 @@ class _ClientShellState extends State<ClientShell> with SingleTickerProviderStat
       ? WalkAnchor.lerp(_fromAnchor, WalkingMan.anchorFor(_toTab), _eased.value)
       : _fromAnchor;
 
+  /// Home's landscape: hills, sun and a path, the walker on the path. Sized so the picture
+  /// reaches the top of the screen and spans its width, and placed so the path is under his feet —
+  /// the same [WalkingMan.boundsAt] the walker uses. Its foot fades into the page, so the cards
+  /// below sit on the usual ground. Fades with his travel like the stage it replaced on Home.
+  Widget _landscapeFor(BuildContext context, ClientTab tab, double opacity) {
+    final theme = Theme.of(context);
+    final ground = theme.scaffoldBackgroundColor;
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final screen = constraints.biggest;
+        final man = WalkingMan.boundsAt(screen, tab);
+        // Tall enough that the path line lands at his feet with the top at the screen's edge,
+        // and wide enough that the path under him still leaves the screen covered either side.
+        final height = [
+          man.bottom / _pathLine,
+          (man.center.dx / _pathX) / _landscapeAspect,
+          ((screen.width - man.center.dx) / (1 - _pathX)) / _landscapeAspect,
+        ].reduce((a, b) => a > b ? a : b);
+        final width = height * _landscapeAspect;
+
+        return Stack(
+          children: [
+            Positioned(
+              left: man.center.dx - width * _pathX,
+              top: man.bottom - height * _pathLine,
+              width: width,
+              height: height,
+              child: ExcludeSemantics(
+                child: Opacity(
+                  opacity: opacity.clamp(0.0, 1.0),
+                  child: ShaderMask(
+                    // The foot of the picture fades into the page, so it ends without an edge.
+                    blendMode: BlendMode.dstIn,
+                    shaderCallback: (rect) => const LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      stops: [_fadeFrom, 1],
+                      colors: [Colors.white, Colors.transparent],
+                    ).createShader(rect),
+                    child: Image.asset(
+                      AppAssets.homeLandscape,
+                      width: width,
+                      height: height,
+                      fit: BoxFit.cover,
+                      // A bright picture behind light text in dark mode: dimmed to the ground.
+                      color: theme.brightness == Brightness.dark
+                          ? ground.withValues(alpha: _darkDim)
+                          : null,
+                      colorBlendMode: BlendMode.srcATop,
+                      errorBuilder: (context, _, _) => SizedBox(width: width, height: height),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            // The reference's speech bubble, just above his head and to the right — beside it there
+            // is no room on a phone without covering him (he is drawn over it). Kept on screen,
+            // faded with him. His Home anchor keeps his head below the date row, so this clears it.
+            Positioned(
+              left: man.center.dx.clamp(0.0, screen.width - _bubbleWidth - AppSpacing.sm),
+              top: man.top - _bubbleLift,
+              width: _bubbleWidth,
+              child: ExcludeSemantics(
+                child: Opacity(opacity: opacity.clamp(0.0, 1.0), child: const _SpeechBubble()),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  /// How far above his head the bubble's top sits, and how wide it is.
+  static const _bubbleLift = 52.0;
+  static const _bubbleWidth = 124.0;
+
+  /// The landscape's width over its height (1536 × 1024).
+  static const _landscapeAspect = 1.5;
+
+  /// Where the path runs, as fractions of the picture: 88 % of the way down, 72 % across.
+  static const _pathLine = 0.88;
+  static const _pathX = 0.72;
+
+  /// Where the fade into the page starts, down the picture.
+  static const _fadeFrom = 0.82;
+
+  /// How far the picture is dimmed toward the ground in dark mode.
+  static const _darkDim = 0.6;
+
   /// The botanical stage under the walker — on Home AND inside the You frame's circle (D-149):
   /// the same art is the mock's backdrop on both screens. Its podium SURFACE — 86 % of the way
   /// down the art — sits exactly at his feet, from the same [WalkingMan.boundsIn] the walker
@@ -103,6 +193,8 @@ class _ClientShellState extends State<ClientShell> with SingleTickerProviderStat
     final t = _eased.value;
     final opacity = arriving ? t : (1 - t);
     if (opacity <= 0) return const SizedBox.shrink();
+
+    if (tab == ClientTab.home) return _landscapeFor(context, tab, opacity);
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -276,7 +368,7 @@ class _ClientShellState extends State<ClientShell> with SingleTickerProviderStat
         tooltip: l10n.logEntry,
         child: const Icon(Icons.add, size: AppSpacing.xl),
       ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+      floatingActionButtonLocation: const _InBarFabLocation(),
       bottomNavigationBar: Obx(
         () => NavigationBar(
           selectedIndex: _nav.indexOf(_nav.selected.value),
@@ -288,13 +380,13 @@ class _ClientShellState extends State<ClientShell> with SingleTickerProviderStat
               label: l10n.tabHome,
             ),
             NavigationDestination(
-              icon: const Icon(Icons.restaurant_menu_outlined),
-              selectedIcon: const Icon(Icons.restaurant_menu),
+              icon: const Icon(Icons.restaurant_outlined),
+              selectedIcon: const Icon(Icons.restaurant),
               label: l10n.tabPlan,
             ),
             NavigationDestination(
-              icon: const Icon(Icons.show_chart_outlined),
-              selectedIcon: const Icon(Icons.show_chart),
+              icon: const Icon(Icons.bar_chart_outlined),
+              selectedIcon: const Icon(Icons.bar_chart),
               label: l10n.tabProgress,
             ),
             NavigationDestination(
@@ -307,4 +399,61 @@ class _ClientShellState extends State<ClientShell> with SingleTickerProviderStat
       ),
     );
   }
+}
+
+/// "Small steps, big results" on a tilted white card, as the dashboard reference has it.
+/// Encouragement about the habit, never about a number (docs/05 §6).
+class _SpeechBubble extends StatelessWidget {
+  const _SpeechBubble();
+
+  /// A slight tilt, about seven degrees anticlockwise.
+  static const _tilt = -0.12;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+
+    return Transform.rotate(
+      angle: _tilt,
+      child: Container(
+        padding: const EdgeInsets.all(AppSpacing.sm),
+        decoration: BoxDecoration(
+          color: scheme.surface,
+          borderRadius: BorderRadius.circular(AppRadius.tile),
+          boxShadow: AppElevation.card(theme.brightness),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Flexible(
+              child: Text(
+                AppLocalizations.of(context).homeBubble,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: scheme.onSurface,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+            Icon(Icons.eco_rounded, size: AppSpacing.lg, color: scheme.secondary),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// The + sits IN the nav bar, between Plan and Progress, as the reference has it — `centerDocked`
+/// floated it on the bar's top edge, where it covered the content scrolling above.
+class _InBarFabLocation extends FloatingActionButtonLocation {
+  const _InBarFabLocation();
+
+  /// How far the button rises above the bar's top edge.
+  static const _rise = AppSpacing.sm;
+
+  @override
+  Offset getOffset(ScaffoldPrelayoutGeometry geometry) => Offset(
+    (geometry.scaffoldSize.width - geometry.floatingActionButtonSize.width) / 2,
+    geometry.contentBottom - _rise,
+  );
 }

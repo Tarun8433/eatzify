@@ -32,6 +32,15 @@ export class EngineService {
     return this.activeVersion;
   }
 
+  /// The active pack's steps goal, or null when it sets none. Read off the validated pack: the
+  /// field is in the schema, not in the engine's own `RulePack` type, because no plan uses it.
+  public stepsGoal(): number | null {
+    const pack = this.pack(this.activeVersion) as {
+      activity?: { steps_goal?: number };
+    };
+    return pack.activity?.steps_goal ?? null;
+  }
+
   public get availableVersions(): readonly string[] {
     return [...this.packs.keys()];
   }

@@ -39,6 +39,7 @@ import {
   EMAIL_TAKEN,
   GOOGLE_SIGN_IN_FAILED,
   INVALID_CREDENTIALS,
+  PASSWORD_ALREADY_SET,
 } from './auth-copy';
 import { GoogleIdToken } from './google-id-token';
 
@@ -48,6 +49,9 @@ export type AppSession = {
   refresh: string;
   user: User;
   onboarding_required: boolean;
+  /// True for an account with no password it can sign in with — one made with Google. The app then
+  /// asks for one, so the same person can also sign in with their email.
+  needs_password: boolean;
 };
 import { User } from '../users/domain/user';
 
@@ -137,6 +141,9 @@ export class AuthService {
       onboarding_required: !(await this.profileService.hasCompletedOnboarding(
         Number(user.id),
       )),
+      // Only `email` accounts may use a password (`validateLogin`): a Google account that took
+      // over an unconfirmed sign-up still holds the stranger's password, and must not use it.
+      needs_password: user.provider !== AuthProvidersEnum.email,
     };
   }
 
@@ -197,6 +204,32 @@ export class AuthService {
       provider: AuthProvidersEnum.google,
       role: { id: RoleEnum.user },
       status: { id: StatusEnum.active },
+    });
+  }
+
+  /// Gives a Google account a password, after which it is an email account: `validateLogin`
+  /// accepts it, and Google still finds it by its verified address (`googleUser`, step 2). The new
+  /// password replaces any left from an unconfirmed sign-up Google took over. An account that
+  /// already signs in with a password changes it with `PATCH /auth/me`, which asks for the old one.
+  async setPassword(userId: number, password: string): Promise<void> {
+    const user = await this.usersService.findById(userId);
+    if (!user) {
+      throw this.refuse(
+        HttpStatus.UNAUTHORIZED,
+        'INVALID_CREDENTIALS',
+        INVALID_CREDENTIALS,
+      );
+    }
+    if (user.provider === AuthProvidersEnum.email) {
+      throw this.refuse(
+        HttpStatus.CONFLICT,
+        'PASSWORD_ALREADY_SET',
+        PASSWORD_ALREADY_SET,
+      );
+    }
+    await this.usersService.update(user.id, {
+      password,
+      provider: AuthProvidersEnum.email,
     });
   }
 

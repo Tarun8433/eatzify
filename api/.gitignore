@@ -13,3 +13,5 @@ coverage/
 .env.example.boilerplate
 *.tsbuildinfo
 files/
+*service-account*.json
+eatzify-*.json

@@ -10,14 +10,19 @@ import 'package:health_pro/presentation/shell/weight_log_tab.dart';
 /// Nothing else." The "nothing else" is the point — this is where the old build's nine-tile
 /// hamburger menu used to leak back in.
 class LogSheet extends StatelessWidget {
-  const LogSheet({super.key});
+  const LogSheet({this.initialTab = 0, super.key});
 
-  static Future<void> show(BuildContext context) {
+  /// Which tab opens first: Food, Water, Weight, Steps — so a card's own + lands on its own tab.
+  final int initialTab;
+
+  static const waterTab = 1;
+
+  static Future<void> show(BuildContext context, {int initialTab = 0}) {
     return showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       showDragHandle: true,
-      builder: (_) => const LogSheet(),
+      builder: (_) => LogSheet(initialTab: initialTab),
     );
   }
 
@@ -40,6 +45,7 @@ class LogSheet extends StatelessWidget {
 
     return DefaultTabController(
       length: tabs.length,
+      initialIndex: initialTab,
       child: SafeArea(
         child: Padding(
           padding: EdgeInsets.only(bottom: media.viewInsets.bottom),

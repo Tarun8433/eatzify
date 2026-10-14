@@ -4,7 +4,9 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
 import 'package:health_pro/core/errors/failures.dart';
+import 'package:health_pro/core/session/session_controller.dart';
 import 'package:health_pro/core/theme/app_theme.dart';
+import 'package:health_pro/domain/entities/profession.dart';
 import 'package:health_pro/domain/entities/session.dart';
 import 'package:health_pro/domain/repositories/auth_repository.dart';
 import 'package:health_pro/presentation/features/auth/login_controller.dart';
@@ -65,6 +67,20 @@ class StubAuth implements AuthRepository {
   @override
   Future<Either<Failure, Session>> refresh(Session current) async =>
       const Left(ApiFailure('x', code: 'X'));
+
+  /// Passwords `POST /auth/password` was sent, and whether it refuses.
+  final passwordsSet = <String>[];
+  Failure? setPasswordFailure;
+
+  @override
+  Future<Either<Failure, Unit>> setPassword({
+    required Session session,
+    required String password,
+  }) async {
+    passwordsSet.add(password);
+    final refused = setPasswordFailure;
+    return refused == null ? const Right(unit) : Left(refused);
+  }
 
   @override
   Future<Either<Failure, Unit>> logout(Session current) async => const Right(unit);
@@ -129,7 +145,12 @@ Future<void> typeInto(WidgetTester tester, int field, String text) async {
   await settle(tester);
 }
 
-Future<void> reachSignUp(WidgetTester tester) => tapText(tester, l10n(tester).loginCreateAccount);
+/// Create account asks who you are first; either answer leads to the form.
+Future<void> reachSignUp(WidgetTester tester, {bool professional = false}) async {
+  final l = l10n(tester);
+  await tapText(tester, l.loginCreateAccount);
+  await tapText(tester, professional ? l.joinProfessionalCta : l.joinIndividualCta);
+}
 
 Future<void> reachCodeStep(WidgetTester tester) async {
   await reachSignUp(tester);
@@ -202,6 +223,69 @@ void main() {
     await waitOutCooldown(tester);
   });
 
+  testWidgets('create account asks who you are before the form', (tester) async {
+    sizeAsPhone(tester);
+    await tester.pumpWidget(app());
+    await settle(tester);
+    final l = l10n(tester);
+
+    await tapText(tester, l.loginCreateAccount);
+
+    expect(find.text(l.joinSheetTitle), findsOneWidget);
+    expect(find.text(l.joinIndividualTitle), findsOneWidget);
+    expect(find.text(l.joinProfessionalTitle), findsOneWidget);
+    expect(Get.find<LoginController>().step.value, AuthStep.signIn, reason: 'not yet answered');
+  });
+
+  testWidgets('a professional reaches the same sign-up form', (tester) async {
+    sizeAsPhone(tester);
+    await tester.pumpWidget(app());
+    await settle(tester);
+
+    await reachSignUp(tester, professional: true);
+
+    expect(find.text(l10n(tester).joinSheetTitle), findsNothing);
+    expect(find.text(l10n(tester).signUpTitle), findsOneWidget);
+    expect(await Get.find<SessionController>().joinAs(), JoinAs.professional);
+  });
+
+  testWidgets('the answer is remembered for onboarding', (tester) async {
+    sizeAsPhone(tester);
+    await tester.pumpWidget(app());
+    await settle(tester);
+
+    await reachSignUp(tester);
+
+    expect(await Get.find<SessionController>().joinAs(), JoinAs.individual);
+  });
+
+  testWidgets('leaving the question stays on sign-in', (tester) async {
+    sizeAsPhone(tester);
+    await tester.pumpWidget(app());
+    await settle(tester);
+    final l = l10n(tester);
+
+    await tapText(tester, l.loginCreateAccount);
+    // The sheet's own "Already have an account? Sign in".
+    await tapText(tester, l.loginSignIn);
+
+    expect(find.text(l.joinSheetTitle), findsNothing);
+    expect(Get.find<LoginController>().step.value, AuthStep.signIn);
+  });
+
+  testWidgets('the question survives 200 % font scale without clipping (rule 12)', (tester) async {
+    tester.view.physicalSize = const Size(390, 780);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    await tester.pumpWidget(app(scaler: const TextScaler.linear(2)));
+    await settle(tester);
+
+    await tapText(tester, l10n(tester).loginCreateAccount);
+
+    expect(tester.takeException(), isNull);
+    expect(find.text(l10n(tester).joinSheetTitle), findsOneWidget);
+  });
+
   testWidgets('sign-up asks for the phone number, and its picker offers every country', (
     tester,
   ) async {
@@ -217,6 +301,30 @@ void main() {
     await tapText(tester, '+91');
     // Alphabetical, and Afghanistan heads it — not the one-entry list an India-only build shows.
     expect(find.text('Afghanistan'), findsOneWidget);
+  });
+
+  testWidgets('the create button is green with a white label once the form is filled', (
+    tester,
+  ) async {
+    sizeAsPhone(tester);
+    await tester.pumpWidget(app());
+    await settle(tester);
+    await reachSignUp(tester);
+    await typeInto(tester, 0, 'asha@example.com');
+    await typeInto(tester, 1, 'longenough');
+    await typeInto(tester, 2, '9876543210');
+
+    final button = find.ancestor(
+      of: find.text(l10n(tester).loginCreateAccount).last,
+      // Any Material button: byType matches the exact class, and this one has been both kinds.
+      matching: find.byWidgetPredicate((w) => w is ButtonStyleButton),
+    );
+    final style = tester.widget<ButtonStyleButton>(button).style!;
+    final scheme = Theme.of(tester.element(button)).colorScheme;
+    // A white label on the default near-white ElevatedButton surface shipped once: invisible.
+    expect(style.backgroundColor!.resolve({}), scheme.primary);
+    expect(style.foregroundColor!.resolve({}), scheme.onPrimary);
+    expect(tester.widget<ButtonStyleButton>(button).onPressed, isNotNull);
   });
 
   testWidgets('creating an account moves to the code, with a way back to the email', (
@@ -283,6 +391,71 @@ void main() {
   });
 
   group('Google', () {
+    const newGoogleUser = Session(
+      accessToken: 'a',
+      refreshToken: 'r',
+      userId: 'u-9',
+      roles: ['client'],
+      onboardingRequired: true,
+      needsPassword: true,
+    );
+
+    Future<void> signInWithGoogle(WidgetTester tester) async {
+      sizeAsPhone(tester);
+      await tester.pumpWidget(app(googleIdToken: () async => 'id-token-1'));
+      auth.googleResult = const Right(newGoogleUser);
+      await settle(tester);
+      await tester.ensureVisible(find.byType(GoogleButton));
+      await settle(tester);
+      await tester.tap(find.byType(GoogleButton));
+      await settle(tester);
+    }
+
+    testWidgets('should ask a new Google account for a password before going on', (tester) async {
+      await signInWithGoogle(tester);
+      final l = l10n(tester);
+
+      expect(find.text(l.createPasswordTitle), findsOneWidget);
+      expect(Get.find<LoginController>().step.value, AuthStep.createPassword);
+      // Nothing adopted until the password is saved.
+      expect(Get.find<SessionController>().userId, isNot('u-9'));
+    });
+
+    testWidgets('should save the password and then sign in', (tester) async {
+      await signInWithGoogle(tester);
+
+      await typeInto(tester, 0, 'longenough');
+      await tapText(tester, l10n(tester).createPasswordSave);
+
+      expect(auth.passwordsSet, ['longenough']);
+      expect(Get.find<SessionController>().userId, 'u-9');
+    });
+
+    testWidgets('should show the refusal and stay when the password is not saved', (tester) async {
+      await signInWithGoogle(tester);
+      auth.setPasswordFailure = const ApiFailure('no thanks', code: 'PASSWORD_ALREADY_SET');
+
+      await typeInto(tester, 0, 'longenough');
+      await tapText(tester, l10n(tester).createPasswordSave);
+
+      expect(find.text('no thanks'), findsOneWidget);
+      expect(Get.find<LoginController>().step.value, AuthStep.createPassword);
+      expect(Get.find<SessionController>().userId, isNot('u-9'));
+    });
+
+    testWidgets('should drop the held session when going back', (tester) async {
+      await signInWithGoogle(tester);
+
+      await tester.tap(find.byIcon(Icons.arrow_back_rounded));
+      await settle(tester);
+
+      expect(Get.find<LoginController>().step.value, AuthStep.signIn);
+      // A later save cannot adopt what was dropped.
+      await Get.find<LoginController>().createPassword();
+      expect(Get.find<SessionController>().userId, isNot('u-9'));
+      expect(auth.passwordsSet, isEmpty);
+    });
+
     testWidgets('is absent when the build carries no OAuth client id', (tester) async {
       sizeAsPhone(tester);
       await tester.pumpWidget(app());
@@ -290,7 +463,7 @@ void main() {
 
       // A sign-in option that cannot possibly succeed is worse than no option.
       expect(find.byType(GoogleButton), findsNothing);
-      expect(find.text(l10n(tester).loginOr), findsNothing);
+      expect(find.text(l10n(tester).loginOrContinue), findsNothing);
     });
 
     testWidgets('sends the token it was given to the server', (tester) async {

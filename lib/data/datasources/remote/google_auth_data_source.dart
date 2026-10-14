@@ -19,8 +19,18 @@ class GoogleAuthDataSource {
   /// The server one is what makes the token's audience match the backend that has to verify it, so
   /// it gates the whole feature ([isConfigured]): with no value, the button is never drawn. A
   /// sign-in option that is certain to fail is worse than one that is absent.
-  static const _serverClientId = String.fromEnvironment('GOOGLE_SERVER_CLIENT_ID');
-  static const _iosClientId = String.fromEnvironment('GOOGLE_IOS_CLIENT_ID');
+  ///
+  /// The defaults are this project's own ids, the same as `dart_defines.json`. They are not secrets
+  /// — an OAuth client id ships inside every copy of the app — and without them a plain
+  /// `flutter run` or `flutter build` (no `--dart-define-from-file`) drew no Google button at all.
+  static const _serverClientId = String.fromEnvironment(
+    'GOOGLE_SERVER_CLIENT_ID',
+    defaultValue: '1013683869281-04kbcs84hu5atok72co3pr0024o0nvkb.apps.googleusercontent.com',
+  );
+  static const _iosClientId = String.fromEnvironment(
+    'GOOGLE_IOS_CLIENT_ID',
+    defaultValue: '1013683869281-pdor2hci093rm4jvtm8m0hkukemp0i2n.apps.googleusercontent.com',
+  );
 
   static bool get isConfigured => _serverClientId.isNotEmpty;
 

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:health_pro/core/theme/app_spacing.dart';
 import 'package:health_pro/presentation/l10n/app_localizations.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -62,13 +61,8 @@ class AgreementLine extends StatelessWidget {
         for (final (i, item) in links.indexed) ...[
           if (i > 0) Text(' ${l.legalAnd} ', style: small),
           // A real button, not a gesture on a span: it gets a 48 dp target and a semantics role.
-          TextButton(
-            style: TextButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xs),
-              minimumSize: const Size(0, AppSpacing.minTouchTarget),
-              tapTargetSize: MaterialTapTargetSize.padded,
-            ),
-            onPressed: () => openSiteLink(context, item.uri, opener: opener),
+          GestureDetector(
+            onTap: () => openSiteLink(context, item.uri, opener: opener),
             child: Text(item.label, style: link),
           ),
         ],

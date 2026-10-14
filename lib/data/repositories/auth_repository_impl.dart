@@ -37,6 +37,10 @@ class AuthRepositoryImpl implements AuthRepository {
   }) => _remote.signInWithGoogle(idToken: idToken, deviceId: deviceId);
 
   @override
+  Future<Either<Failure, Unit>> setPassword({required Session session, required String password}) =>
+      _remote.setPassword(session: session, password: password);
+
+  @override
   Future<Either<Failure, Session>> refresh(Session current) => _remote.refresh(current);
 
   @override

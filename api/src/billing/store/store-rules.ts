@@ -29,12 +29,22 @@ export type StoreGrant = {
   needsAcknowledge: boolean;
 };
 
-/// Play Console: two subscriptions, `basic` and `pro`, each with these base plans.
+/// Play Console: two subscriptions, `eatzify_basic` (or `basic`) and `eatzify_premium` (or `pro`),
+/// each with duration base plans.
 const PLAY_BASE_PLANS: Record<string, StoreDuration> = {
   p1m: '1M',
   p3m: '3M',
   p6m: '6M',
   p1y: '12M',
+  // User's custom Play Console base plans:
+  '249basic': '1M',
+  '699basic': '3M',
+  '1199basic': '6M',
+  '2099basic': '12M',
+  '649pro': '1M',
+  '1799pro': '3M',
+  '2799pro': '6M',
+  '4999pro': '12M',
 };
 
 export function playProduct(
@@ -42,7 +52,11 @@ export function playProduct(
   basePlanId: string | null | undefined,
 ): { tier: StoreTier; duration: StoreDuration } | null {
   const tier =
-    productId === 'basic' ? 'BASIC' : productId === 'pro' ? 'PRO' : null;
+    productId === 'basic' || productId === 'eatzify_basic'
+      ? 'BASIC'
+      : productId === 'pro' || productId === 'eatzify_premium'
+        ? 'PRO'
+        : null;
   const duration = basePlanId ? PLAY_BASE_PLANS[basePlanId] : undefined;
   return tier && duration ? { tier, duration } : null;
 }
@@ -57,14 +71,16 @@ export type PlayProductView = {
 /// The reverse of [playProduct]: what the app asks Play for, per cell of the price matrix. Sent
 /// to the app so it never builds a product id itself.
 export function playProducts(): PlayProductView[] {
-  return (['BASIC', 'PRO'] as const).flatMap((tier) =>
-    Object.entries(PLAY_BASE_PLANS).map(([basePlanId, duration]) => ({
-      tier,
-      duration,
-      product_id: tier.toLowerCase(),
-      base_plan_id: basePlanId,
-    })),
-  );
+  return [
+    { tier: 'BASIC', duration: '1M', product_id: 'eatzify_basic', base_plan_id: '249basic' },
+    { tier: 'BASIC', duration: '3M', product_id: 'eatzify_basic', base_plan_id: '699basic' },
+    { tier: 'BASIC', duration: '6M', product_id: 'eatzify_basic', base_plan_id: '1199basic' },
+    { tier: 'BASIC', duration: '12M', product_id: 'eatzify_basic', base_plan_id: '2099basic' },
+    { tier: 'PRO', duration: '1M', product_id: 'eatzify_premium', base_plan_id: '649pro' },
+    { tier: 'PRO', duration: '3M', product_id: 'eatzify_premium', base_plan_id: '1799pro' },
+    { tier: 'PRO', duration: '6M', product_id: 'eatzify_premium', base_plan_id: '2799pro' },
+    { tier: 'PRO', duration: '12M', product_id: 'eatzify_premium', base_plan_id: '4999pro' },
+  ];
 }
 
 /// Play's `subscriptionState` → our lifecycle (docs/11 §5). Pending purchases grant nothing: the
@@ -202,3 +218,4 @@ export function gstSplitMicros(amountPaise: number): {
     taxMicros: String((amountPaise - preTaxPaise) * MICROS_PER_PAISE),
   };
 }
+

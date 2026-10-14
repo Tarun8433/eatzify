@@ -58,7 +58,7 @@
 	     writes to a health record, and asking for write access is how a permission sheet starts
 	     looking alarming. No UIBackgroundModes entry either — reads happen on the foreground. -->
 	<key>NSHealthShareUsageDescription</key>
-	<string>Eatzify reads your steps, walking distance and calories burned so your daily activity is reflected in your plan. You can turn this off at any time and enter these yourself instead.</string>
+	<string>Eatzify reads your steps, walking distance, calories burned and sleep so your daily activity and rest show on your Home screen and in your plan. You can turn this off at any time and enter these yourself instead.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Eatzify needs access to your photos so you can add a profile photo, or pick a photo of a meal to log it. Meal photos are only used to recognise the food and are not stored.</string>
 	<!-- AdMob (D-238): rewarded ads before a FREE meal scan. Google's TEST app id — replace with the

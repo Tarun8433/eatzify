@@ -4,7 +4,6 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
 import 'package:health_pro/core/errors/failures.dart';
-import 'package:health_pro/core/theme/app_spacing.dart';
 import 'package:health_pro/core/theme/app_theme.dart';
 import 'package:health_pro/core/widgets/app_card.dart';
 import 'package:health_pro/core/widgets/food_image.dart';
@@ -124,7 +123,7 @@ void main() {
   // Both scales: rule 12 asks the screen to survive 200 %, and the old layout's answer to a
   // narrow column — divide it two-up — is the branch this row replaced.
   for (final scale in [1.0, 2.0]) {
-    testWidgets('a fourth nutrient scrolls rather than overflowing at ${scale}x text', (
+    testWidgets('a fourth nutrient joins the grid rather than overflowing at ${scale}x text', (
       tester,
     ) async {
       // The screenshot case: a plan that carries fibre puts FOUR tiles on a phone's width, where
@@ -158,21 +157,17 @@ void main() {
       );
       await settle(tester);
 
-      await scrollTo(tester, find.text('20 / 125 g'));
+      await scrollTo(tester, find.text('Fibre'));
       expect(tester.takeException(), isNull);
 
-      // No tile is narrower than the readable minimum; the row carries the overflow sideways.
-      final tiles = tester
-          .widgetList<SizedBox>(
-            find.descendant(
-              of: find.byType(SingleChildScrollView),
-              matching: find.byType(SizedBox),
-            ),
-          )
-          .where((b) => b.width != null && b.width! >= AppSizes.nutrientTile);
-      expect(tiles, isNotEmpty);
-
-      expect(find.text('Fibre'), findsOneWidget);
+      // A grid, not a sideways scroll: all four tiles are on the page at once, none cut off at
+      // the screen's edge (the old row hid the fourth).
+      expect(find.text('20 / 125 g'), findsOneWidget);
+      expect(find.text('6 / 25 g'), findsOneWidget);
+      expect(
+        find.ancestor(of: find.text('Fibre'), matching: find.byType(SingleChildScrollView)),
+        findsNothing,
+      );
     });
   }
 
@@ -516,10 +511,10 @@ void main() {
       await settle(tester);
     }
 
-    testWidgets('shows supplied alongside the gauge', (tester) async {
+    testWidgets('shows consumed alongside the gauge', (tester) async {
       await pumpWithPlan(tester);
 
-      expect(find.text('supplied'), findsOneWidget);
+      expect(find.text('consumed'), findsOneWidget);
       expect(find.text('348'), findsOneWidget);
     });
 
@@ -573,7 +568,7 @@ void main() {
       await settle(tester);
 
       // The structure stays so the screen does not look broken; the copy carries the meaning.
-      expect(find.text('supplied'), findsOneWidget);
+      expect(find.text('consumed'), findsOneWidget);
       expect(find.text('burned'), findsOneWidget);
       expect(find.text('Create my plan'), findsOneWidget);
 
@@ -617,7 +612,7 @@ void main() {
       await settle(tester);
 
       expect(find.text('410'), findsOneWidget, reason: 'the reported figure, not a dash');
-      expect(find.text('8432'), findsOneWidget);
+      expect(find.text('8,432'), findsOneWidget);
     });
 
     testWidgets('steps without a burned figure never claims tracking is unavailable', (
@@ -628,7 +623,7 @@ void main() {
       );
       await settle(tester);
 
-      expect(find.text('10000'), findsOneWidget);
+      expect(find.text('10,000'), findsOneWidget);
       // The bug: "Activity tracking isn't set up yet" beside a step count the user had just
       // entered through it (D-80). The em dash on "burned" states the absence without a lecture.
       expect(find.textContaining('set up yet'), findsNothing);
@@ -739,7 +734,7 @@ void main() {
       );
       await settle(tester);
 
-      expect(find.text('9500'), findsOneWidget);
+      expect(find.text('9,500'), findsOneWidget);
       expect(find.textContaining('Apple Health'), findsOneWidget);
     });
 

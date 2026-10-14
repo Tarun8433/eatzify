@@ -28,6 +28,9 @@ export const MEASUREMENT_KINDS = [
   // Hydration (D-86). A kind, for the same reason activity is: one row per user per DIARY day, and
   // logging twice corrects the figure rather than doubling it.
   'water_ml',
+  // Last night's sleep, read from Health Connect / HealthKit for the Home dashboard. Minutes
+  // asleep in sessions that ended inside this diary day, so a night belongs to the morning after.
+  'sleep_min',
 ] as const;
 export type MeasurementKind = (typeof MEASUREMENT_KINDS)[number];
 
@@ -122,6 +125,8 @@ export const BOUNDS: Record<
   // 10 litres is past what anyone drinks in a day and well past hyponatraemia risk; the rule pack's
   // own ceiling is 4 litres, and this is only the "that cannot be a real number" bound.
   water_ml: { min: 0, max: 10000, unit: 'ml' },
+  // A whole day is the ceiling: more than that is two nights counted into one.
+  sleep_min: { min: 0, max: 1440, unit: 'min' },
 };
 
 /// Every unit any kind is measured in, derived from BOUNDS rather than listed again (D-80).

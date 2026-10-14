@@ -10,7 +10,10 @@ enum HealthMetric {
   /// already counts — storing either would add a BMR to every day twice.
   activeEnergy(kind: 'energy_burned_kcal', unit: 'kcal'),
 
-  distance(kind: 'distance_m', unit: 'm');
+  distance(kind: 'distance_m', unit: 'm'),
+
+  /// Minutes asleep in the sessions that ended inside a diary day — last night, for the morning.
+  sleep(kind: 'sleep_min', unit: 'min');
 
   const HealthMetric({required this.kind, required this.unit});
 

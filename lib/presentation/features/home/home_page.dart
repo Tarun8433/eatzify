@@ -1,5 +1,3 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:health_pro/core/theme/app_colors.dart';
@@ -20,7 +18,6 @@ import 'package:health_pro/domain/repositories/plan_repository.dart';
 import 'package:health_pro/domain/repositories/store_gateway.dart';
 import 'package:health_pro/domain/usecases/plan_reminders.dart';
 import 'package:health_pro/domain/usecases/sync_health.dart';
-import 'package:health_pro/presentation/features/account/reminders_page.dart';
 import 'package:health_pro/presentation/features/billing/billing_controller.dart';
 import 'package:health_pro/presentation/features/billing/premium_widgets.dart';
 import 'package:health_pro/presentation/features/gym/gym_today_card.dart';
@@ -28,7 +25,9 @@ import 'package:health_pro/presentation/features/home/home_controller.dart';
 import 'package:health_pro/presentation/features/home/home_health_sync.dart';
 import 'package:health_pro/presentation/features/home/home_skeleton.dart';
 import 'package:health_pro/presentation/features/home/widgets/announcements_strip.dart';
-import 'package:health_pro/presentation/features/onboarding/enum_labels.dart';
+import 'package:health_pro/presentation/features/home/widgets/home_activity_cards.dart';
+import 'package:health_pro/presentation/features/home/widgets/home_day_selector.dart';
+import 'package:health_pro/presentation/features/home/widgets/home_header.dart';
 import 'package:health_pro/presentation/features/tab_scaffold.dart';
 import 'package:health_pro/presentation/l10n/app_localizations.dart';
 import 'package:health_pro/presentation/shell/log_sheet.dart';
@@ -76,10 +75,16 @@ class HomePage extends StatelessWidget {
         // Draws nothing; puts up the once-per-account connect sheet when Home asks for it.
         HomeHealthPrompt(controller: c),
         TabScaffold(
-          title: l10n.tabHome,
+          title: homeGreeting(l10n, DateTime.now()),
           titleIcon: Icons.waving_hand,
-          subtitle: l10n.homeSubtitle,
-          action: billing == null ? null : PremiumPill(billing: billing),
+          subtitle: l10n.homeTagline,
+          action: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (billing != null) Flexible(child: PremiumPill(billing: billing)),
+              const HomeNotificationBell(),
+            ],
+          ),
           child: Obx(
             () => switch (c.state.value) {
               Loading<DiaryDay>() => const HomeSkeleton(),
@@ -117,13 +122,20 @@ class _Today extends StatelessWidget {
       children: [
         // Which day this is, and the way to yesterday. Without it the diary is a display of the
         // last few hours: everything logged before 04:00 this morning was unreachable (D-128).
-        _DayBar(controller: controller),
+        HomeDaySelector(controller: controller),
         const SizedBox(height: AppSpacing.sm),
         // Admin panel plan, Phase C: the team's news. Draws nothing when there is none.
         const AnnouncementsStrip(),
         // D-57: the hero is the screen, not a card on it — the summary cards on the left, the
         // walker on his stage to the right, both painted in their own layers.
         _Hero(day: day, controller: controller),
+        // Full width, under the hero, as the reference stacks them: water, then steps.
+        if (day.waterTargetMl != null) ...[
+          const SizedBox(height: AppSpacing.md),
+          HomeWaterCard(day: day),
+        ],
+        const SizedBox(height: AppSpacing.md),
+        HomeStepsCard(day: day, controller: controller),
         if (targets == null) ...[
           const SizedBox(height: AppSpacing.lg),
           Obx(
@@ -180,8 +192,6 @@ class _Today extends StatelessWidget {
           // next heading is the two together. The shadow used to paint into this spacer.
           const SizedBox(height: AppSpacing.sm),
         ],
-        _StreakCard(controller: controller, day: day),
-        const SizedBox(height: AppSpacing.sm),
         // D-241: the Gym's door on Home — today's routine and a one-tap Start. It carries its own
         // gap, so a Home with no Gym registered is laid out exactly as before.
         const GymTodayCard(),
@@ -205,6 +215,8 @@ class _Today extends StatelessWidget {
               ),
               for (final entry in day.entries.where((e) => e.slot == slot)) _EntryRow(entry: entry),
             ],
+        const SizedBox(height: AppSpacing.sm),
+        _StreakCard(controller: controller, day: day),
         _TargetsHitCard(day: day),
       ],
     );
@@ -225,7 +237,6 @@ class _Hero extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final l = AppLocalizations.of(context);
     final textScale = MediaQuery.textScalerOf(context).scale(1);
 
     return LayoutBuilder(
@@ -239,36 +250,16 @@ class _Hero extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             _CalorieSummaryCard(day: day),
-            // Layered over the green card's foot, the reference's own overlap — the two are one
-            // thought ("energy in, water in") and the seam says so.
-            if (day.waterTargetMl != null)
+            // Layered over the green card's foot, the reference's own overlap: the plan's target,
+            // what was eaten, what is left. Only with a plan — never a target of nought.
+            if (day.targets != null)
               Transform.translate(
                 offset: const Offset(0, -AppSpacing.md),
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
-                  child: _WaterCard(day: day),
+                  child: HomeCalorieTargets(day: day),
                 ),
               ),
-            if (day.steps != null)
-              Padding(
-                padding: const EdgeInsets.only(top: AppSpacing.xs),
-                // Rule 10: the source travels with the number. A count a phone reported and one a
-                // person typed are different claims, and only the second can be argued with.
-                child: _StatTile(
-                  icon: Icons.directions_run_outlined,
-                  iconColor: AppColors.macroCarb,
-                  value: day.steps!.toDouble(),
-                  // "+ you" once the person has added to a phone's count (D-221).
-                  label: day.stepsAdded != null && day.stepsSource.isAutomatic
-                      ? l.homeStepsFromWithYou(day.stepsSource.label(l))
-                      : l.homeStepsFrom(day.stepsSource.label(l)),
-                  // Sync sits beside the figure it refreshes.
-                  trailing: HomeHealthSync.inline(controller: controller),
-                ),
-              ),
-            // Connect, or Sync when there is no figure to sit beside (D-218). A button, not a
-            // banner: not connecting is a fine answer, and manual entry is one tap away on the +.
-            HomeHealthSync(controller: controller, syncShownInline: day.steps != null),
           ],
         );
 
@@ -307,11 +298,11 @@ class _CalorieSummaryCard extends StatelessWidget {
 
   final DiaryDay day;
 
-  // 64/12, down from 76/16 (D-157): the card read as a slab — the ring is the height driver,
-  // and a thinner one still carries the same two figures. `_ringInner` is the side of the
-  // square inscribed in the ring's inner circle — the box the number must actually fit.
-  static const _ring = 64.0;
-  static const _ringInner = 36.0;
+  // 72: between D-157's 64 and the reference's fifth of the screen — at 80 the card dwarfed the
+  // rest of Home on a 360 dp phone. `_ringInner` is the side of the square inscribed in the
+  // ring's inner circle — the box the number must actually fit.
+  static const _ring = 72.0;
+  static const _ringInner = 40.0;
 
   @override
   Widget build(BuildContext context) {
@@ -326,7 +317,14 @@ class _CalorieSummaryCard extends StatelessWidget {
     final target = day.targets?.kcal;
 
     return Container(
-      padding: const EdgeInsets.all(AppSpacing.md),
+      // The extra foot is the white targets panel's overlap (`_Hero`): without it the panel sat
+      // on "burned" and cut it in half.
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.md,
+        AppSpacing.md,
+        AppSpacing.md,
+        AppSpacing.md + AppSpacing.md,
+      ),
       decoration: BoxDecoration(
         // Lit from the top-left, the reference's own card — flat primary read as a slab.
         gradient: const LinearGradient(
@@ -380,7 +378,9 @@ class _CalorieSummaryCard extends StatelessWidget {
                           AnimatedCount(
                             value: day.totals.kcal,
                             semanticsLabel: '${day.totals.kcal.round()} kcal',
-                            style: theme.textTheme.headlineMedium?.copyWith(
+                            // The app's largest size (26). `displaySmall` is not in the app's
+                            // theme and fell back to Material's 36 sp.
+                            style: theme.textTheme.displayLarge?.copyWith(
                               color: AppColors.darkOnSurface,
                               fontWeight: FontWeight.w800,
                             ),
@@ -435,13 +435,33 @@ class _CalorieSummaryCard extends StatelessWidget {
                       height: _ringInner,
                       child: FittedBox(
                         fit: BoxFit.scaleDown,
-                        child: Text(
-                          burned == null ? '—' : NumberFormat.decimalPattern().format(burned),
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.darkOnSurface,
-                          ),
-                        ),
+                        child: burned == null
+                            ? Text(
+                                '—',
+                                style: theme.textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.darkOnSurface,
+                                ),
+                              )
+                            // The figure over its unit, as the reference sets it in the ring.
+                            : Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    NumberFormat.decimalPattern().format(burned),
+                                    style: theme.textTheme.titleMedium?.copyWith(
+                                      fontWeight: FontWeight.w700,
+                                      color: AppColors.darkOnSurface,
+                                    ),
+                                  ),
+                                  Text(
+                                    'kcal',
+                                    style: theme.textTheme.bodySmall?.copyWith(
+                                      color: AppColors.darkMuted,
+                                    ),
+                                  ),
+                                ],
+                              ),
                       ),
                     ),
                   ),
@@ -482,100 +502,9 @@ class _CalorieSummaryCard extends StatelessWidget {
   }
 }
 
-/// Hydration, layered onto the calorie card (D-86, D-138). The percentage may honestly exceed
-/// 100 — the BAR clamps, the number does not, and neither is ever red (docs/05 §6).
-class _WaterCard extends StatelessWidget {
-  const _WaterCard({required this.day});
-
-  final DiaryDay day;
-
-  @override
-  Widget build(BuildContext context) {
-    //final l = AppLocalizations.of(context);
-    final theme = Theme.of(context);
-    final logged = day.waterLoggedMl ?? 0;
-    final target = day.waterTargetMl!;
-    final pct = target == 0 ? null : (logged / target * 100).round();
-
-    return AppCard(
-      padding: const EdgeInsets.all(AppSpacing.sm),
-      child: Row(
-        children: [
-          // const SizedBox(width: AppSpacing.md),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    const Icon(
-                      Icons.water_drop_outlined,
-                      size: AppSpacing.xl,
-                      color: AppColors.info,
-                    ),
-                    const SizedBox(width: AppSpacing.xs),
-                    // The rest of a card only ~168 dp wide beside the walker: a four-digit figure
-                    // next to the bell shrinks a little rather than running off the edge. At large
-                    // text the hero stacks and the card gets the full width back.
-                    Expanded(
-                      child: FittedBox(
-                        fit: BoxFit.scaleDown,
-                        alignment: AlignmentDirectional.centerStart,
-                        child: Text(
-                          '$logged / $target ml',
-                          style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700),
-                        ),
-                      ),
-                    ),
-                    // "Remind me" beside the water it is about (D-222). Absent where reminders
-                    // are not set up, which is every test that is not about them. Default density:
-                    // compact would shrink the target below 48 dp (rule 12).
-                    if (Get.isRegistered<RefreshReminders>())
-                      IconButton(
-                        tooltip: AppLocalizations.of(context).remindersTitle,
-                        onPressed: RemindersPage.open,
-                        icon: const Icon(Icons.notifications_none_outlined, color: AppColors.info),
-                      ),
-                  ],
-                ),
-
-                const SizedBox(height: AppSpacing.xs),
-                Row(
-                  children: [
-                    Expanded(
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(AppRadius.pill),
-                        child: LinearProgressIndicator(
-                          value: target == 0 ? 0 : (logged / target).clamp(0.0, 1.0),
-                          minHeight: AppSizes.barHeight * 0.75,
-                          color: AppColors.info,
-                          backgroundColor: AppColors.info.withValues(alpha: 0.18),
-                        ),
-                      ),
-                    ),
-                    if (pct != null) ...[
-                      const SizedBox(width: AppSpacing.sm),
-                      Text(
-                        '$pct%',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: AppColors.info,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// The four nutrients as tiles (D-138): protein, carbs, fat — the ring palette Home has always
-/// used — and fibre, now that the day carries a fibre sum (D-136).
+/// The nutrients as a two-column grid (D-138): protein, carbs, fat — the ring palette Home has
+/// always used — and fibre when the day carries it (D-136). A grid rather than a sideways-scrolling
+/// row, which cut the fourth tile off at the screen's edge. One column at large text (rule 12).
 class _NutrientTiles extends StatelessWidget {
   const _NutrientTiles({required this.day});
 
@@ -602,47 +531,30 @@ class _NutrientTiles extends StatelessWidget {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        // Share the width evenly when the tiles fit, and scroll sideways when they do not,
-        // rather than dividing the column four ways whatever it costs: at 79 pt a tile is a
-        // narrow stack of a disc, a label, a figure and a ring (AppSizes.nutrientTile).
-        //
-        // One scroll view either way. When the even share wins there is nothing wider than the
-        // viewport inside it, so it simply does not scroll — no second branch to keep in step.
-        final even = (constraints.maxWidth - AppSpacing.sm * (tiles.length - 1)) / tiles.length;
-        final width = math.max(even, AppSizes.nutrientTile);
+        final columns = MediaQuery.textScalerOf(context).scale(1) >= AppSizes.heroStackTextScale
+            ? 1
+            : 2;
+        final width = (constraints.maxWidth - AppSpacing.sm * (columns - 1)) / columns;
 
-        return SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          // Room for the tiles' drop shadow INSIDE the clip. A scroll view clips to its viewport
-          // and `IntrinsicHeight` sizes the row to exactly the tiles, so the shadow — which paints
-          // outside the box — was being cut clean off, and a card whose shade stops dead at its
-          // own edge reads as sliced rather than as resting on the page.
-          //
-          // Bottom only: both shadows in `AppElevation.card` are offset downwards. Not horizontal
-          // either, which would push the first tile off the screen gutter; the outermost tiles
-          // lose their side shade to the clip, which at 8 % alpha is not a thing you can see.
+        return Padding(
+          // Room for the tiles' drop shadow, which paints below their own box.
           padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-          // IntrinsicHeight so a tile whose target is zero — no percent line, so one row
-          // shorter — does not leave the row ragged. Four children; the extra pass is free.
-          child: IntrinsicHeight(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                for (final (i, (icon, color, label, eaten, target)) in tiles.indexed) ...[
-                  if (i > 0) const SizedBox(width: AppSpacing.sm),
-                  SizedBox(
-                    width: width,
-                    child: _NutrientTile(
-                      icon: icon,
-                      color: color,
-                      label: label,
-                      eaten: eaten,
-                      target: target,
-                    ),
+          child: Wrap(
+            spacing: AppSpacing.sm,
+            runSpacing: AppSpacing.sm,
+            children: [
+              for (final (icon, color, label, eaten, target) in tiles)
+                SizedBox(
+                  width: width,
+                  child: _NutrientTile(
+                    icon: icon,
+                    color: color,
+                    label: label,
+                    eaten: eaten,
+                    target: target,
                   ),
-                ],
-              ],
-            ),
+                ),
+            ],
           ),
         );
       },
@@ -650,6 +562,8 @@ class _NutrientTiles extends StatelessWidget {
   }
 }
 
+/// One nutrient across its tile: the coloured disc, the name over eaten-against-target, and the
+/// ring with its percentage on the right.
 class _NutrientTile extends StatelessWidget {
   const _NutrientTile({
     required this.icon,
@@ -667,6 +581,8 @@ class _NutrientTile extends StatelessWidget {
 
   static const _disc = 36.0;
   static const _ring = 44.0;
+  static const _ringStroke = 5.0;
+  static const _trackAlpha = 0.18;
 
   @override
   Widget build(BuildContext context) {
@@ -675,58 +591,93 @@ class _NutrientTile extends StatelessWidget {
     final pct = target == 0 ? null : (eaten / target * 100).round();
 
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: AppSpacing.md, horizontal: AppSpacing.xs),
+      padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
         color: scheme.surface,
         borderRadius: BorderRadius.circular(AppRadius.tile),
-        // No border — the reference tiles sit on shadow alone, and the warm outline was the
-        // loudest thing in the row.
+        // No border — the reference tiles sit on shadow alone.
         boxShadow: AppElevation.card(theme.brightness),
       ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          ExcludeSemantics(
-            child: Container(
-              height: _disc,
-              width: _disc,
-              // Solid disc, white glyph — the reference's chip, where the tint version read as
-              // a smudge of the macro colour.
-              decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-              child: Icon(icon, size: AppSpacing.lg, color: AppColors.lightSurface),
-            ),
-          ),
-          const SizedBox(height: AppSpacing.xs),
-          Text(
-            label,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: theme.textTheme.bodySmall,
-          ),
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            child: Text(
-              '${eaten.round()} / ${target.round()} g',
-              // The figure in ink, not in the macro colour (reference): the disc and the ring
-              // carry the identity, the number stays a number.
-              style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700),
-            ),
+          Row(
+            children: [
+              ExcludeSemantics(
+                child: Container(
+                  height: _disc,
+                  width: _disc,
+                  // Solid disc, white glyph — the reference's chip.
+                  decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+                  child: Icon(icon, size: AppSpacing.lg, color: AppColors.lightSurface),
+                ),
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.bodySmall,
+                    ),
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        '${eaten.round()} / ${target.round()} g',
+                        // The figure in ink, not in the macro colour: the disc and the ring carry the
+                        // identity, the number stays a number.
+                        style: theme.textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w700),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: AppSpacing.xs),
+              ProgressRing(
+                size: _ring,
+                strokeWidth: _ringStroke,
+                progress: target == 0 ? null : eaten / target,
+                color: color,
+                trackColor: color.withValues(alpha: _trackAlpha),
+                child: pct == null
+                    ? null
+                    : FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Padding(
+                          padding: const EdgeInsets.all(AppSpacing.xs),
+                          child: Text(
+                            '$pct%',
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: color,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      ),
+              ),
+            ],
           ),
           const SizedBox(height: AppSpacing.sm),
-          ProgressRing(
-            size: _ring,
-            strokeWidth: 5,
-            progress: target == 0 ? null : eaten / target,
-            color: color,
-            trackColor: color.withValues(alpha: 0.18),
+          // The reference's bar under each macro: the same ratio as the ring, clamped at full.
+          ClipRRect(
+            borderRadius: BorderRadius.circular(AppRadius.pill),
+            child: LinearProgressIndicator(
+              value: target == 0 ? 0 : (eaten / target).clamp(0.0, 1.0),
+              minHeight: AppSizes.barHeight * _barScale,
+              color: color,
+              backgroundColor: color.withValues(alpha: _trackAlpha),
+            ),
           ),
-          if (pct != null) ...[
-            const SizedBox(height: AppSpacing.xs),
-            Text('$pct%', style: theme.textTheme.bodySmall?.copyWith(color: color)),
-          ],
         ],
       ),
     );
   }
+
+  static const _barScale = 0.75;
 }
 
 /// Consecutive days with anything logged, and the week as NEUTRAL dots (D-138).
@@ -893,81 +844,6 @@ class _TargetsHitCard extends StatelessWidget {
           ],
         ),
       ),
-    );
-  }
-}
-
-/// One figure: the glyph, the counting number, the caption under it (D-118).
-class _StatTile extends StatelessWidget {
-  const _StatTile({
-    required this.icon,
-    required this.value,
-    required this.label,
-    this.iconColor,
-    this.trailing,
-  });
-
-  final IconData icon;
-
-  /// Null means NOT RECORDED, and renders as an em dash. Never zero — "you burned nothing" and
-  /// "you have not told us" are different sentences and only the second is true (D-50).
-  final double? value;
-
-  final String label;
-  final Color? iconColor;
-
-  /// An action for this figure, right after the number — so the label below keeps its width.
-  final Widget? trailing;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final amount = value;
-    final numberStyle = theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700);
-
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        ExcludeSemantics(
-          // Level with the number, whose line is a touch target tall when it carries an action.
-          child: SizedBox(
-            height: trailing == null ? null : AppSpacing.minTouchTarget,
-            child: Icon(
-              icon,
-              size: AppSpacing.xl,
-              color: iconColor ?? theme.colorScheme.onSurfaceVariant,
-            ),
-          ),
-        ),
-        const SizedBox(width: AppSpacing.lg),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (amount == null)
-                    Text('—', style: numberStyle)
-                  else
-                    AnimatedCount(value: amount, style: numberStyle),
-                  if (trailing case final action?) ...[
-                    const SizedBox(width: AppSpacing.sm),
-                    action,
-                  ],
-                ],
-              ),
-              Text(
-                label,
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
     );
   }
 }
@@ -1217,73 +1093,5 @@ class _EntryRow extends StatelessWidget {
         ),
       ),
     );
-  }
-}
-
-/// Which diary day is on screen, and the way to the ones either side of it.
-///
-/// The arrows say "the day before this one", never a date the client worked out: the server owns
-/// where a day begins (04:00 IST, CLAUDE.md rule 8) and the app asks it for one.
-class _DayBar extends StatelessWidget {
-  const _DayBar({required this.controller});
-
-  final HomeController controller;
-
-  @override
-  Widget build(BuildContext context) {
-    final l = AppLocalizations.of(context);
-    final theme = Theme.of(context);
-
-    return Obx(() {
-      final back = controller.daysBack.value;
-      final label = switch (back) {
-        0 => l.homeDayToday,
-        1 => l.homeDayYesterday,
-        _ => DateFormat.MMMEd(
-          Localizations.localeOf(context).toLanguageTag(),
-        ).format(DateTime.now().subtract(Duration(days: back))),
-      };
-
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              IconButton(
-                tooltip: l.homeDayEarlier,
-                onPressed: back >= HomeController.maxDaysBack ? null : controller.showEarlierDay,
-                icon: const Icon(Icons.chevron_left),
-              ),
-              Expanded(
-                child: Text(
-                  label,
-                  textAlign: TextAlign.center,
-                  style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
-                ),
-              ),
-              IconButton(
-                // Disabled on today, because there is no diary for tomorrow — and a control that
-                // is present but does nothing is worse than one that says it cannot.
-                tooltip: l.homeDayLater,
-                onPressed: controller.isToday ? null : controller.showLaterDay,
-                icon: const Icon(Icons.chevron_right),
-              ),
-            ],
-          ),
-          // The `+` writes to today wherever the user is standing (the server decides the day), so
-          // a past day has to say so before somebody logs breakfast into the wrong one.
-          if (!controller.isToday)
-            Padding(
-              padding: const EdgeInsets.only(top: AppSpacing.xs),
-              child: Text(
-                l.homeDayPast,
-                textAlign: TextAlign.center,
-                style: theme.textTheme.bodySmall,
-              ),
-            ),
-        ],
-      );
-    });
   }
 }

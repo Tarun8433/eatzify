@@ -135,6 +135,7 @@ class SyncHealth {
       HealthMetric.activeEnergy => today.energyBurnedKcal != value,
       // The day does not carry a distance, so only this instance's memory can say it is unchanged.
       HealthMetric.distance => true,
+      HealthMetric.sleep => today.sleepMin != value,
     };
   }
 

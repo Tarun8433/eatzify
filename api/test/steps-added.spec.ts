@@ -121,6 +121,9 @@ describe('GET /logs/day activity', () => {
       steps_added: 500,
       energy_burned_kcal: null,
       workout_kcal: null,
+      steps_goal: null,
+      sleep_min: null,
+      sleep_source: null,
     });
   });
 
@@ -133,6 +136,9 @@ describe('GET /logs/day activity', () => {
       steps_added: null,
       energy_burned_kcal: null,
       workout_kcal: null,
+      steps_goal: null,
+      sleep_min: null,
+      sleep_source: null,
     });
   });
 });

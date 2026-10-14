@@ -1,3 +1,4 @@
+import { EngineService } from '../modules/engine';
 import {
   HttpStatus,
   Injectable,
@@ -87,6 +88,11 @@ export type DayView = {
     /// `energy_burned_kcal` (a watch that tracked the session already counts it) and never to the
     /// targets. Null when no workout that day had a body weight to estimate with.
     workout_kcal: number | null;
+    /// The active rule pack's steps goal, or null when it sets none. Never one the app invents.
+    steps_goal: number | null;
+    /// Minutes asleep last night, from the phone; null when nothing was recorded.
+    sleep_min: number | null;
+    sleep_source: string | null;
   };
   /// The UTC instants this diary day spans, [start, end). Sent so a phone can ask HealthKit or
   /// Health Connect for the day's steps without deriving the 04:00 IST boundary itself — rule 8
@@ -116,6 +122,9 @@ export class LogsService {
     @Optional()
     @InjectRepository(GymWorkoutEntity)
     private readonly workouts?: Repository<GymWorkoutEntity>,
+    /// For the steps goal. Optional for the same reason as [workouts].
+    @Optional()
+    private readonly engine?: EngineService,
   ) {}
 
   /// docs/09 §5. The diary date is resolved here, never sent by the client (CLAUDE.md rule 8).
@@ -308,6 +317,7 @@ export class LogsService {
           { userId, diaryDate, kind: 'steps_added' },
           { userId, diaryDate, kind: 'energy_burned_kcal' },
           { userId, diaryDate, kind: 'water_ml' },
+          { userId, diaryDate, kind: 'sleep_min' },
         ],
       }),
       this.workouts?.find({ where: { userId, diaryDate } }) ??
@@ -373,6 +383,9 @@ export class LogsService {
         workout_kcal: workouts.some((w) => w.energyKcal !== null)
           ? workouts.reduce((sum, w) => sum + (w.energyKcal ?? 0), 0)
           : null,
+        steps_goal: this.engine?.stepsGoal() ?? null,
+        sleep_min: reported('sleep_min'),
+        sleep_source: rowFor('sleep_min')?.source ?? null,
       },
       water: {
         logged_ml: reported('water_ml'),

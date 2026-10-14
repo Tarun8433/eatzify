@@ -16,6 +16,7 @@
     <uses-permission android:name="android.permission.health.READ_STEPS" />
     <uses-permission android:name="android.permission.health.READ_ACTIVE_CALORIES_BURNED" />
     <uses-permission android:name="android.permission.health.READ_DISTANCE" />
+    <uses-permission android:name="android.permission.health.READ_SLEEP" />
 
     <!--
       Reminders, scheduled on the phone (D-222). POST_NOTIFICATIONS comes from the plugin's own

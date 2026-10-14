@@ -63,9 +63,11 @@ class WalkingMan extends StatelessWidget {
   /// on the hero's rings and inside the profile frame's circle — those two tabs draw a setting he
   /// has to land in. Alignment is -1 left/top to +1 right/bottom.
   static const anchors = <WalkAnchor>[
-    // Home: small and high-right, standing on the stage's podium (D-138, shrunk in D-139 — at
-    // 0.52 of the body he was a giant who trampled the tiles the moment the page scrolled).
-    WalkAnchor(Alignment(0.72, -0.62), 0.28),
+    // Home: small and right, standing on the stage's podium (D-138, shrunk in D-139 — at 0.52 of
+    // the body he was a giant who trampled the tiles the moment the page scrolled). Lowered from
+    // -0.62 when the tagline took its own line: the reference has his head BELOW the date row,
+    // beside the calorie card, with room above it for the speech bubble.
+    WalkAnchor(Alignment(0.72, -0.25), 0.27),
     WalkAnchor(Alignment(0.52, -0.32), 0.54), // plan — he is not shown here, see [showsWalker]
     WalkAnchor(Alignment(0.58, -0.32), 0.54), // progress — likewise
     // You — inside the profile frame's oval. Pushed to the top-right corner and shrunk

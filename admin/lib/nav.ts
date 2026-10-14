@@ -12,6 +12,7 @@ export const NAV_PERMISSION = {
   search: 'users.read',
   tickets: 'users.read',
   foods: 'content.manage',
+  recipes: 'content.manage',
   messages: 'notify.send',
   broadcast: 'notify.send',
   announcements: 'content.manage',

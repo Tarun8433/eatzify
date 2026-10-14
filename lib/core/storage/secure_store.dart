@@ -1,4 +1,5 @@
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:health_pro/domain/entities/profession.dart';
 import 'package:health_pro/domain/entities/session.dart';
 
 /// Token persistence. Keychain on iOS, EncryptedSharedPreferences on Android.
@@ -30,6 +31,10 @@ class SecureStore {
   static const _kHealthOffered = 'health.offered';
   static const _kReminders = 'reminders.state';
   static const _kGymBoxKey = 'gym.box_key';
+
+  /// "Who are you?" from sign-up, read once by onboarding. Kept here rather than in memory because
+  /// the email code can be entered after the app was closed. Cleared with the session.
+  static const _kJoinAs = 'signup.join_as';
 
   Future<void> save(Session session) async {
     await Future.wait([
@@ -102,6 +107,19 @@ class SecureStore {
   }
 
   Future<void> writeGymBoxKey(String key) => _storage.write(key: _kGymBoxKey, value: key);
+
+  Future<void> writeJoinAs(JoinAs choice) => _storage.write(key: _kJoinAs, value: choice.name);
+
+  /// Null when nothing was recorded (an account made before the question existed, or with Google)
+  /// or the keychain cannot be read — callers then ask, as they did before.
+  Future<JoinAs?> readJoinAs() async {
+    try {
+      final raw = await _storage.read(key: _kJoinAs);
+      return JoinAs.values.where((v) => v.name == raw).firstOrNull;
+    } on Object {
+      return null;
+    }
+  }
 
   /// False rather than throwing when the keychain is unreadable. [clear] is the recovery path for
   /// exactly that failure, so a read in it that can throw would strand the app on the splash — the

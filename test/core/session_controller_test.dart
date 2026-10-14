@@ -75,6 +75,12 @@ class _FakeAuth implements AuthRepository {
   }
 
   @override
+  Future<Either<Failure, Unit>> setPassword({
+    required Session session,
+    required String password,
+  }) async => const Right(unit);
+
+  @override
   Future<Either<Failure, Unit>> logout(Session current) async {
     logoutCalls++;
     return const Right(unit);

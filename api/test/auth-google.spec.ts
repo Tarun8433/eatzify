@@ -6,6 +6,7 @@ import type { SocialInterface } from '../src/social/interfaces/social.interface'
 type U = {
   id: number;
   email: string;
+  password?: string | null;
   provider: string;
   socialId?: string;
   status: { id: number };
@@ -16,6 +17,8 @@ type U = {
 function harness(identities: Record<string, SocialInterface>) {
   const users: U[] = [];
   const usersService = {
+    findById: (id: number) =>
+      Promise.resolve(users.find((u) => u.id === id) ?? null),
     findByEmail: (e: string) =>
       Promise.resolve(users.find((u) => u.email === e) ?? null),
     findBySocialIdAndProvider: (q: { socialId: string; provider: string }) =>
@@ -131,5 +134,54 @@ describe('Google sign-in', () => {
       });
     }
     expect(users).toHaveLength(0);
+  });
+});
+
+/// A Google account can add a password, so the same person can also sign in with email.
+describe('password for a Google account', () => {
+  it('should ask a new Google account to create a password', async () => {
+    const { service } = harness({ ok: asha });
+
+    await expect(service.googleLogin('ok')).resolves.toMatchObject({
+      needs_password: true,
+    });
+  });
+
+  it('should make the account an email account when the password is set', async () => {
+    const { service, users } = harness({ ok: asha });
+    await service.googleLogin('ok');
+
+    await service.setPassword(1, 'longenough');
+
+    expect(users[0]).toMatchObject({
+      password: 'longenough',
+      provider: AuthProvidersEnum.email,
+    });
+  });
+
+  it('should still sign in with Google afterwards, without asking again', async () => {
+    const { service, users } = harness({ ok: asha });
+    await service.googleLogin('ok');
+    await service.setPassword(1, 'longenough');
+
+    await expect(service.googleLogin('ok')).resolves.toMatchObject({
+      needs_password: false,
+    });
+    expect(users).toHaveLength(1);
+  });
+
+  it('should refuse when the account already has a password', async () => {
+    const { service, users } = harness({ ok: asha });
+    users.push({
+      id: 1,
+      email: 'ravi@example.com',
+      password: 'hash',
+      provider: AuthProvidersEnum.email,
+      status: { id: StatusEnum.active },
+    });
+
+    await expect(service.setPassword(1, 'longenough')).rejects.toMatchObject({
+      status: 409,
+    });
   });
 });

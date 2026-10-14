@@ -5,7 +5,9 @@ import 'package:health_pro/core/theme/app_colors.dart';
 import 'package:health_pro/core/theme/app_spacing.dart';
 import 'package:health_pro/presentation/features/auth/login_controller.dart';
 import 'package:health_pro/presentation/features/auth/widgets/code_step.dart';
+import 'package:health_pro/presentation/features/auth/widgets/create_password_step.dart';
 import 'package:health_pro/presentation/features/auth/widgets/forgot_step.dart';
+import 'package:health_pro/presentation/features/auth/widgets/login_brand.dart';
 import 'package:health_pro/presentation/features/auth/widgets/sign_in_step.dart';
 import 'package:health_pro/presentation/features/auth/widgets/sign_up_step.dart';
 import 'package:health_pro/presentation/l10n/app_localizations.dart';
@@ -61,9 +63,13 @@ class _LoginPageState extends State<LoginPage> {
             AuthStep.verify => (l.otpTitle, l.otpSubtitle(c.email.value.trim())),
             AuthStep.forgot => (l.forgotTitle, l.forgotSubtitle),
             AuthStep.forgotSent => (l.forgotSentTitle, ''),
+            AuthStep.createPassword => (l.createPasswordTitle, l.createPasswordSubtitle),
           };
 
-          return ListView(
+          // A Column in a scroll view, not a ListView: the top row is a different height on sign-in
+          // (the brand) than on every other step (the back arrow). A lazy list jumping back to the
+          // top rebuilt those rows from estimated sizes and came to rest partway down the page.
+          return SingleChildScrollView(
             controller: _scroll,
             padding: const EdgeInsets.fromLTRB(
               AppSpacing.xl,
@@ -71,29 +77,42 @@ class _LoginPageState extends State<LoginPage> {
               AppSpacing.xl,
               AppSpacing.xl,
             ),
-            children: [
-              _TopRow(
-                // Not on sign-in: there is nothing behind it, and an arrow that does nothing is
-                // worse than no arrow.
-                onBack: step == AuthStep.signIn ? null : () => c.goTo(AuthStep.signIn),
-                secureLabel: l.loginSecureBadge,
-                backLabel: l.loginBack,
-              ),
-              const SizedBox(height: AppSpacing.xl),
-              _Heading(title: title, subtitle: subtitle),
-              const SizedBox(height: AppSpacing.xl),
-              switch (step) {
-                AuthStep.signIn => SignInStep(controller: c),
-                AuthStep.signUp => SignUpStep(controller: c),
-                AuthStep.verify => CodeStep(controller: c),
-                AuthStep.forgot => ForgotStep(controller: c),
-                AuthStep.forgotSent => ForgotSentStep(controller: c),
-              },
-              const SizedBox(height: AppSpacing.xxl),
-              _ImportantCard(title: l.loginImportantTitle, body: l.copyDisclaimer),
-              const SizedBox(height: AppSpacing.xl),
-              _Footer(label: l.loginFooter),
-            ],
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _TopRow(
+                  // Not on sign-in: there is nothing behind it, and an arrow that does nothing is
+                  // worse than no arrow.
+                  onBack: step == AuthStep.signIn ? null : () => c.goTo(AuthStep.signIn),
+                  secureLabel: l.loginSecureBadge,
+                  backLabel: l.loginBack,
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                _Heading(
+                  title: title,
+                  subtitle: subtitle,
+                  step: step,
+                  // The bowl says what the app is for on the way in; the padlock and code say what
+                  // every other step is asking.
+                  art: step == AuthStep.signIn ? AppAssets.loginHero : AppAssets.loginHero,
+                  halo: step == AuthStep.signIn,
+                ),
+
+                const SizedBox(height: AppSpacing.sm),
+                switch (step) {
+                  AuthStep.signIn => SignInStep(controller: c),
+                  AuthStep.signUp => SignUpStep(controller: c),
+                  AuthStep.verify => CodeStep(controller: c),
+                  AuthStep.forgot => ForgotStep(controller: c),
+                  AuthStep.forgotSent => ForgotSentStep(controller: c),
+                  AuthStep.createPassword => CreatePasswordStep(controller: c),
+                },
+                const SizedBox(height: AppSpacing.lg),
+                _ImportantCard(title: l.loginImportantTitle, body: l.copyDisclaimer),
+                const SizedBox(height: AppSpacing.lg),
+                _Footer(label: l.loginFooter),
+              ],
+            ),
           );
         }),
       ),
@@ -101,7 +120,7 @@ class _LoginPageState extends State<LoginPage> {
   }
 }
 
-/// The back arrow and the reassurance, on one line above the headline.
+/// The brand (sign-in) or the back arrow (every other step), with the reassurance on the right.
 class _TopRow extends StatelessWidget {
   const _TopRow({required this.onBack, required this.secureLabel, required this.backLabel});
 
@@ -112,74 +131,103 @@ class _TopRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final onBack = this.onBack;
+    final badge = _SecureBadge(label: secureLabel);
+
+    // Sign-in has nothing behind it, so the brand stands where the arrow would. Brand and badge
+    // share the row half and half at most, so neither can push the other off it at 200 % (rule 12).
+    if (onBack == null) {
+      return Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          const Expanded(child: LoginBrand()),
+
+          Flexible(child: badge),
+        ],
+      );
+    }
 
     return Row(
       children: [
-        if (onBack != null)
-          IconButton(
-            onPressed: onBack,
-            // Icon-only, so it carries its own label (rule 12).
-            tooltip: backLabel,
-            icon: const Icon(Icons.arrow_back_rounded),
-            color: theme.colorScheme.primary,
-            // Pulls the glyph to the page's left edge; the icon's own padding does the rest.
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints.tightFor(
-              width: AppSpacing.minTouchTarget,
-              height: AppSpacing.minTouchTarget,
-            ),
+        IconButton(
+          onPressed: onBack,
+          // Icon-only, so it carries its own label (rule 12).
+          tooltip: backLabel,
+          icon: const Icon(Icons.arrow_back_rounded),
+          color: theme.colorScheme.primary,
+          // Pulls the glyph to the page's left edge; the icon's own padding does the rest.
+          padding: EdgeInsets.zero,
+          constraints: const BoxConstraints.tightFor(
+            width: AppSpacing.minTouchTarget,
+            height: AppSpacing.minTouchTarget,
           ),
-        // Expanded rather than a Spacer, so the badge can give width back at 200 % font scale
-        // instead of overflowing the row (rule 12).
+        ),
+        const Spacer(),
         Expanded(
-          child: Align(
-            alignment: Alignment.centerRight,
-            child: // Not a claim about cryptography — the answer to "is it safe to type this in here",
-                // asked at the moment someone is deciding whether to.
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.md,
-                    vertical: AppSpacing.sm,
-                  ),
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.surface,
-                    borderRadius: BorderRadius.circular(AppRadius.pill),
-                    boxShadow: AppElevation.card(theme.brightness),
-                    border: Border.all(color: theme.colorScheme.outline),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.verified_user_outlined,
-                        size: AppSpacing.xl,
-                        color: theme.colorScheme.primary,
-                      ),
-                      const SizedBox(width: AppSpacing.sm),
-                      Flexible(
-                        child: Text(
-                          secureLabel,
-                          style: theme.textTheme.labelLarge?.copyWith(
-                            color: theme.colorScheme.primary,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-          ),
+          child: Align(alignment: Alignment.centerRight, child: badge),
         ),
       ],
     );
   }
 }
 
-/// Headline and one sentence, with the art beside them rather than above.
-class _Heading extends StatelessWidget {
-  const _Heading({required this.title, required this.subtitle});
+/// Not a claim about cryptography — the answer to "is it safe to type this in here", asked at the
+/// moment someone is deciding whether to.
+class _SecureBadge extends StatelessWidget {
+  const _SecureBadge({required this.label});
 
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.sm),
+      decoration: BoxDecoration(
+        color: scheme.secondaryContainer.withValues(alpha: 0.5),
+        borderRadius: BorderRadius.circular(AppRadius.pill),
+        border: Border.all(color: scheme.secondaryContainer),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.verified_user_outlined,
+            size: AppSpacing.lg + AppSpacing.xs,
+            color: scheme.primary,
+          ),
+          const SizedBox(width: AppSpacing.sm),
+          Flexible(
+            child: Text(label, style: theme.textTheme.labelLarge?.copyWith(color: scheme.primary)),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Headline and one sentence on the left, the art on the right running off the screen's edge.
+///
+/// A Row rather than a Stack: the text owns its column and the art owns its own, so the sentence
+/// can never run underneath the picture whatever the phone's width (it did, on a 360 dp phone).
+class _Heading extends StatelessWidget {
+  const _Heading({
+    required this.title,
+    required this.subtitle,
+    required this.art,
+    required this.step,
+    this.halo = false,
+  });
+  final AuthStep step;
   final String title;
   final String subtitle;
+  final String art;
+
+  /// A soft green disc behind the art. The bowl is a cut-out on the page's ground and needs one to
+  /// sit on; the padlock art brings its own.
+  final bool halo;
 
   @override
   Widget build(BuildContext context) {
@@ -187,64 +235,90 @@ class _Heading extends StatelessWidget {
 
     return LayoutBuilder(
       builder: (context, constraints) {
-        // Shared with the goal step, so two screens with art beside a headline look like one
-        // design rather than two attempts at it (D-111).
-        final art = (constraints.maxWidth * AppSizes.heroArtFraction).clamp(
-          0.0,
-          AppSizes.heroArtMax,
-        );
+        final artWidth = (constraints.maxWidth * _artFraction).clamp(0.0, AppSizes.heroArtMax);
 
-        // A Stack rather than a Row, and the two fractions add up to more than one: the outer
-        // eighth of the PNG is transparent, so the boxes overlap while nothing drawn in them does.
-        // That overlap is where the width for a two-line headline comes from (D-111).
-        return SizedBox(
-          width: constraints.maxWidth,
-          child: Stack(
-            children: [
-              Align(
-                alignment: Alignment.centerRight,
+        return Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: theme.textTheme.displayLarge?.copyWith(
+                      color: theme.colorScheme.primary,
+                      fontWeight: FontWeight.w800,
+                      height: 1.15,
+                    ),
+                  ),
+                  if (subtitle.isNotEmpty) ...[
+                    const SizedBox(height: AppSpacing.xs),
+                    Text(
+                      subtitle,
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                        height: 1.45,
+                      ),
+                    ),
+                  ],
+
+                  if (step == AuthStep.signIn) ...[
+                    const SizedBox(height: AppSpacing.md),
+                    const LoginPerks(),
+                  ],
+                ],
+              ),
+            ),
+            // The art's box is narrower than the art by the page's side padding, and the art
+            // spills right into it: the picture meets the screen's edge, the text keeps its width.
+            SizedBox(
+              width: artWidth - AppSpacing.xxl - AppSpacing.lg,
+              height: artWidth,
+              child: OverflowBox(
+                alignment: Alignment.centerLeft,
+                minWidth: artWidth,
+                maxWidth: artWidth,
                 child: ExcludeSemantics(
-                  child: Image.asset(
-                    AppAssets.loginHero,
-                    width: art,
-                    // A missing asset must not take the sign-in screen down with it. Nothing stands
-                    // in: the illustration says nothing the headline has not already said.
-                    errorBuilder: (context, _, _) => SizedBox(width: art),
+                  child: Stack(
+                    alignment: Alignment.center,
+                    // The halo is larger than the art and runs past its box, as in the design.
+                    clipBehavior: Clip.none,
+                    children: [
+                      if (halo)
+                        Container(
+                          width: artWidth * _haloFraction,
+                          height: artWidth * _haloFraction,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: theme.colorScheme.secondaryContainer,
+                          ),
+                        ),
+                      Image.asset(
+                        art,
+                        width: artWidth,
+                        height: artWidth,
+                        fit: BoxFit.contain,
+                        // A missing asset must not take the sign-in screen down with it. Nothing
+                        // stands in: the illustration says nothing the headline has not said.
+                        errorBuilder: (context, _, _) => const SizedBox.shrink(),
+                      ),
+                    ],
                   ),
                 ),
               ),
-              SizedBox(
-                width: constraints.maxWidth * AppSizes.heroTextFraction,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: theme.textTheme.displayLarge?.copyWith(
-                        color: theme.colorScheme.primary,
-                        fontWeight: FontWeight.w800,
-                        height: 1.15,
-                      ),
-                    ),
-                    if (subtitle.isNotEmpty) const SizedBox(height: AppSpacing.md),
-                    if (subtitle.isNotEmpty)
-                      Text(
-                        subtitle,
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
-                          height: 1.5,
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         );
       },
     );
   }
 }
+
+/// The share of the width the art takes before it is capped at `heroArtMax`.
+const _artFraction = 0.48;
+
+/// The halo is larger than the bowl, so a ring of green shows round its rim.
+const _haloFraction = 1.12;
 
 /// The clinical disclaimer, docs/05 §6. Warm rather than green: it is the one block on the page
 /// that is neither a question nor an action, and it must not read as another thing to press.

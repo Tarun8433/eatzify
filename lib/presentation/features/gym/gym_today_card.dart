@@ -9,12 +9,11 @@ import 'package:health_pro/presentation/features/gym/gym_controller.dart';
 import 'package:health_pro/presentation/features/gym/gym_labels.dart';
 import 'package:health_pro/presentation/features/gym/gym_page.dart';
 import 'package:health_pro/presentation/features/gym/gym_widgets.dart';
-import 'package:health_pro/presentation/features/gym/workout_launcher.dart';
 import 'package:health_pro/presentation/features/gym/workout_page.dart';
 import 'package:health_pro/presentation/l10n/app_localizations.dart';
 
-/// Home's way into the Gym (D-241): today's routine with a one-tap Start, the workout in progress
-/// with Resume, or the way in to plan one. Draws nothing where no Gym is registered, so a screen
+/// Home's way into the Gym (D-241): today's routine, or the workout in progress with Resume, behind
+/// one pill — the dashboard reference's "Open Gym", where today's routine starts with one tap. Draws nothing where no Gym is registered, so a screen
 /// that is not about training carries none.
 class GymTodayCard extends StatelessWidget {
   const GymTodayCard({super.key});
@@ -75,7 +74,12 @@ class GymTodayCard extends StatelessWidget {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(l.gymHomeCardTitle, style: theme.textTheme.bodySmall),
+                            Text(
+                              l.gymHomeCardTitle,
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: theme.colorScheme.primary,
+                              ),
+                            ),
                             Text(
                               active?.name ??
                                   routine?.name ??
@@ -86,45 +90,42 @@ class GymTodayCard extends StatelessWidget {
                                       : l.gymNothingPlanned),
                               style: theme.textTheme.titleLarge?.copyWith(
                                 fontWeight: FontWeight.w800,
+                                fontSize: 18,
                               ),
                             ),
-                            if (subtitle != null) Text(subtitle, style: theme.textTheme.bodySmall),
+                            if (subtitle != null)
+                              Text(
+                                subtitle,
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: theme.colorScheme.primary,
+                                ),
+                              ),
                           ],
                         ),
                       ),
-                      // The way in to the plan, kept quiet beside the action that matters.
-                      TextButton(
-                        onPressed: GymPage.open,
+                      const SizedBox(width: AppSpacing.sm),
+                      // One pill, as the reference has it: Resume for a workout in progress — it
+                      // must never be stranded — and the way into the Gym otherwise, where today's
+                      // routine starts with one tap.
+                      FilledButton(
+                        onPressed: active != null ? () => WorkoutPage.open(active) : GymPage.open,
+                        style: FilledButton.styleFrom(
+                          shape: const StadiumBorder(),
+                          minimumSize: const Size(0, AppSpacing.xxl),
+                          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+                          textStyle: theme.textTheme.labelLarge,
+                          
+                        ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Flexible(child: Text(l.gymOpen)),
+                            Flexible(child: Text(active != null ? l.gymResume : l.gymOpen)),
                             const Icon(Icons.chevron_right, size: AppSpacing.lg),
                           ],
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: AppSpacing.md),
-                  // One full-width action: starting is what this card is for.
-                  if (active != null)
-                    FilledButton.icon(
-                      onPressed: () => WorkoutPage.open(active),
-                      icon: const Icon(Icons.play_arrow_rounded),
-                      label: Text(l.gymResume),
-                    )
-                  else if (routine != null)
-                    FilledButton.icon(
-                      onPressed: () => WorkoutLauncher.start(context, routine: routine),
-                      icon: const Icon(Icons.play_arrow_rounded),
-                      label: Text(l.gymStart),
-                    )
-                  else if (overview != null)
-                    FilledButton.icon(
-                      onPressed: () => WorkoutLauncher.start(context, chooseFirst: true),
-                      icon: const Icon(Icons.play_arrow_rounded),
-                      label: Text(l.gymStartWorkout),
-                    ),
                 ],
               ),
             ],

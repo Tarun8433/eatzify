@@ -6,6 +6,8 @@ import 'package:health_pro/presentation/features/auth/login_controller.dart';
 import 'package:health_pro/presentation/features/auth/widgets/auth_actions.dart';
 import 'package:health_pro/presentation/features/auth/widgets/auth_fields.dart';
 import 'package:health_pro/presentation/features/auth/widgets/google_button.dart';
+import 'package:health_pro/presentation/features/auth/widgets/join_as_sheet.dart';
+import 'package:health_pro/presentation/features/auth/widgets/login_brand.dart';
 import 'package:health_pro/presentation/l10n/app_localizations.dart';
 import 'package:health_pro/presentation/widgets/site_link.dart';
 
@@ -29,7 +31,13 @@ class SignInStep extends StatelessWidget {
           AuthPasswordField(value: c.password, isNew: false, onSubmitted: c.signIn),
           Align(
             alignment: Alignment.centerRight,
-            child: TextButton(onPressed: () => c.goTo(AuthStep.forgot), child: Text(l.loginForgot)),
+            child: Padding(
+              padding: const EdgeInsets.only(top: 4, bottom: 8),
+              child: GestureDetector(
+                onTap: () => c.goTo(AuthStep.forgot),
+                child: Text(l.loginForgot),
+              ),
+            ),
           ),
           const SizedBox(height: AppSpacing.sm),
           Obx(
@@ -46,19 +54,24 @@ class SignInStep extends StatelessWidget {
                     (label: l.legalPrivacy, uri: SiteLinks.privacy),
                   ],
                 ),
+                const SizedBox(height: AppSpacing.md),
                 if (c.googleEnabled) ...[
                   const SizedBox(height: AppSpacing.lg),
-                  AuthOrDivider(label: l.loginOr),
+                  AuthOrDivider(label: l.loginOrContinue),
                   const SizedBox(height: AppSpacing.lg),
                   GoogleButton(
                     onPressed: c.busy.value ? null : () => c.signInWithGoogle(l.loginGoogleFailed),
                   ),
                 ],
-                const SizedBox(height: AppSpacing.md),
-                AuthLinkRow(
-                  lead: l.loginNoAccount,
-                  action: l.loginCreateAccount,
-                  onPressed: c.busy.value ? null : () => c.goTo(AuthStep.signUp),
+                const SizedBox(height: AppSpacing.xl),
+                // Who are you first, then the form (the sheet's own comment says why).
+                JoinPanel(
+                  onCreate: c.busy.value
+                      ? null
+                      : () async {
+                          final choice = await JoinAsSheet.show(context);
+                          if (choice != null) await c.joinAs(choice);
+                        },
                 ),
               ],
             ),

@@ -6282,3 +6282,21 @@ active account. Every path ends in `issueSession`, so the blocked-account gate a
 are shared. A bad token and an unverified email get one answer, `GOOGLE_SIGN_IN_FAILED`.
 The unused boilerplate `validateSocialLogin` was replaced, not kept beside it.
 **Open:** the Play app-signing SHA-1 must be added in Firebase or Play-installed builds cannot sign in.
+
+## D-263 — Recipes: dishes made of foods, curated in the admin panel, shown on the Plan tab
+Tables `recipe` and `recipe_ingredient` (migration `1759700000000-Recipes`). A recipe stores NO
+nutrition: per-serving figures, the diets it suits (only those EVERY ingredient suits) and its
+allergens (every ingredient's) are derived from its food rows on each read, so correcting a food
+corrects every recipe and a hand-typed "veg" on a dish with egg in it cannot happen. Ingredients must
+be published foods when the draft is saved and again when it is published; a recipe whose food is
+later retired drops out of the app without being touched. Same review lifecycle as foods (D-227):
+draft → reviewed → published → retired, `content.manage`.
+API: `GET /recipes` (published, narrowed to the caller's own `foodPreference` unless the app asks
+for another, optional `slot`), `GET /recipes/:id`, `POST /recipes/:id/log {slot, servings}` —
+one diary entry per ingredient through `LogsService.logFood`, so the diary day and the copied
+nutrition follow the diary's rules (rule 8). Admin: `/admin/recipes` (+ `/:id/review|publish|retire`).
+App: a "Recipes" card on the Plan tab opens a pushed screen (not a tab, rule 1) with meal chips,
+a detail page and a log sheet. **Not done, by decision:** the plan generator does not use recipes —
+that touches docs/04 and the golden vectors and needs sign-off. **Known ceilings:** the list is
+filtered in memory (fine for tens to hundreds of recipes); a recipe's entries are written one at a
+time, so a failure part-way leaves the earlier entries logged and visible.

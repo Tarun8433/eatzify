@@ -37,6 +37,11 @@ class HomeSkeleton extends StatelessWidget {
             _DayBarRow(),
             SizedBox(height: AppSpacing.sm),
             _HeroBlock(),
+            // Water, then steps, full width under the hero.
+            SizedBox(height: AppSpacing.md),
+            SkeletonBox(height: _waterCard, radius: AppRadius.cardLarge),
+            SizedBox(height: AppSpacing.md),
+            SkeletonBox(height: _stepsCard, radius: AppRadius.cardLarge),
             SizedBox(height: AppSpacing.lg),
             _SectionHeadingRow(),
             SizedBox(height: AppSpacing.xs),
@@ -55,6 +60,8 @@ class HomeSkeleton extends StatelessWidget {
 
   static const _heading = 20.0;
   static const _headingWidth = 140.0;
+  static const _waterCard = 112.0;
+  static const _stepsCard = 128.0;
 }
 
 /// `< Today >` — an arrow, a label, an arrow.
@@ -134,18 +141,18 @@ class _SectionHeadingRow extends StatelessWidget {
   );
 }
 
-/// The macro tiles. Three across, two-by-two below `_NutrientTiles`' own breakpoint.
+/// The macro tiles, two to a row as `_NutrientTiles` lays them out.
 class _TileRow extends StatelessWidget {
   const _TileRow();
 
-  static const _tile = 172.0;
-  static const _count = 3;
+  static const _tile = 88.0;
+  static const _count = 4;
 
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final perRow = constraints.maxWidth < AppSizes.heroBreakpoint ? 2 : _count;
+        const perRow = 2;
         final width = (constraints.maxWidth - AppSpacing.sm * (perRow - 1)) / perRow;
 
         return Wrap(

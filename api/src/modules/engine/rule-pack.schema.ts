@@ -162,6 +162,9 @@ export const rulePackSchema = z
       )
       .optional(),
     relaxation_order: z.array(z.string()).optional(),
+    /// The day's steps goal shown on Home. Optional: a pack without it means no goal, and the app
+    /// then shows the count alone rather than a target it made up.
+    activity: z.object({ steps_goal: z.number().int().positive() }).optional(),
   })
   // Cross-field invariants. These are the ones a typo would otherwise sail straight past.
   .superRefine((pack, ctx) => {

@@ -14,11 +14,13 @@ import 'package:health_pro/domain/repositories/billing_repository.dart';
 import 'package:health_pro/domain/repositories/diary_repository.dart';
 import 'package:health_pro/domain/repositories/payment_gateway.dart';
 import 'package:health_pro/domain/repositories/plan_repository.dart';
+import 'package:health_pro/domain/repositories/recipe_repository.dart';
 import 'package:health_pro/domain/repositories/store_gateway.dart';
 import 'package:health_pro/presentation/features/billing/billing_controller.dart';
 import 'package:health_pro/presentation/features/billing/premium_widgets.dart';
 import 'package:health_pro/presentation/features/home/home_controller.dart';
 import 'package:health_pro/presentation/features/plan/plan_controller.dart';
+import 'package:health_pro/presentation/features/recipes/recipes_page.dart';
 import 'package:health_pro/presentation/features/tab_scaffold.dart';
 import 'package:health_pro/presentation/l10n/app_localizations.dart';
 import 'package:health_pro/presentation/shell/nav_controller.dart';
@@ -140,6 +142,33 @@ class _PlanView extends StatelessWidget {
         // between the user and their meals is the thing being scrolled past, not read.
         HintCard(dense: true, icon: Icons.lightbulb_outline, text: l.planAdviceBody),
         const SizedBox(height: AppSpacing.lg),
+        // D-263: recipes, a pushed screen rather than a tab (rule 1). Only where the app registered
+        // the repository, so a build or test without it simply shows no door.
+        if (Get.isRegistered<RecipeRepository>()) ...[
+          AppCard(
+            onTap: RecipesPage.open,
+            child: Row(
+              children: [
+                Icon(Icons.menu_book_rounded, color: theme.colorScheme.primary),
+                const SizedBox(width: AppSpacing.md),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        l.recipesTitle,
+                        style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
+                      ),
+                      Text(l.recipesEntryBody, style: theme.textTheme.bodySmall),
+                    ],
+                  ),
+                ),
+                const Icon(Icons.chevron_right),
+              ],
+            ),
+          ),
+          const SizedBox(height: AppSpacing.lg),
+        ],
         // docs/05 §7, verbatim. Rule 7 — the app never writes its own copy for a safety message;
         // the CHROME is ours, and a bare white rectangle read as a rendering fault between two
         // finished cards (D-135).

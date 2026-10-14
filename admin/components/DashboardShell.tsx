@@ -12,6 +12,7 @@ import { MetricsView } from './views/MetricsView';
 import { UserSearchView } from './views/UserSearchView';
 import { TicketsView } from './views/TicketsView';
 import { FoodReviewView } from './views/FoodReviewView';
+import { RecipesView } from './views/RecipesView';
 import { BroadcastView } from './views/BroadcastView';
 import { AuditView } from './views/AuditView';
 import { RulePacksView } from './views/RulePacksView';
@@ -85,6 +86,8 @@ function View({
       return <TicketsView />;
     case 'foods':
       return <FoodReviewView />;
+    case 'recipes':
+      return <RecipesView />;
     case 'broadcast':
       return <BroadcastView />;
     case 'audit':

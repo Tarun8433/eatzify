@@ -31,6 +31,7 @@ import 'package:health_pro/data/datasources/remote/notifications_remote_data_sou
 import 'package:health_pro/data/datasources/remote/plan_remote_data_source.dart';
 import 'package:health_pro/data/datasources/remote/privacy_remote_data_source.dart';
 import 'package:health_pro/data/datasources/remote/profile_remote_data_source.dart';
+import 'package:health_pro/data/datasources/remote/recipes_remote_data_source.dart';
 import 'package:health_pro/data/datasources/remote/scan_remote_data_source.dart';
 import 'package:health_pro/data/datasources/remote/tickets_remote_data_source.dart';
 import 'package:health_pro/data/repositories/announcements_repository_impl.dart';
@@ -46,6 +47,7 @@ import 'package:health_pro/data/repositories/notifications_repository_impl.dart'
 import 'package:health_pro/data/repositories/plan_repository_impl.dart';
 import 'package:health_pro/data/repositories/privacy_repository_impl.dart';
 import 'package:health_pro/data/repositories/profile_repository_impl.dart';
+import 'package:health_pro/data/repositories/recipe_repository_impl.dart';
 import 'package:health_pro/data/repositories/reminder_repository_impl.dart';
 import 'package:health_pro/data/repositories/scan_repository_impl.dart';
 import 'package:health_pro/data/repositories/tickets_repository_impl.dart';
@@ -62,6 +64,7 @@ import 'package:health_pro/domain/repositories/payment_gateway.dart';
 import 'package:health_pro/domain/repositories/plan_repository.dart';
 import 'package:health_pro/domain/repositories/privacy_repository.dart';
 import 'package:health_pro/domain/repositories/profile_repository.dart';
+import 'package:health_pro/domain/repositories/recipe_repository.dart';
 import 'package:health_pro/domain/repositories/reminder_repository.dart';
 import 'package:health_pro/domain/repositories/scan_repository.dart';
 import 'package:health_pro/domain/repositories/store_gateway.dart';
@@ -332,6 +335,11 @@ class EatzifyApp extends StatelessWidget {
         permanent: true,
       )
       ..put<PlanRepository>(PlanRepositoryImpl(PlanRemoteDataSource(client.dio)), permanent: true)
+      // D-263: the Plan tab's recipes.
+      ..put<RecipeRepository>(
+        RecipeRepositoryImpl(RecipesRemoteDataSource(client.dio)),
+        permanent: true,
+      )
       // The server's own messages — renewal notices today (docs/11 §8), admin sends later.
       ..put<NotificationsRepository>(
         NotificationsRepositoryImpl(NotificationsRemoteDataSource(client.dio)),

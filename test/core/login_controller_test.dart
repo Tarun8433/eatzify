@@ -72,6 +72,12 @@ class _RecordingAuth implements AuthRepository {
       const Left(ApiFailure('x', code: 'X'));
 
   @override
+  Future<Either<Failure, Unit>> setPassword({
+    required Session session,
+    required String password,
+  }) async => const Right(unit);
+
+  @override
   Future<Either<Failure, Unit>> logout(Session current) async => const Right(unit);
 }
 

@@ -45,15 +45,15 @@ class TabScaffold extends StatelessWidget {
             AppSpacing.screenH,
             AppSpacing.sm,
           ),
-          child: Row(
+          // The subtitle runs the full width UNDER the title-and-action row, as the reference
+          // sets it: beside Go Premium it had half the screen and wrapped onto two lines.
+          child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
+              Row(
+                children: [
+                  Expanded(
+                    child: Row(
                       children: [
                         Flexible(child: Text(title, style: theme.textTheme.headlineMedium)),
                         if (titleIcon != null) ...[
@@ -70,14 +70,14 @@ class TabScaffold extends StatelessWidget {
                         ],
                       ],
                     ),
-                    if (subtitle != null) ...[
-                      const SizedBox(height: AppSpacing.xs),
-                      Text(subtitle!, style: theme.textTheme.bodySmall),
-                    ],
-                  ],
-                ),
+                  ),
+                  if (action != null) action!,
+                ],
               ),
-              if (action != null) action!,
+              if (subtitle != null) ...[
+                const SizedBox(height: AppSpacing.xs),
+                Text(subtitle!, style: theme.textTheme.bodyMedium),
+              ],
             ],
           ),
         ),

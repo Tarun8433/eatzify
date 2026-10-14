@@ -12,6 +12,7 @@ import { MeasurementsModule } from './measurements/measurements.module';
 import { FoodsModule } from './foods/foods.module';
 import { LogsModule } from './logs/logs.module';
 import { GymModule } from './gym/gym.module';
+import { RecipesModule } from './recipes/recipes.module';
 import { BillingModule } from './billing/billing.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { TicketsModule } from './tickets/tickets.module';
@@ -97,6 +98,7 @@ const infrastructureDatabaseModule = TypeOrmModule.forRootAsync({
     FoodsModule,
     LogsModule,
     GymModule,
+    RecipesModule,
     BillingModule,
     SessionModule,
     MailModule,

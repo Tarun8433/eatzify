@@ -19,3 +19,10 @@ enum Profession {
   /// Whether to offer the partner route after onboarding.
   bool get mayCoach => this != Profession.none;
 }
+
+/// The answer to "Who are you?" when the account was created (the sheet before sign-up).
+///
+/// It only decides whether onboarding asks [Profession] at all: someone who said "individual" is
+/// not asked again whether they work in fitness. Like [Profession] it is a self-declaration that
+/// grants nothing and never reaches the server.
+enum JoinAs { individual, professional }

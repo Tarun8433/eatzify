@@ -16,26 +16,46 @@ class AuthPrimaryButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return FilledButton(
+    final scheme = theme.colorScheme;
+    final ink = onPressed == null
+        ? scheme.onPrimary.withValues(alpha: _disabledInk)
+        : scheme.onPrimary;
+
+    return ElevatedButton(
       onPressed: onPressed,
+      style: ElevatedButton.styleFrom(
+        minimumSize: const Size(0, 46),
+        maximumSize: const Size(double.infinity, 46),
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        tapTargetSize: MaterialTapTargetSize.padded,
+        visualDensity: VisualDensity.standard,
+        shape: const StadiumBorder(),
+        elevation: 0,
+        // Set, not left to ElevatedButton's default: that is a near-white surface, and the label
+        // above is white — the enabled button read as an empty bar with an arrow on it.
+        backgroundColor: scheme.primary,
+        foregroundColor: scheme.onPrimary,
+        disabledBackgroundColor: scheme.primary.withValues(alpha: _disabledWash),
+        disabledForegroundColor: ink,
+      ),
       child: Row(
         children: [
           Expanded(
             child: Text(
               label,
               textAlign: TextAlign.center,
-              style: theme.textTheme.titleMedium?.copyWith(
-                color: theme.colorScheme.onPrimary,
-                fontWeight: FontWeight.w600,
-              ),
+              style: theme.textTheme.titleSmall?.copyWith(color: ink, fontWeight: FontWeight.w600),
             ),
           ),
-          const Icon(Icons.arrow_forward_rounded, size: AppSpacing.xl),
+          const Icon(Icons.arrow_forward_rounded, size: 20),
         ],
       ),
     );
   }
 }
+
+const _disabledWash = 0.38;
+const _disabledInk = 0.9;
 
 /// The failure line above the button.
 ///

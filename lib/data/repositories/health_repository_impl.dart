@@ -38,10 +38,30 @@ class HealthRepositoryImpl implements HealthRepository {
     HealthMetric.activeEnergy => HealthDataType.ACTIVE_ENERGY_BURNED,
     HealthMetric.distance =>
       isIOS ? HealthDataType.DISTANCE_WALKING_RUNNING : HealthDataType.DISTANCE_DELTA,
+    HealthMetric.sleep => isIOS ? HealthDataType.SLEEP_ASLEEP : HealthDataType.SLEEP_SESSION,
   };
 
+  /// Sleep is sessions, not a total, and each platform files it differently. Health Connect has
+  /// one record per night. HealthKit has stage samples, and an Apple Watch since iOS 16 writes
+  /// core, deep and REM rather than plain "asleep" — so all four are read and added up.
+  static List<HealthDataType> sleepTypes({required bool isIOS}) => isIOS
+      ? const [
+          HealthDataType.SLEEP_ASLEEP,
+          HealthDataType.SLEEP_LIGHT,
+          HealthDataType.SLEEP_DEEP,
+          HealthDataType.SLEEP_REM,
+        ]
+      : const [HealthDataType.SLEEP_SESSION];
+
+  /// A night that ends in the first window started the evening before it.
+  static const _sleepLookBack = Duration(days: 1);
+
   List<HealthDataType> get _types => [
-    for (final metric in HealthMetric.values) typeFor(metric, isIOS: _isIOS),
+    for (final metric in HealthMetric.values)
+      if (metric == HealthMetric.sleep)
+        ...sleepTypes(isIOS: _isIOS)
+      else
+        typeFor(metric, isIOS: _isIOS),
   ];
 
   /// Read, and only read. Asking for write access is how a permission sheet starts looking
@@ -136,6 +156,10 @@ class HealthRepositoryImpl implements HealthRepository {
     var failures = 0;
 
     for (final metric in HealthMetric.values) {
+      if (metric == HealthMetric.sleep) {
+        if (!await _readSleep(windows, totals)) failures++;
+        continue;
+      }
       final List<HealthDataPoint> buckets;
       try {
         // The interval query, never `getTotalStepsInInterval`: that one answers 0 for "no
@@ -172,6 +196,35 @@ class HealthRepositoryImpl implements HealthRepository {
       return const Left(UnexpectedFailure('Could not read activity from this phone.'));
     }
     return Right(totals);
+  }
+
+  /// Adds each window's minutes asleep to [totals], filed under the window the session ENDED in —
+  /// a night belongs to the morning after it. False when the platform refused.
+  Future<bool> _readSleep(
+    List<DiaryWindow> windows,
+    Map<String, Map<HealthMetric, num>> totals,
+  ) async {
+    final List<HealthDataPoint> points;
+    try {
+      // De-duplicated by the plugin, so a phone and a watch do not double a night.
+      points = await _health.getHealthDataFromTypes(
+        startTime: windows.first.start.subtract(_sleepLookBack),
+        endTime: windows.last.end,
+        types: sleepTypes(isIOS: _isIOS),
+      );
+    } on Object {
+      return false;
+    }
+
+    for (final point in points) {
+      final value = point.value;
+      if (value is! NumericHealthValue) continue;
+      final window = windows.where((w) => w.contains(point.dateTo)).firstOrNull;
+      if (window == null) continue;
+      final day = totals[window.diaryDate] ??= {};
+      day[HealthMetric.sleep] = (day[HealthMetric.sleep] ?? 0) + value.numericValue;
+    }
+    return true;
   }
 
   /// A bucket that nothing was recorded in. iOS already leaves those out; Android sends them with

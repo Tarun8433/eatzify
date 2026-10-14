@@ -16,6 +16,9 @@ abstract final class AppAssets {
   /// re-encoded to 520 px (three times the ~165 pt it is ever drawn at) and palette-quantised.
   static const activityHero = 'assets/activity/walking.png';
 
+  // logo
+  static const logo = 'assets/branding/app_icon_source.png';
+
   /// The scales beside the weight tab's headline (D-127). Paired; same treatment as
   /// [activityHero]: trimmed of its empty canvas, 520 px, palette-quantised.
   static const weightHero = 'assets/activity/weighing_scale.png';
@@ -40,6 +43,10 @@ abstract final class AppAssets {
   /// surface is placed under his feet. Paired; trimmed, 640 px, quantised.
   static const dashboardStage = 'assets/activity/dashboard_stage.png';
 
+  /// Home's backdrop: hills, a low sun and a path, with the walker on the path. Supplied as a
+  /// 1.7 MB PNG with no transparency, re-encoded as a 136 KB JPG at the same 1536 px.
+  static const homeLandscape = 'assets/activity/home_landscape.jpg';
+
   /// Played while the first plan is generated, straight after onboarding (D-75). The space in the
   /// filename is the artist's; renaming it would only move the quoting problem into pubspec.yaml.
   static const preparingPlan = 'assets/Preparing Food.json';
@@ -57,6 +64,15 @@ abstract final class AppAssets {
   /// every other hero — trimmed of its empty canvas, re-encoded to 520 px (three times the 165 pt
   /// ceiling it is drawn at) and palette-quantised: 1.0 MB to 32 KB.
   static const loginHero = 'assets/welcome/login_hero.png';
+
+  /// Google's "G" on the sign-in button. Their brand mark, in their colours — never re-tinted.
+  static const googleIcon = 'assets/google_icons.png';
+
+  /// The two answers to "who are you?" when creating an account: a person tracking their own food,
+  /// and a doctor beside a trainer. Supplied at ~1350 px / 4.2 MB of PNG, re-encoded to 600 px WebP
+  /// with alpha (123 KB together) — three times the ~190 pt a card draws them at.
+  static const joinIndividual = 'assets/welcome/join_individual.webp';
+  static const joinProfessional = 'assets/welcome/join_professional.webp';
 
   /// The bowl that bleeds off the top-right corner of the first onboarding step (D-106). A
   /// cut-out, so PNG rather than the JPG D-102 chose for the full-bleed carousel art — the page

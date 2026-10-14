@@ -64,7 +64,7 @@ class HomeHealthSync extends StatelessWidget {
         alignment: AlignmentDirectional.centerStart,
         child: TextButton.icon(
           onPressed: busy ? null : () => syncAndReport(context, controller),
-          icon: Icon(offer ? Icons.favorite_outline : Icons.sync),
+          icon: Icon(offer ? Icons.favorite_outline : Icons.sync, size: AppSpacing.xl),
           label: Text(
             busy
                 ? l.healthSyncing

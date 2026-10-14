@@ -45,6 +45,7 @@ const NAV = [
   { key: 'search', label: 'Find someone', Icon: SearchIcon, enabled: true },
   { key: 'tickets', label: 'Support', Icon: ChatIcon, enabled: true },
   { key: 'foods', label: 'Food review', Icon: InboxIcon, enabled: true },
+  { key: 'recipes', label: 'Recipes', Icon: PlusIcon, enabled: true },
   { key: 'messages', label: 'Messages', Icon: BellIcon, enabled: true },
   { key: 'broadcast', label: 'Message by health condition', Icon: ChatIcon, enabled: true },
   { key: 'announcements', label: 'Announcements', Icon: InboxIcon, enabled: true },

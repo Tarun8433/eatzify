@@ -66,7 +66,7 @@ void main() {
     await tester.pumpWidget(shellUnderTest());
     await settle(tester);
 
-    expect(find.text('Today at a glance'), findsOneWidget);
+    expect(find.text("Let's build a healthier you today"), findsOneWidget);
     await tester.tap(navTab('Progress'));
     await settle(tester);
     expect(find.text('Track your health journey'), findsOneWidget);

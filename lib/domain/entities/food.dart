@@ -261,6 +261,9 @@ class DiaryDay {
     this.workoutKcal,
     this.waterLoggedMl,
     this.waterTargetMl,
+    this.stepsGoal,
+    this.sleepMin,
+    this.sleepSource = MeasurementSource.manual,
     this.windowStart,
     this.windowEnd,
   });
@@ -293,6 +296,11 @@ class DiaryDay {
             ?.toInt(),
         waterLoggedMl: ((json['water'] as Map<String, dynamic>?)?['logged_ml'] as num?)?.toInt(),
         waterTargetMl: ((json['water'] as Map<String, dynamic>?)?['target_ml'] as num?)?.toInt(),
+        stepsGoal: ((json['activity'] as Map<String, dynamic>?)?['steps_goal'] as num?)?.toInt(),
+        sleepMin: ((json['activity'] as Map<String, dynamic>?)?['sleep_min'] as num?)?.toInt(),
+        sleepSource: MeasurementSource.fromWire(
+          (json['activity'] as Map<String, dynamic>?)?['sleep_source']?.toString(),
+        ),
       );
 
   final String diaryDate;
@@ -322,6 +330,16 @@ class DiaryDay {
   /// null until a plan exists — never zero, which would read as "you should drink nothing".
   final int? waterLoggedMl;
   final int? waterTargetMl;
+
+  /// The active rule pack's steps goal. Null when the server sets none — the app then shows the
+  /// count alone, never a goal of its own (rule 2).
+  final int? stepsGoal;
+
+  /// Minutes asleep last night, read from the phone. Null is not recorded, never "no sleep".
+  final int? sleepMin;
+
+  /// Where [sleepMin] came from — shown beside it (rule 10).
+  final MeasurementSource sleepSource;
 
   /// Null when no plan exists. NOT zero — the UI must say "no plan yet" rather than show progress
   /// against a target of nothing.

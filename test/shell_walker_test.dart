@@ -56,12 +56,12 @@ Finder navTab(String label) =>
 Finder travellingWalker() =>
     find.descendant(of: find.byType(WalkingMan), matching: find.byType(FrameSequence));
 
-/// Home's stage art (D-138) — the podium the walker stands on.
+/// Home's backdrop — the landscape whose path the walker stands on.
 Finder homeStage() => find.byWidgetPredicate(
   (w) =>
       w is Image &&
       w.image is AssetImage &&
-      (w.image as AssetImage).assetName.contains('dashboard_stage'),
+      (w.image as AssetImage).assetName.contains('home_landscape'),
 );
 
 /// Which walker frame is on screen.
@@ -85,18 +85,19 @@ Rect anchorRect(WidgetTester tester, ClientTab tab) =>
 
 void main() {
   group('the walker travels with the tabs', () {
-    testWidgets('the stage podium is under his feet, not his waist (D-63, D-138)', (tester) async {
+    testWidgets('the landscape path is under his feet, not his waist (D-63, D-138)', (tester) async {
       await tester.pumpWidget(shellUnderTest());
       await settle(tester);
 
       // The bug this guards: the old rings laid out inside Home's list while he was positioned
       // against the body, so the two agreed on paper and were 160 pt apart on screen. The stage
-      // replaced the rings (D-138); its podium SURFACE — 86 % of the way down the art, the
-      // constant `_Stage` positions by — must sit exactly at his feet.
+      // replaced the rings (D-138), and the landscape replaced the stage on Home; its PATH — 88 %
+      // of the way down and 72 % across the art, the constants the shell positions by — must sit
+      // exactly at his feet.
       final man = tester.getRect(travellingWalker());
       final stage = tester.getRect(homeStage());
-      expect(stage.center.dx, moreOrLessEquals(man.center.dx, epsilon: 0.5));
-      expect(stage.top + stage.height * 0.86, moreOrLessEquals(man.bottom, epsilon: 0.5));
+      expect(stage.left + stage.width * 0.72, moreOrLessEquals(man.center.dx, epsilon: 0.5));
+      expect(stage.top + stage.height * 0.88, moreOrLessEquals(man.bottom, epsilon: 0.5));
     });
 
     testWidgets('the You frame is painted IN FRONT of the walker (D-68)', (tester) async {
@@ -423,18 +424,18 @@ void main() {
       await tester.pumpWidget(shellUnderTest());
       await settle(tester);
 
-      // Home draws the stage UNDER his feet, so that page must stay behind him.
+      // Home draws the landscape UNDER his feet, so that page must stay behind him.
       final order = tester.allElements.toList();
       final walker = order.indexWhere((e) => e.widget is WalkingMan);
       final stage = order.indexWhere(
         (e) =>
             e.widget is Image &&
             (e.widget as Image).image is AssetImage &&
-            ((e.widget as Image).image as AssetImage).assetName.contains('dashboard_stage'),
+            ((e.widget as Image).image as AssetImage).assetName.contains('home_landscape'),
       );
 
       expect(stage, isNonNegative);
-      expect(walker, greaterThan(stage), reason: 'he walks on the stage, not under it');
+      expect(walker, greaterThan(stage), reason: 'he walks on the path, not under it');
     });
 
     testWidgets('reduced motion changes the tab without turning or travelling', (tester) async {

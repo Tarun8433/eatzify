@@ -143,6 +143,10 @@ class FakeMeasurementsRepository implements MeasurementsRepository {
   double? lastRecorded;
   String? lastKind;
 
+  /// All calls to [record] in order.
+  final List<({String kind, double value, String unit, MeasurementSource source})> recordedCalls =
+      [];
+
   /// What the last call claimed as its origin. Recorded so a test can prove a hand-entry screen
   /// sends `manual` — the server's conflict rule (D-97) turns on this value, so a screen that
   /// mislabels itself would quietly stop being able to correct a synced figure.
@@ -163,6 +167,7 @@ class FakeMeasurementsRepository implements MeasurementsRepository {
     lastKind = kind;
     lastSource = source;
     lastAt = at;
+    recordedCalls.add((kind: kind, value: value, unit: unit, source: source));
     if (failure != null) return Left(failure!);
     return Right((
       measurement: Measurement(
@@ -1017,6 +1022,12 @@ class FakeAuthRepository implements AuthRepository {
   @override
   Future<Either<Failure, Session>> refresh(Session current) async =>
       const Left(ApiFailure('x', code: 'X'));
+
+  @override
+  Future<Either<Failure, Unit>> setPassword({
+    required Session session,
+    required String password,
+  }) async => const Right(unit);
 
   @override
   Future<Either<Failure, Unit>> logout(Session current) async => const Right(unit);

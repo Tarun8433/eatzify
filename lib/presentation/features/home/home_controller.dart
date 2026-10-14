@@ -115,6 +115,15 @@ class HomeController extends FullLifeCycleController with FullLifeCycleMixin {
     await load();
   }
 
+  /// Straight to a day picked from the calendar: [daysBack] from today, clamped to what can be
+  /// read. A count, never a date the app sends — the server owns where a day begins (rule 8).
+  Future<void> showDaysBack(int daysBack) async {
+    final target = daysBack.clamp(0, maxDaysBack);
+    if (target == this.daysBack.value) return;
+    this.daysBack.value = target;
+    await load();
+  }
+
   Future<void> backToToday() async {
     if (isToday) return;
     daysBack.value = 0;

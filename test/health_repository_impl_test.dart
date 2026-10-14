@@ -46,7 +46,42 @@ class _PluginDouble extends Health {
     if (answer is List<HealthDataPoint>) return answer;
     throw answer as Error;
   }
+
+  /// Sleep's session read: every requested type's points, or the first error among them.
+  final sleepAsked = <({List<HealthDataType> types, DateTime start, DateTime end})>[];
+
+  @override
+  Future<List<HealthDataPoint>> getHealthDataFromTypes({
+    required List<HealthDataType> types,
+    Map<HealthDataType, HealthDataUnit>? preferredUnits,
+    required DateTime startTime,
+    required DateTime endTime,
+    List<RecordingMethod> recordingMethodsToFilter = const [],
+  }) async {
+    sleepAsked.add((types: types, start: startTime, end: endTime));
+    final points = <HealthDataPoint>[];
+    for (final type in types) {
+      final answer = answers[type] ?? const <HealthDataPoint>[];
+      if (answer is! List<HealthDataPoint>) throw answer as Error;
+      points.addAll(answer);
+    }
+    return points;
+  }
 }
+
+/// One night (or one stage of it), ending at [end], as the plugin reports sleep: minutes.
+HealthDataPoint sleepPoint(HealthDataType type, DateTime end, num minutes) => HealthDataPoint(
+  uuid: '',
+  value: NumericHealthValue(numericValue: minutes),
+  type: type,
+  unit: HealthDataUnit.MINUTE,
+  dateFrom: end.subtract(Duration(minutes: minutes.toInt())),
+  dateTo: end,
+  sourcePlatform: HealthPlatformType.googleHealthConnect,
+  sourceDeviceId: '',
+  sourceId: '',
+  sourceName: 'app',
+);
 
 final _d1 = DiaryWindow(
   diaryDate: '2026-09-16',
@@ -135,7 +170,8 @@ void main() {
     test('should ask for one-day buckets across all the windows at once', () async {
       await ios().readDaily([_d1, _d2]);
 
-      expect(plugin.asked, hasLength(HealthMetric.values.length));
+      // Sleep is sessions, read separately; every other metric is one bucketed query.
+      expect(plugin.asked, hasLength(HealthMetric.values.length - 1));
       for (final call in plugin.asked) {
         expect(call.start, _d1.start);
         expect(call.end, _d2.end);
@@ -212,6 +248,53 @@ void main() {
         plugin.answers[HealthRepositoryImpl.typeFor(metric, isIOS: false)] = StateError('gone');
       }
       expect((await android().readDaily([_d1])).isLeft(), isTrue);
+    });
+
+    test('should file a night under the morning it ended in', () async {
+      // Ends 01:30 UTC on the 16th — 07:00 IST — inside the 16th's window.
+      plugin.answers[HealthDataType.SLEEP_SESSION] = [
+        sleepPoint(HealthDataType.SLEEP_SESSION, DateTime.utc(2026, 9, 16, 1, 30), 450),
+      ];
+
+      final read = await android().readDaily([_d1, _d2]);
+
+      expect(read.getOrElse(() => {}), {
+        '2026-09-16': {HealthMetric.sleep: 450},
+      });
+      // A night ending in the first window began the evening before it.
+      expect(plugin.sleepAsked.single.start, _d1.start.subtract(const Duration(days: 1)));
+    });
+
+    test('should add up an Apple Watch night told in stages', () async {
+      final morning = DateTime.utc(2026, 9, 16, 1, 30);
+      plugin
+        ..answers[HealthDataType.SLEEP_LIGHT] = [
+          sleepPoint(HealthDataType.SLEEP_LIGHT, morning, 240),
+        ]
+        ..answers[HealthDataType.SLEEP_DEEP] = [sleepPoint(HealthDataType.SLEEP_DEEP, morning, 90)]
+        ..answers[HealthDataType.SLEEP_REM] = [sleepPoint(HealthDataType.SLEEP_REM, morning, 100)];
+
+      final read = await ios().readDaily([_d1]);
+
+      expect(read.getOrElse(() => {}), {
+        '2026-09-16': {HealthMetric.sleep: 430},
+      });
+    });
+
+    test('should leave sleep absent, not zero, when no night was recorded', () async {
+      final read = await android().readDaily([_d1]);
+      expect(read.getOrElse(() => {'x': {}}), isEmpty);
+    });
+
+    test('should keep the other metrics when sleep is refused', () async {
+      plugin.answers[HealthDataType.STEPS] = [bucket(HealthDataType.STEPS, _d1, 6000)];
+      plugin.answers[HealthDataType.SLEEP_SESSION] = StateError('SecurityException');
+
+      final read = await android().readDaily([_d1]);
+
+      expect(read.getOrElse(() => {}), {
+        '2026-09-16': {HealthMetric.steps: 6000},
+      });
     });
 
     test('should not ask the platform about no windows at all', () async {

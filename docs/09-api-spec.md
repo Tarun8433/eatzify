@@ -49,6 +49,19 @@ POST /auth/logout           { refresh }                          → 204
 GET  /auth/me                                                    → { user, roles, entitlements, active_plan_summary }
 ```
 
+Google and a first password for a Google account:
+
+```
+POST /auth/google           { id_token, device }                 → { access, refresh, user, onboarding_required, needs_password }
+POST /auth/password         { password }   (Bearer, min 8)       → 204   (409 PASSWORD_ALREADY_SET if the account has one)
+```
+
+`needs_password` is true for an account with no password it can sign in with (one made with Google);
+the app asks for one before going on. Setting it makes the account an `email` account, so email
+sign-in accepts it, and Google still finds it by its verified address. A password left by an
+unconfirmed sign-up that Google took over is never usable: only `email` accounts may sign in with a
+password, and this call replaces it.
+
 DLT-registered templates for OTP SMS via MSG91. Never log an OTP. Never return whether a number exists.
 
 ## 4. Profile & plans

@@ -16,6 +16,7 @@ import { MeService, type MeView } from './me.service';
 import { ApiBearerAuth, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import { AuthEmailLoginDto } from './dto/auth-email-login.dto';
 import { AuthGoogleLoginDto } from './dto/auth-google-login.dto';
+import { AuthSetPasswordDto } from './dto/auth-set-password.dto';
 import { AuthForgotPasswordDto } from './dto/auth-forgot-password.dto';
 import { AuthConfirmEmailDto } from './dto/auth-confirm-email.dto';
 import { AuthResetPasswordDto } from './dto/auth-reset-password.dto';
@@ -80,6 +81,18 @@ export class AuthController {
   @HttpCode(HttpStatus.OK)
   googleLogin(@Body() dto: AuthGoogleLoginDto) {
     return this.service.googleLogin(dto.id_token);
+  }
+
+  /// A first password for a Google account, so it can also sign in with email.
+  @ApiBearerAuth()
+  @Post('password')
+  @UseGuards(AuthGuard('jwt'))
+  @HttpCode(HttpStatus.NO_CONTENT)
+  setPassword(
+    @Request() request: RequestWithUser<JwtPayloadType>,
+    @Body() dto: AuthSetPasswordDto,
+  ): Promise<void> {
+    return this.service.setPassword(Number(request.user.id), dto.password);
   }
 
   @Post('email/confirm')

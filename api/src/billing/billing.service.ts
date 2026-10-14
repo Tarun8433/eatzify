@@ -79,7 +79,12 @@ export class BillingService {
     // asked) means no Pay button rather than one that cannot open.
     let playOffer: ReturnType<typeof playProducts> = [];
     if (mode === PAYMENTS_PLAY_MODE) {
-      const live = await this.play.liveBasePlans(['basic', 'pro']);
+      const live = await this.play.liveBasePlans([
+        'eatzify_basic',
+        'eatzify_premium',
+        'basic',
+        'pro',
+      ]);
       playOffer = playProducts().filter((p) =>
         live.has(`${p.product_id}:${p.base_plan_id}`),
       );

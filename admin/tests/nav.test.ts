@@ -14,6 +14,7 @@ describe('allowedNav', () => {
       'foods',
       'messages',
       'offers',
+      'recipes',
       'security',
     ]);
   });

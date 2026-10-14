@@ -153,3 +153,37 @@ describe('unknown columns', () => {
     expect(unknownColumns(['name', 'kcal', ''])).toEqual([]);
   });
 });
+
+/// The admin panel's "Add food" form (admin/lib/food-form.ts `toFoodRow`) sends this shape: every
+/// column present, optional ones as empty strings. It must validate exactly as a CSV row does.
+describe('the admin Add food form row', () => {
+  it('should accept a typical hand-typed food with blank optional fields', () => {
+    const { food, errors } = validateRow(
+      {
+        name: 'Moong dal, cooked',
+        nameHi: '',
+        aliases: 'mung dal|green gram',
+        kcal: '104',
+        proteinG: '7',
+        fatG: '0.4',
+        carbG: '18',
+        fibreG: '',
+        suitableFor: 'veg|vegan',
+        allergens: '',
+        measures: 'katori=150*',
+        costTier: 'medium',
+        source: 'manual',
+      },
+      1,
+    );
+
+    expect(errors).toEqual([]);
+    expect(food).toMatchObject({
+      nameHi: null,
+      aliases: ['mung dal', 'green gram'],
+      fibreG: 0,
+      suitableFor: ['veg', 'vegan'],
+      allergens: [],
+    });
+  });
+});

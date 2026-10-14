@@ -21,40 +21,48 @@ class PremiumPill extends StatelessWidget {
 
     // The reference pill is the quiet green tint with the brand green on it, not a gold banner —
     // the scheme's secondaryContainer pair, so dark mode gets its own tint for free.
-    final scheme = theme.colorScheme;
+   
 
     return Obx(() {
       if (!billing.showPremium) return const SizedBox.shrink();
 
-      return Material(
-        color: scheme.secondaryContainer,
-        borderRadius: BorderRadius.circular(AppRadius.pill),
-        child: InkWell(
-          onTap: () => PaywallSheet.show(context, billing),
-          borderRadius: BorderRadius.circular(AppRadius.pill),
-          child: Container(
-            constraints: const BoxConstraints(minHeight: AppSpacing.minTouchTarget),
-            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  Icons.workspace_premium,
-                  size: AppSpacing.lg,
-                  color: scheme.onSecondaryContainer,
-                ),
-                const SizedBox(width: AppSpacing.xs),
-                Text(
-                  l.premiumGo,
-                  style: theme.textTheme.labelLarge?.copyWith(color: scheme.onSecondaryContainer),
-                ),
-                Icon(Icons.chevron_right, size: AppSpacing.lg, color: scheme.onSecondaryContainer),
-              ],
+      return FilledButton(
+        onPressed: () => PaywallSheet.show(context, billing),
+        style: FilledButton.styleFrom(
+          shape: const StadiumBorder(),
+          minimumSize: const Size(0, AppSpacing.xxl),
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+           textStyle: theme.textTheme.labelLarge,
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.workspace_premium, size: AppSpacing.lg),
+            const SizedBox(width: AppSpacing.xs),
+            Text(
+              l.premiumGo,
+              
             ),
-          ),
+            const Icon(Icons.chevron_right, size: AppSpacing.lg),
+          ],
         ),
       );
     });
+
+    //   Material(
+    //     color: scheme.secondaryContainer,
+    //     borderRadius: BorderRadius.circular(AppRadius.pill),
+    //     child: InkWell(
+    //       onTap: () => PaywallSheet.show(context, billing),
+    //       borderRadius: BorderRadius.circular(AppRadius.pill),
+    //       child: Container(
+    //         constraints: const BoxConstraints(minHeight: AppSpacing.minTouchTarget),
+    //         padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+    //         child:
+    //       ),
+    //     ),
+    //   );
+    // });
   }
 }
 

@@ -10,6 +10,7 @@ class Session {
     required this.userId,
     required this.roles,
     required this.onboardingRequired,
+    this.needsPassword = false,
   });
 
   final String accessToken;
@@ -20,6 +21,10 @@ class Session {
   /// From sign-in. The server decides whether onboarding is still needed — the app must
   /// not infer it from whether a profile happens to be cached.
   final bool onboardingRequired;
+
+  /// From a Google sign-in: the account has no password yet, so the app asks for one before going
+  /// on. Not stored — it only matters on the screen that just signed in.
+  final bool needsPassword;
 
   bool get isCoach => roles.contains('coach');
 

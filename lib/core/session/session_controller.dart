@@ -4,6 +4,7 @@ import 'package:dartz/dartz.dart';
 import 'package:get/get.dart';
 import 'package:health_pro/core/errors/failures.dart';
 import 'package:health_pro/core/storage/secure_store.dart';
+import 'package:health_pro/domain/entities/profession.dart';
 import 'package:health_pro/domain/entities/session.dart';
 import 'package:health_pro/domain/entities/session_role.dart';
 import 'package:health_pro/domain/repositories/auth_repository.dart';
@@ -157,6 +158,10 @@ class SessionController extends GetxController {
     await store.markIntroSeen();
     introSeen.value = true;
   }
+
+  /// "Who are you?" at sign-up, for onboarding to read. See [JoinAs].
+  Future<void> rememberJoinAs(JoinAs choice) => store.writeJoinAs(choice);
+  Future<JoinAs?> joinAs() => store.readJoinAs();
 
   Future<void> adopt(Session session) async {
     _session.value = session;

@@ -207,6 +207,17 @@ class OnboardingController extends GetxController {
   /// never treated as a qualification.
   final profession = Profession.none.obs;
 
+  /// Whether to ask [profession] at all. False only when the person said "individual" at sign-up;
+  /// with no answer on record (Google, an older install) it is asked, so nobody who coaches loses
+  /// the partner route.
+  final askProfession = true.obs;
+
+  @override
+  void onInit() {
+    super.onInit();
+    _session.joinAs().then((choice) => askProfession.value = choice != JoinAs.individual);
+  }
+
   static const _allSteps = [
     OnboardingStep.basics,
     OnboardingStep.result,

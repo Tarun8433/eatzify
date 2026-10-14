@@ -321,13 +321,14 @@ void main() {
   });
 
   group("Home's workout card", () {
-    testWidgets("should offer Start on today's routine", (tester) async {
+    testWidgets("should show today's routine with the way into the Gym", (tester) async {
       await putGym().load();
       await tester.pumpWidget(gymApp(const Scaffold(body: GymTodayCard())));
       await settle(tester);
       expect(find.text("Today's workout"), findsOneWidget);
       expect(find.text('Push Day'), findsOneWidget);
-      expect(find.text('Start Workout'), findsOneWidget);
+      // One pill, as the dashboard reference has it; the routine starts in the Gym.
+      expect(find.text('Open Gym'), findsOneWidget);
     });
 
     testWidgets('should survive 200 % text in dark mode (rule 12)', (tester) async {
@@ -341,7 +342,7 @@ void main() {
       );
       await settle(tester);
       expect(tester.takeException(), isNull);
-      expect(find.text('Start Workout'), findsOneWidget);
+      expect(find.text('Open Gym'), findsOneWidget);
     });
 
     testWidgets('should draw nothing where no Gym is registered', (tester) async {

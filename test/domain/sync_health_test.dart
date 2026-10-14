@@ -74,6 +74,7 @@ DiaryDay dayWith({
   int? added,
   MeasurementSource source = MeasurementSource.manual,
   int? burned,
+  int? sleep,
   bool window = true,
 }) => DiaryDay(
   diaryDate: _today,
@@ -83,6 +84,7 @@ DiaryDay dayWith({
   stepsAdded: added,
   stepsSource: source,
   energyBurnedKcal: burned,
+  sleepMin: sleep,
   windowStart: window ? _todayStart : null,
   windowEnd: window ? _todayEnd : null,
 );
@@ -246,6 +248,24 @@ void main() {
     test('should not resend figures the day already shows', () async {
       await sync(dayWith(steps: 9500, source: MeasurementSource.appleHealth, burned: 320));
       expect(sentByKind(), {'distance_m': 6100}, reason: 'the day carries no distance to compare');
+    });
+
+    test('should send last night’s sleep in minutes', () async {
+      health.recorded = const Right({
+        _today: {HealthMetric.sleep: 450},
+      });
+
+      await sync(dayWith());
+
+      expect(sentByKind(), {'sleep_min': 450});
+    });
+
+    test('should not resend sleep the day already shows', () async {
+      health.recorded = const Right({
+        _today: {HealthMetric.sleep: 450},
+      });
+
+      expect(await sync(dayWith(sleep: 450)), SyncHealthResult.unchanged);
     });
 
     test('should report nothing to do when every figure is already there', () async {

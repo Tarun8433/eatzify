@@ -110,6 +110,25 @@ class AuthRemoteDataSource {
       userId: user['id']?.toString() ?? '',
       roles: (user['roles'] as List?)?.map((r) => r.toString()).toList() ?? const [],
       onboardingRequired: json['onboarding_required'] as bool? ?? true,
+      needsPassword: json['needs_password'] == true,
     );
+  }
+
+  /// `POST /auth/password`: a first password for a Google account. Sent with [session]'s own
+  /// token, because the session is not adopted (so not in the auth interceptor) until this is done.
+  Future<Either<Failure, Unit>> setPassword({
+    required Session session,
+    required String password,
+  }) async {
+    try {
+      await _dio.post<void>(
+        '/auth/password',
+        data: {'password': password},
+        options: Options(headers: {'Authorization': 'Bearer ${session.accessToken}'}),
+      );
+      return const Right(unit);
+    } on DioException catch (e) {
+      return Left(mapDioError(e));
+    }
   }
 }
