@@ -47,3 +47,17 @@ enum SessionRole {
     return SessionRole.client;
   }
 }
+
+/// Which dashboard a partner is looking at (D-269): their own tracking, or their clients'.
+enum DashboardMode { mine, clients }
+
+/// What `GET /auth/me` says about this account's navigation (docs/09 §3, D-269).
+class AccountAccess {
+  const AccountAccess({this.roles = const [], this.canSwitchDashboard = false});
+
+  final List<String> roles;
+
+  /// Whether this account may switch to "My clients". The SERVER decides (an admin's per-person
+  /// override, else the app-wide setting); the app never works it out from the role.
+  final bool canSwitchDashboard;
+}

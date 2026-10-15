@@ -1,3 +1,4 @@
+import { DashboardSwitchModule } from '../dashboard-switch/dashboard-switch.module';
 import { AdminReportsController } from './admin-reports.controller';
 import { AdminReportsService } from './admin-reports.service';
 import { UserActivityDayEntity } from '../users/infrastructure/persistence/relational/entities/user-activity-day.entity';
@@ -70,6 +71,8 @@ import { RulePacksService } from './rule-packs.service';
 @Module({
   imports: [
     BillingModule,
+    // D-269: the dashboard-switch setting and overrides.
+    DashboardSwitchModule,
     // UserAccessService: blocks and their expiry.
     UsersModule,
     // Phase C: push delivery, campaign and announcement tables.

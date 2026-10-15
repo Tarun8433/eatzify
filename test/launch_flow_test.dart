@@ -57,6 +57,16 @@ class FakeStorage extends FlutterSecureStorage {
   }) async => data[key];
 
   @override
+  Future<Map<String, String>> readAll({
+    IOSOptions? iOptions,
+    AndroidOptions? aOptions,
+    LinuxOptions? lOptions,
+    WebOptions? webOptions,
+    MacOsOptions? mOptions,
+    WindowsOptions? wOptions,
+  }) async => Map.of(data);
+
+  @override
   Future<void> deleteAll({
     IOSOptions? iOptions,
     AndroidOptions? aOptions,

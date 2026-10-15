@@ -3,6 +3,9 @@
 import { useCallback, useEffect, useState } from 'react';
 import { TotpPrompt } from '../TotpPrompt';
 import { SpinnerIcon } from '../icons';
+import { call, errorText } from '@/lib/client';
+import { AUDIENCE_LABEL, type DashboardSwitchAudience } from '@/lib/dashboard-switch';
+import { Pill } from '../ui';
 
 interface Policy {
   tier: 'FREE' | 'BASIC' | 'PRO';
@@ -52,6 +55,63 @@ export function ScanSettingsView() {
       {error && <p className="text-[12.5px] text-[#ffb4b4]">{error}</p>}
       {rows === null && !error && <SpinnerIcon className="h-5 w-5 animate-spin text-ink-muted" />}
       {rows?.map((row) => <TierCard key={row.tier} policy={row} onSaved={load} />)}
+      <DashboardSwitchCard />
+    </div>
+  );
+}
+
+const AUDIENCES: DashboardSwitchAudience[] = ['verified', 'agreement'];
+
+/// D-269: who may switch between "My tracking" and "My clients" in the app, unless a person's own
+/// page says otherwise. The app picks a change up the next time someone starts it or opens You.
+function DashboardSwitchCard() {
+  const [audience, setAudience] = useState<DashboardSwitchAudience | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    call<{ audience: DashboardSwitchAudience }>('settings/dashboard-switch')
+      .then((r) => setAudience(r.audience))
+      .catch((e) => setError(errorText(e, 'Could not load the dashboard switch.')));
+  }, []);
+
+  async function choose(next: DashboardSwitchAudience) {
+    if (busy || next === audience) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const r = await call<{ audience: DashboardSwitchAudience }>('settings/dashboard-switch', {
+        method: 'PATCH',
+        body: { audience: next },
+      });
+      setAudience(r.audience);
+    } catch (e) {
+      setError(errorText(e, 'The API refused.'));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="card flex flex-col gap-3 p-4">
+      <div>
+        <h4 className="text-[13px] font-semibold text-ink">Partner dashboard switch</h4>
+        <p className="mt-0.5 text-[12px] text-ink-muted">
+          Who can switch between their own tracking and their clients in the app. A person&apos;s
+          own page can always allow or block them.
+        </p>
+      </div>
+      {audience === null && !error && <SpinnerIcon className="h-5 w-5 animate-spin text-ink-muted" />}
+      {audience !== null && (
+        <div className="flex flex-wrap gap-2">
+          {AUDIENCES.map((a) => (
+            <Pill key={a} active={audience === a} onClick={() => void choose(a)}>
+              {AUDIENCE_LABEL[a]}
+            </Pill>
+          ))}
+        </div>
+      )}
+      {error && <p className="text-[12px] text-[#ffb4b4]">{error}</p>}
     </div>
   );
 }

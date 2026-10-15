@@ -6,6 +6,7 @@ import { inr, stamp } from '@/lib/format';
 import { Button, ConfirmDialog, ErrorNote, Loadable, ViewHeader, type ConfirmField } from '../ui';
 import { STATE_LABEL, type UserRow } from './UsersView';
 import { SpecialOfferSection } from './SpecialOfferSection';
+import { DashboardSwitchSection } from './DashboardSwitchSection';
 
 type Detail = UserRow & {
   provider: string;
@@ -191,6 +192,7 @@ export function UserDetail({
               />
             </Section>
             {can('offers.manage') && <SpecialOfferSection userId={userId} />}
+            <DashboardSwitchSection userId={userId} canEdit={can('users.manage')} />
             <Section title="Support tickets">
               <SimpleTable
                 empty="No tickets."

@@ -3,6 +3,7 @@ import 'package:health_pro/core/errors/failures.dart';
 import 'package:health_pro/data/datasources/remote/profile_remote_data_source.dart';
 import 'package:health_pro/domain/entities/onboarding_submission.dart';
 import 'package:health_pro/domain/entities/profile_view.dart';
+import 'package:health_pro/domain/entities/session_role.dart';
 import 'package:health_pro/domain/repositories/profile_repository.dart';
 
 class ProfileRepositoryImpl implements ProfileRepository {
@@ -33,5 +34,5 @@ class ProfileRepositoryImpl implements ProfileRepository {
   Future<Either<Failure, Unit>> removePhoto() => _remote.removePhoto();
 
   @override
-  Future<Either<Failure, List<String>>> roles() => _remote.roles();
+  Future<Either<Failure, AccountAccess>> access() => _remote.access();
 }

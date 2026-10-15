@@ -1,6 +1,7 @@
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:health_pro/domain/entities/profession.dart';
 import 'package:health_pro/domain/entities/session.dart';
+import 'package:health_pro/domain/entities/session_role.dart';
 
 /// Token persistence. Keychain on iOS, EncryptedSharedPreferences on Android.
 ///
@@ -40,6 +41,11 @@ class SecureStore {
   /// opaque code — the offer itself is the server's. [clear] removes it: a sign-out ends whatever
   /// the last person was in the middle of.
   static const _kPendingOffer = 'offer.pending_code';
+
+  /// D-269: which dashboard a partner opens on, per account. Survives sign-out (see [clear]): it
+  /// is a choice about this phone, and it means nothing to any other account.
+  static const _kDashboardDefaultPrefix = 'dashboard.default.';
+  static const _readAllBudget = Duration(seconds: 2);
 
   Future<void> save(Session session) async {
     await Future.wait([
@@ -140,6 +146,19 @@ class SecureStore {
 
   Future<void> clearPendingOfferCode() => _storage.delete(key: _kPendingOffer);
 
+  Future<void> writeDashboardDefault(String userId, DashboardMode mode) =>
+      _storage.write(key: '$_kDashboardDefaultPrefix$userId', value: mode.name);
+
+  /// Null when none was chosen on this phone, or the keychain cannot be read.
+  Future<DashboardMode?> readDashboardDefault(String userId) async {
+    try {
+      final raw = await _storage.read(key: '$_kDashboardDefaultPrefix$userId');
+      return DashboardMode.values.where((m) => m.name == raw).firstOrNull;
+    } on Object {
+      return null;
+    }
+  }
+
   /// False rather than throwing when the keychain is unreadable. [clear] is the recovery path for
   /// exactly that failure, so a read in it that can throw would strand the app on the splash — the
   /// bug the boot-resilience test exists to catch.
@@ -157,7 +176,26 @@ class SecureStore {
   /// belonged to; [_kIntroSeen] is the one deliberate survivor and is written back.
   Future<void> clear() async {
     final introSeen = await readIntroSeen();
+    final defaults = await _dashboardDefaults();
     await _storage.deleteAll();
     if (introSeen) await markIntroSeen();
+    for (final MapEntry(:key, :value) in defaults.entries) {
+      await _storage.write(key: key, value: value);
+    }
+  }
+
+  /// Every account's dashboard default on this phone; empty when the keychain cannot be read, so
+  /// [clear] — the recovery path for exactly that failure — never throws here.
+  Future<Map<String, String>> _dashboardDefaults() async {
+    try {
+      // A sign-out must never wait on the keychain: past this, the defaults are simply lost.
+      final all = await _storage.readAll().timeout(_readAllBudget);
+      return {
+        for (final MapEntry(:key, :value) in all.entries)
+          if (key.startsWith(_kDashboardDefaultPrefix)) key: value,
+      };
+    } on Object {
+      return const {};
+    }
   }
 }

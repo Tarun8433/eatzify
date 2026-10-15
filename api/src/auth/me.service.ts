@@ -6,6 +6,7 @@ import {
 } from '../billing/billing.service';
 import { PlansService } from '../plans/plans.service';
 import { User } from '../users/domain/user';
+import { DashboardSwitchService } from '../dashboard-switch/dashboard-switch.service';
 
 /// Enough of the active plan to decide what to SHOW; never enough to render it.
 ///
@@ -24,6 +25,9 @@ export type MeView = {
   roles: string[];
   entitlements: SubscriptionView;
   active_plan_summary: ActivePlanSummary | null;
+  /// D-269: whether this account may switch between "My tracking" and "My clients" — the admin's
+  /// per-person override, else the app-wide audience. The app never works it out from the role.
+  can_switch_dashboard: boolean;
 };
 
 /// The one call the app makes on a cold start: who is signed in, what their tier lets them use,
@@ -38,6 +42,7 @@ export class MeService {
     private readonly users: UsersService,
     private readonly billing: BillingService,
     private readonly plans: PlansService,
+    private readonly dashboardSwitch: DashboardSwitchService,
   ) {}
 
   async of(userId: number): Promise<MeView> {
@@ -47,9 +52,13 @@ export class MeService {
     if (!user) throw new NotFoundException();
 
     // Independent reads, so they go together rather than one after the other.
-    const [entitlements, plan] = await Promise.all([
+    const [entitlements, plan, canSwitch] = await Promise.all([
       this.billing.entitlements(userId),
       this.plans.latest(userId),
+      this.dashboardSwitch.allowedFor(
+        userId,
+        user.role?.id === undefined ? null : Number(user.role.id),
+      ),
     ]);
 
     return {
@@ -66,6 +75,7 @@ export class MeService {
             rule_pack_version: plan.rule_pack_version,
           }
         : null,
+      can_switch_dashboard: canSwitch,
     };
   }
 }

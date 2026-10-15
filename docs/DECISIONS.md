@@ -6393,3 +6393,34 @@ diary day, with the ACSM walking equation:
   grade is 0 there.
 
 Age and gender are not read: the ACSM equation uses neither. Today's weight still prices past days.
+
+## D-269 — Partners switch between "My tracking" and "My clients" (amends D-174)
+
+**When** 2026-10-15 · **Decision** A partner's two dashboards are now **two modes switched in
+place**, not a page pushed from You:
+- **My tracking:** the client shell.
+- **My clients:** the coach shell, which no longer has a back arrow.
+
+`RootGate` shows the coach shell only while `dashboard == clients` **and** the server's
+`/auth/me` says `can_switch_dashboard`. Ways back to My tracking: the "⇄ My tracking" chip in the
+coach shell's top bar, Android Back, or the row on either You tab. Each You tab also has an
+"Open the app on" control.
+
+**Who gets the switch is the server's decision** (`api/src/dashboard-switch/`):
+- A per-person admin override wins either way (table `dashboard_switch_override`; admin person
+  page: Follow app setting / Always allow / Never allow, `users.manage`).
+- Otherwise the app-wide setting decides (`app_setting` key `dashboard_switch.audience`, a DB CHECK
+  allows only `verified` | `agreement`; admin Scanning settings page, `settings.manage`):
+  - `verified` (default) means `coach_l2`/`coach_l3`;
+  - `agreement` adds `coach_l1`.
+- Both admin writes are audited (`dashboard_switch_audience_update`, `dashboard_switch_override`).
+
+**The app never works this out from the role.** If the server revokes access, the next `/auth/me`
+read (app start, or opening You) moves the person back to My tracking.
+
+**Where the default is stored:** on the phone, per account (`dashboard.default.<userId>` in
+SecureStore). It survives sign-out: `clear()` keeps those keys, read under a 2-second cap so a
+sign-out can never hang. It is applied only when a session starts. A later re-read never moves
+anyone mid-session.
+
+The unused `Session.isCoach` getter is removed.

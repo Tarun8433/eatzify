@@ -3,6 +3,7 @@ import {
   BadRequestException,
   Body,
   Controller,
+  Delete,
   Get,
   Headers,
   HttpCode,
@@ -13,6 +14,7 @@ import {
   ParseIntPipe,
   Patch,
   Post,
+  Put,
   Query,
   Request,
   UseGuards,
@@ -36,6 +38,14 @@ import {
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { RoleEnum } from '../roles/roles.enum';
+import {
+  DASHBOARD_SWITCH_AUDIENCES,
+  type DashboardSwitchAudience,
+} from '../dashboard-switch/dashboard-switch';
+import {
+  DashboardSwitchService,
+  type UserDashboardSwitchView,
+} from '../dashboard-switch/dashboard-switch.service';
 import {
   COACH_APPLICATION_STATUS,
   type CoachApplicationStatus,
@@ -248,6 +258,18 @@ class AuditQueryDto {
   limit?: number;
 }
 
+/// D-269. Who gets the dashboard switch when no per-person override says otherwise.
+class UpdateDashboardSwitchAudienceDto {
+  @IsIn([...DASHBOARD_SWITCH_AUDIENCES])
+  audience: DashboardSwitchAudience;
+}
+
+/// D-269. One person's switch, whatever the app-wide setting says.
+class SetDashboardSwitchOverrideDto {
+  @IsBoolean()
+  allowed: boolean;
+}
+
 /// D-238. Any subset of a tier's scan rules. `trial_days: null` removes the window.
 class UpdateScanPolicyDto {
   @IsOptional()
@@ -342,6 +364,7 @@ export class AdminController {
     private readonly audit: AuditService,
     private readonly couponsService: CouponsService,
     private readonly scanPolicy: ScanPolicyService,
+    private readonly dashboardSwitch: DashboardSwitchService,
   ) {}
 
   /**
@@ -651,6 +674,87 @@ export class AdminController {
     return updated;
   }
 
+  /// D-269 — who gets the switch between "My tracking" and "My clients": verified partners, or
+  /// anyone who accepted the partner agreement. A per-person override beats it either way.
+  @Permit('settings.manage')
+  @Get('settings/dashboard-switch')
+  async dashboardSwitchAudience(): Promise<{
+    audience: DashboardSwitchAudience;
+  }> {
+    return { audience: await this.dashboardSwitch.audience() };
+  }
+
+  @Permit('settings.manage')
+  @Patch('settings/dashboard-switch')
+  async updateDashboardSwitchAudience(
+    @Request() request: { user: JwtPayloadType },
+    @Body() body: UpdateDashboardSwitchAudienceDto,
+  ): Promise<{ audience: DashboardSwitchAudience }> {
+    const before = await this.dashboardSwitch.audience();
+    const audience = await this.dashboardSwitch.setAudience(
+      body.audience,
+      Number(request.user.id),
+    );
+    await this.recordSetting(
+      request,
+      'dashboard_switch_audience_update',
+      'app_setting',
+      { key: 'dashboard_switch.audience', before, after: audience },
+    );
+    return { audience };
+  }
+
+  @Permit('users.read')
+  @Get('users/:id/dashboard-switch')
+  userDashboardSwitch(
+    @Param('id', ParseIntPipe) userId: number,
+  ): Promise<UserDashboardSwitchView> {
+    return this.dashboardSwitch.viewFor(userId);
+  }
+
+  @Permit('users.manage')
+  @Put('users/:id/dashboard-switch')
+  setUserDashboardSwitch(
+    @Request() request: { user: JwtPayloadType },
+    @Param('id', ParseIntPipe) userId: number,
+    @Body() body: SetDashboardSwitchOverrideDto,
+  ): Promise<UserDashboardSwitchView> {
+    return this.overrideDashboardSwitch(request, userId, body.allowed);
+  }
+
+  /// Back to following the app-wide setting.
+  @Permit('users.manage')
+  @Delete('users/:id/dashboard-switch')
+  clearUserDashboardSwitch(
+    @Request() request: { user: JwtPayloadType },
+    @Param('id', ParseIntPipe) userId: number,
+  ): Promise<UserDashboardSwitchView> {
+    return this.overrideDashboardSwitch(request, userId, null);
+  }
+
+  private async overrideDashboardSwitch(
+    request: { user: JwtPayloadType },
+    userId: number,
+    allowed: boolean | null,
+  ): Promise<UserDashboardSwitchView> {
+    // 404 before any write for an id that is no account.
+    const before = await this.dashboardSwitch.viewFor(userId);
+    await this.dashboardSwitch.setOverride(
+      userId,
+      allowed,
+      Number(request.user.id),
+    );
+    await this.audit.record({
+      actorUserId: Number(request.user.id),
+      actorRole: String(request.user.role?.id ?? RoleEnum.admin),
+      action: 'dashboard_switch_override',
+      resource: 'dashboard_switch_override',
+      subjectUserId: userId,
+      meta: { before: before.override, after: allowed },
+    });
+    return this.dashboardSwitch.viewFor(userId);
+  }
+
   @Permit('content.manage')
   @Post('coupons')
   async createCoupon(
@@ -688,7 +792,11 @@ export class AdminController {
   /// Settings and offers carry no personal data, so the change itself goes in `meta`.
   private recordSetting(
     request: { user: JwtPayloadType },
-    action: 'scan_policy_update' | 'coupon_create' | 'coupon_deactivate',
+    action:
+      | 'scan_policy_update'
+      | 'coupon_create'
+      | 'coupon_deactivate'
+      | 'dashboard_switch_audience_update',
     resource: string,
     meta: Record<string, unknown>,
   ): Promise<void> {

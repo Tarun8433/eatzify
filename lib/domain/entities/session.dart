@@ -26,8 +26,6 @@ class Session {
   /// on. Not stored — it only matters on the screen that just signed in.
   final bool needsPassword;
 
-  bool get isCoach => roles.contains('coach');
-
   Session copyWith({String? accessToken, String? refreshToken, bool? onboardingRequired}) =>
       Session(
         accessToken: accessToken ?? this.accessToken,

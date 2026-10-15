@@ -52,6 +52,16 @@ class SessionController extends GetxController {
   final role = SessionRole.client.obs;
   final _session = Rxn<Session>();
 
+  /// D-269: whether this account may open "My clients". The SERVER's answer, false until it has
+  /// given one and whenever it could not.
+  final canSwitchDashboard = false.obs;
+
+  /// The dashboard on screen. Never [DashboardMode.clients] without [canSwitchDashboard].
+  final dashboard = DashboardMode.mine.obs;
+
+  /// The dashboard this account opens on, on this phone.
+  final defaultDashboard = DashboardMode.mine.obs;
+
   /// Whether the intro carousel has already been shown, on this install, to anyone. Read once on
   /// boot so routing never has to await storage. Signing out does not reset it (see
   /// [SecureStore.clear]).
@@ -79,7 +89,6 @@ class SessionController extends GetxController {
   /// The signed-in account's own id, as the server spells it. Used where the app has to tell this
   /// person's rows from somebody else's — a chat bubble, for one (docs/02 FR-5.5).
   String? get userId => _session.value?.userId;
-  bool get isCoach => _session.value?.isCoach ?? false;
 
   @override
   void onInit() {
@@ -122,7 +131,7 @@ class SessionController extends GetxController {
       return;
     }
     status.value = stored.onboardingRequired ? AuthStatus.onboardingRequired : AuthStatus.signedIn;
-    if (status.value == AuthStatus.signedIn) unawaited(loadRole());
+    if (status.value == AuthStatus.signedIn) unawaited(loadRole(openDefault: true));
   }
 
   /// Whether the SERVER thinks onboarding is done, for a session cached as needing it.
@@ -167,7 +176,7 @@ class SessionController extends GetxController {
     _session.value = session;
     await store.save(session);
     status.value = session.onboardingRequired ? AuthStatus.onboardingRequired : AuthStatus.signedIn;
-    if (status.value == AuthStatus.signedIn) unawaited(loadRole());
+    if (status.value == AuthStatus.signedIn) unawaited(loadRole(openDefault: true));
   }
 
   /// Called once onboarding completes, and by [restore] when the server contradicts a stale cached
@@ -180,7 +189,7 @@ class SessionController extends GetxController {
     _session.value = updated;
     await store.save(updated);
     status.value = AuthStatus.signedIn;
-    await loadRole();
+    await loadRole(openDefault: true);
   }
 
   /// Asks the server which shell this account gets.
@@ -188,12 +197,43 @@ class SessionController extends GetxController {
   /// Never throws and never blocks sign-in: the client shell is a correct answer for a client and
   /// a merely incomplete one for a coach, so a network failure costs a coach their tabs until the
   /// next launch rather than costing anyone their account.
-  Future<void> loadRole() async {
-    final result = await profile.roles();
+  ///
+  /// [openDefault] is for the start of a session (boot, sign-in): it also moves to the dashboard
+  /// this account chose to open on. A later re-read (the You tab) never moves anyone mid-session —
+  /// only takes "My clients" away if the server no longer allows it.
+  Future<void> loadRole({bool openDefault = false}) async {
+    final result = await profile.access();
     result.fold(
-      (_) => role.value = SessionRole.client,
-      (wire) => role.value = SessionRole.fromWire(wire),
+      (_) {
+        role.value = SessionRole.client;
+        canSwitchDashboard.value = false;
+      },
+      (access) {
+        role.value = SessionRole.fromWire(access.roles);
+        canSwitchDashboard.value = access.canSwitchDashboard;
+      },
     );
+    if (!canSwitchDashboard.value) {
+      dashboard.value = DashboardMode.mine;
+      return;
+    }
+    final id = userId;
+    if (id == null) return;
+    defaultDashboard.value = await store.readDashboardDefault(id) ?? DashboardMode.mine;
+    if (openDefault) dashboard.value = defaultDashboard.value;
+  }
+
+  /// D-269. Ignored for "My clients" when the server has not allowed it.
+  void switchDashboard(DashboardMode mode) {
+    if (mode == DashboardMode.clients && !canSwitchDashboard.value) return;
+    dashboard.value = mode;
+  }
+
+  /// D-269. Remembered on this phone for this account, and kept across sign-out.
+  Future<void> setDefaultDashboard(DashboardMode mode) async {
+    defaultDashboard.value = mode;
+    final id = userId;
+    if (id != null) await store.writeDashboardDefault(id, mode);
   }
 
   /// Wired into the dio interceptor. Returns a fresh access token, or null when the refresh failed.
@@ -238,6 +278,9 @@ class SessionController extends GetxController {
     _session.value = null;
     _refreshing = null;
     await store.clear();
+    canSwitchDashboard.value = false;
+    dashboard.value = DashboardMode.mine;
+    defaultDashboard.value = DashboardMode.mine;
     status.value = AuthStatus.signedOut;
   }
 }

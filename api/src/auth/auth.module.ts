@@ -17,6 +17,7 @@ import { JwtRefreshStrategy } from './strategies/jwt-refresh.strategy';
 import { MailModule } from '../mail/mail.module';
 import { SessionModule } from '../session/session.module';
 import { UsersModule } from '../users/users.module';
+import { DashboardSwitchModule } from '../dashboard-switch/dashboard-switch.module';
 
 @Module({
   imports: [
@@ -26,6 +27,8 @@ import { UsersModule } from '../users/users.module';
     // imports AuthModule, so this is a one-way edge.
     BillingModule,
     PlansModule,
+    // D-269: `can_switch_dashboard` on `/auth/me`.
+    DashboardSwitchModule,
     SessionModule,
     PassportModule,
     MailModule,

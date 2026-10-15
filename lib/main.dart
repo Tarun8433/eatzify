@@ -52,6 +52,7 @@ import 'package:health_pro/data/repositories/recipe_repository_impl.dart';
 import 'package:health_pro/data/repositories/reminder_repository_impl.dart';
 import 'package:health_pro/data/repositories/scan_repository_impl.dart';
 import 'package:health_pro/data/repositories/tickets_repository_impl.dart';
+import 'package:health_pro/domain/entities/session_role.dart';
 import 'package:health_pro/domain/repositories/announcements_repository.dart';
 import 'package:health_pro/domain/repositories/billing_repository.dart';
 import 'package:health_pro/domain/repositories/chat_repository.dart';
@@ -89,6 +90,7 @@ import 'package:health_pro/presentation/features/splash/splash_page.dart';
 import 'package:health_pro/presentation/features/welcome/welcome_page.dart';
 import 'package:health_pro/presentation/l10n/app_localizations.dart';
 import 'package:health_pro/presentation/shell/client_shell.dart';
+import 'package:health_pro/presentation/shell/coach_shell.dart';
 import 'package:health_pro/presentation/shell/nav_controller.dart';
 import 'package:home_widget/home_widget.dart';
 
@@ -563,13 +565,14 @@ class RootGate extends StatelessWidget {
         AuthStatus.signedOut => session.introSeen.value ? const LoginPage() : const WelcomePage(),
         // Signed in with a number the server has no profile for — the registration screen.
         AuthStatus.onboardingRequired => const OnboardingPage(),
-        // EVERY account lands on the client shell, coach or not (D-174).
-        //
-        // Swapping one shell for the other was wrong in a way no test caught: a nutritionist who
-        // becomes a partner is still a person who tracks their own food, and replacing their tabs
-        // took their own Home, Plan and Progress away. A coach is a client of their own app.
-        // The coach surface is reached from the You tab instead, so it ADDS rather than replaces.
-        AuthStatus.signedIn => const ClientShell(),
+        // Every account has its own tracking (D-174): a nutritionist who becomes a partner still
+        // tracks their own food. D-269: a partner the SERVER allows switches in place between
+        // "My tracking" and "My clients", and opens on whichever they chose — never on the coach
+        // tabs without the server's say-so.
+        AuthStatus.signedIn =>
+          session.dashboard.value == DashboardMode.clients && session.canSwitchDashboard.value
+              ? const CoachShell()
+              : const ClientShell(),
       },
     );
   }

@@ -2,6 +2,7 @@ import 'package:dartz/dartz.dart';
 import 'package:health_pro/core/errors/failures.dart';
 import 'package:health_pro/domain/entities/onboarding_submission.dart';
 import 'package:health_pro/domain/entities/profile_view.dart';
+import 'package:health_pro/domain/entities/session_role.dart';
 
 /// docs/09 §4.
 ///
@@ -24,6 +25,7 @@ abstract class ProfileRepository {
   /// Removes the profile photo.
   Future<Either<Failure, Unit>> removePhoto();
 
-  /// The roles this account holds (docs/09 §3). Shell selection only — see the data source.
-  Future<Either<Failure, List<String>>> roles();
+  /// The roles this account holds and whether it may switch dashboards (docs/09 §3, D-269).
+  /// Navigation only — see the data source.
+  Future<Either<Failure, AccountAccess>> access();
 }

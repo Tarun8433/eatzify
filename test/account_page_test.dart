@@ -98,10 +98,13 @@ void main() {
     // To the pill row itself, not its header: the pills sit below the fold, and a `findsNothing`
     // that only proves "not yet built" would pass no matter what the role said.
     await scrollTo(tester, find.text('Become a partner'));
-    expect(find.text('My clients'), findsNothing);
+    expect(find.text('Switch to My clients'), findsNothing);
 
-    // What an admin does at `POST /admin/coaches/{id}/verify`, while the app is already open.
-    repo.roleNames = const ['coach_l2'];
+    // What an admin does at `POST /admin/coaches/{id}/verify`, while the app is already open: the
+    // server now lets this account switch (D-269).
+    repo
+      ..roleNames = const ['coach_l2']
+      ..canSwitchDashboard = true;
 
     // Back to the top first. A pull only overscrolls — and only overscroll arms the indicator —
     // when the list is already at its start, and the check above left it scrolled down.
@@ -110,8 +113,8 @@ void main() {
     await tester.fling(find.byType(ListView), const Offset(0, 320), 1000);
     await settle(tester);
 
-    await scrollTo(tester, find.text('Become a partner'));
-    expect(find.text('My clients'), findsOneWidget);
+    expect(find.text('Switch to My clients'), findsOneWidget);
+    expect(find.text('Open the app on'), findsOneWidget);
   });
 
   group('the profile frame (D-59)', () {

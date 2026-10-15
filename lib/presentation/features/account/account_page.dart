@@ -44,7 +44,7 @@ import 'package:health_pro/presentation/features/coach/data_access_page.dart';
 import 'package:health_pro/presentation/features/gym/gym_page.dart';
 import 'package:health_pro/presentation/features/tab_scaffold.dart';
 import 'package:health_pro/presentation/l10n/app_localizations.dart';
-import 'package:health_pro/presentation/shell/coach_shell.dart';
+import 'package:health_pro/presentation/shell/dashboard_switch_card.dart';
 import 'package:health_pro/presentation/shell/nav_controller.dart';
 import 'package:health_pro/presentation/shell/walking_man.dart';
 import 'package:intl/intl.dart';
@@ -272,186 +272,184 @@ class _Details extends StatelessWidget {
   Widget _pills(BuildContext context, AppLocalizations l, {required bool isCoach, int unread = 0}) {
     // A settings list rather than a wrap of pills (D-237): fifteen pills read as a wall, and a row
     // can say in one line what is behind it.
-    return AppCard(
-      padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
-      // The tiles draw their ink on the nearest Material, which would otherwise be the page behind
-      // the card's fill.
-      child: Material(
-        type: MaterialType.transparency,
-        child: Column(
-          children: [
-            // Everything about the person below their daily goals lives in this sheet (D-237).
-            _ActionTile(
-              icon: Icons.explore_outlined,
-              tint: AppColors.success,
-              label: l.accountExplore,
-              body: l.accountExploreBody,
-              onTap: () => ProfileDetailsSheet.show(context, controller),
+    // D-269: "Switch to My clients" and "Open the app on", for accounts the server allows.
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const DashboardSwitchCard(current: DashboardMode.mine),
+        AppCard(
+          padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
+          // The tiles draw their ink on the nearest Material, which would otherwise be the page behind
+          // the card's fill.
+          child: Material(
+            type: MaterialType.transparency,
+            child: Column(
+              children: [
+                // Everything about the person below their daily goals lives in this sheet (D-237).
+                _ActionTile(
+                  icon: Icons.explore_outlined,
+                  tint: AppColors.success,
+                  label: l.accountExplore,
+                  body: l.accountExploreBody,
+                  onTap: () => ProfileDetailsSheet.show(context, controller),
+                ),
+                _ActionTile(
+                  icon: Icons.edit_outlined,
+                  tint: AppColors.info,
+                  label: l.accountEditProfile,
+                  body: l.accountEditProfileBody,
+                  onTap: () async {
+                    final changed = await EditSheets.details(context, profile);
+                    if (changed ?? false) await onEdited();
+                  },
+                ),
+                // D-241: the Gym section — routines, workouts and what they burn.
+                _ActionTile(
+                  icon: Icons.fitness_center,
+                  tint: AppColors.info,
+                  label: l.gymAccountTile,
+                  body: l.gymAccountTileBody,
+                  onTap: GymPage.open,
+                ),
+                _ActionTile(
+                  icon: Icons.restaurant_menu_outlined,
+                  tint: AppColors.success,
+                  label: l.accountMyPlan,
+                  body: l.accountMyPlanBody,
+                  onTap: () {
+                    if (Get.isRegistered<NavController>()) {
+                      Get.find<NavController>().current = ClientTab.plan;
+                    }
+                  },
+                ),
+                // Nothing to do with the partner route below it: no code, no commission, no attribution
+                // (docs/12 §3 locks that to a partner code at signup). Just a person telling a person.
+                _ActionTile(
+                  icon: Icons.ios_share_outlined,
+                  tint: AppColors.accent,
+                  label: l.accountInviteFriends,
+                  body: l.accountInviteFriendsBody,
+                  onTap: () => InviteFriends.share(context),
+                ),
+                // docs/12 §6. Shown to everyone: level 1 is "signup + agreement", so anyone with an
+                // account may take it, and hiding the door behind an invite is a growth decision nobody
+                // has made yet.
+                _ActionTile(
+                  icon: Icons.handshake_outlined,
+                  tint: AppColors.warning,
+                  label: l.accountBecomePartner,
+                  body: l.accountBecomePartnerBody,
+                  onTap: () {
+                    if (!Get.isRegistered<BecomePartnerController>()) {
+                      Get.put(
+                        BecomePartnerController(coach: Get.find<CoachRepository>()),
+                        permanent: true,
+                      );
+                    }
+                    Get.to<void>(() => const BecomePartnerPage());
+                  },
+                ),
+                // docs/10 §3 requires this to be ONE screen the client can find. Beside the partner
+                // door on purpose: the place you give access away is the place you take it back.
+                _ActionTile(
+                  icon: Icons.lock_outline,
+                  tint: AppColors.macroProtein,
+                  label: l.accountWhoCanSee,
+                  body: l.accountWhoCanSeeBody,
+                  onTap: () {
+                    if (!Get.isRegistered<DataAccessController>()) {
+                      Get.put(
+                        DataAccessController(coach: Get.find<CoachRepository>()),
+                        permanent: true,
+                      );
+                    }
+                    Get.to<void>(() => const DataAccessPage());
+                  },
+                ),
+                // D-215. Beside "who can see my data": both answer "what leaves my phone, and to whom".
+                // Absent only where nothing can sync — tests that register no health sync.
+                if (Get.isRegistered<SyncHealth>())
+                  _ActionTile(
+                    icon: Icons.favorite_outline,
+                    tint: AppColors.danger,
+                    label: l.accountHealthData,
+                    body: l.accountHealthDataBody,
+                    onTap: HealthConnectPage.open,
+                  ),
+                // docs/02 FR-5.5: the client's side of the coach chat. The list says so itself when
+                // nobody has shared chat with them.
+                if (Get.isRegistered<ChatRepository>())
+                  _ActionTile(
+                    icon: Icons.forum_outlined,
+                    tint: AppColors.info,
+                    label: l.accountMessages,
+                    body: l.accountMessagesBody,
+                    onTap: ThreadsPage.open,
+                  ),
+                // docs/14 §6 puts the subscription under You: the plan, its renewal date, and the two
+                // things docs/11 lets a person do about it.
+                if (Get.isRegistered<BillingRepository>())
+                  _ActionTile(
+                    icon: Icons.card_membership_outlined,
+                    tint: AppColors.macroFat,
+                    label: l.accountSubscription,
+                    body: l.accountSubscriptionBody,
+                    onTap: SubscriptionPage.open,
+                  ),
+                // docs/14 §6 puts the message list under You. The count is what makes it worth opening.
+                if (Get.isRegistered<NotificationsRepository>())
+                  _ActionTile(
+                    icon: Icons.mail_outline,
+                    tint: AppColors.warmCoral,
+                    label: unread > 0
+                        ? l.accountNotificationsUnread('$unread')
+                        : l.notificationsTitle,
+                    body: l.accountNotificationsBody,
+                    onTap: NotificationsPage.open,
+                  ),
+                // docs/13 §3: withdrawal has to be as easy as granting, which means one tap from You.
+                if (Get.isRegistered<PrivacyRepository>())
+                  _ActionTile(
+                    icon: Icons.privacy_tip_outlined,
+                    tint: AppColors.macroCarb,
+                    label: l.accountPrivacy,
+                    body: l.accountPrivacyBody,
+                    onTap: PrivacyPage.open,
+                  ),
+                // docs/14 §6 puts help under You: a person with a problem writes to a person (D-228).
+                if (Get.isRegistered<TicketsRepository>())
+                  _ActionTile(
+                    icon: Icons.help_outline,
+                    tint: AppColors.success,
+                    label: l.accountHelp,
+                    body: l.accountHelpBody,
+                    onTap: TicketsPage.open,
+                  ),
+                // D-222. docs/14 §6 puts reminders under You.
+                if (Get.isRegistered<RefreshReminders>())
+                  _ActionTile(
+                    icon: Icons.notifications_none_outlined,
+                    tint: AppColors.warning,
+                    label: l.remindersTitle,
+                    body: l.accountRemindersBody,
+                    onTap: RemindersPage.open,
+                  ),
+                _ActionTile(
+                  icon: Icons.bar_chart,
+                  tint: AppColors.accent,
+                  label: l.accountReports,
+                  body: l.accountReportsBody,
+                  onTap: () {
+                    if (Get.isRegistered<NavController>()) {
+                      Get.find<NavController>().current = ClientTab.progress;
+                    }
+                  },
+                ),
+              ],
             ),
-            _ActionTile(
-              icon: Icons.edit_outlined,
-              tint: AppColors.info,
-              label: l.accountEditProfile,
-              body: l.accountEditProfileBody,
-              onTap: () async {
-                final changed = await EditSheets.details(context, profile);
-                if (changed ?? false) await onEdited();
-              },
-            ),
-            // D-241: the Gym section — routines, workouts and what they burn.
-            _ActionTile(
-              icon: Icons.fitness_center,
-              tint: AppColors.info,
-              label: l.gymAccountTile,
-              body: l.gymAccountTileBody,
-              onTap: GymPage.open,
-            ),
-            _ActionTile(
-              icon: Icons.restaurant_menu_outlined,
-              tint: AppColors.success,
-              label: l.accountMyPlan,
-              body: l.accountMyPlanBody,
-              onTap: () {
-                if (Get.isRegistered<NavController>()) {
-                  Get.find<NavController>().current = ClientTab.plan;
-                }
-              },
-            ),
-            // The coach surface, for accounts that have one (D-174). An entry point rather than a
-            // replacement shell: a coach still tracks their own food, and taking their Home and
-            // Progress away to give them a client list served nobody.
-            if (isCoach)
-              _ActionTile(
-                icon: Icons.groups_outlined,
-                tint: AppColors.macroCarb,
-                label: l.accountCoachDashboard,
-                body: l.accountCoachDashboardBody,
-                onTap: () => Get.to<void>(() => const CoachShell()),
-              ),
-            // Nothing to do with the partner route below it: no code, no commission, no attribution
-            // (docs/12 §3 locks that to a partner code at signup). Just a person telling a person.
-            _ActionTile(
-              icon: Icons.ios_share_outlined,
-              tint: AppColors.accent,
-              label: l.accountInviteFriends,
-              body: l.accountInviteFriendsBody,
-              onTap: () => InviteFriends.share(context),
-            ),
-            // docs/12 §6. Shown to everyone: level 1 is "signup + agreement", so anyone with an
-            // account may take it, and hiding the door behind an invite is a growth decision nobody
-            // has made yet.
-            _ActionTile(
-              icon: Icons.handshake_outlined,
-              tint: AppColors.warning,
-              label: l.accountBecomePartner,
-              body: l.accountBecomePartnerBody,
-              onTap: () {
-                if (!Get.isRegistered<BecomePartnerController>()) {
-                  Get.put(
-                    BecomePartnerController(coach: Get.find<CoachRepository>()),
-                    permanent: true,
-                  );
-                }
-                Get.to<void>(() => const BecomePartnerPage());
-              },
-            ),
-            // docs/10 §3 requires this to be ONE screen the client can find. Beside the partner
-            // door on purpose: the place you give access away is the place you take it back.
-            _ActionTile(
-              icon: Icons.lock_outline,
-              tint: AppColors.macroProtein,
-              label: l.accountWhoCanSee,
-              body: l.accountWhoCanSeeBody,
-              onTap: () {
-                if (!Get.isRegistered<DataAccessController>()) {
-                  Get.put(
-                    DataAccessController(coach: Get.find<CoachRepository>()),
-                    permanent: true,
-                  );
-                }
-                Get.to<void>(() => const DataAccessPage());
-              },
-            ),
-            // D-215. Beside "who can see my data": both answer "what leaves my phone, and to whom".
-            // Absent only where nothing can sync — tests that register no health sync.
-            if (Get.isRegistered<SyncHealth>())
-              _ActionTile(
-                icon: Icons.favorite_outline,
-                tint: AppColors.danger,
-                label: l.accountHealthData,
-                body: l.accountHealthDataBody,
-                onTap: HealthConnectPage.open,
-              ),
-            // docs/02 FR-5.5: the client's side of the coach chat. The list says so itself when
-            // nobody has shared chat with them.
-            if (Get.isRegistered<ChatRepository>())
-              _ActionTile(
-                icon: Icons.forum_outlined,
-                tint: AppColors.info,
-                label: l.accountMessages,
-                body: l.accountMessagesBody,
-                onTap: ThreadsPage.open,
-              ),
-            // docs/14 §6 puts the subscription under You: the plan, its renewal date, and the two
-            // things docs/11 lets a person do about it.
-            if (Get.isRegistered<BillingRepository>())
-              _ActionTile(
-                icon: Icons.card_membership_outlined,
-                tint: AppColors.macroFat,
-                label: l.accountSubscription,
-                body: l.accountSubscriptionBody,
-                onTap: SubscriptionPage.open,
-              ),
-            // docs/14 §6 puts the message list under You. The count is what makes it worth opening.
-            if (Get.isRegistered<NotificationsRepository>())
-              _ActionTile(
-                icon: Icons.mail_outline,
-                tint: AppColors.warmCoral,
-                label: unread > 0 ? l.accountNotificationsUnread('$unread') : l.notificationsTitle,
-                body: l.accountNotificationsBody,
-                onTap: NotificationsPage.open,
-              ),
-            // docs/13 §3: withdrawal has to be as easy as granting, which means one tap from You.
-            if (Get.isRegistered<PrivacyRepository>())
-              _ActionTile(
-                icon: Icons.privacy_tip_outlined,
-                tint: AppColors.macroCarb,
-                label: l.accountPrivacy,
-                body: l.accountPrivacyBody,
-                onTap: PrivacyPage.open,
-              ),
-            // docs/14 §6 puts help under You: a person with a problem writes to a person (D-228).
-            if (Get.isRegistered<TicketsRepository>())
-              _ActionTile(
-                icon: Icons.help_outline,
-                tint: AppColors.success,
-                label: l.accountHelp,
-                body: l.accountHelpBody,
-                onTap: TicketsPage.open,
-              ),
-            // D-222. docs/14 §6 puts reminders under You.
-            if (Get.isRegistered<RefreshReminders>())
-              _ActionTile(
-                icon: Icons.notifications_none_outlined,
-                tint: AppColors.warning,
-                label: l.remindersTitle,
-                body: l.accountRemindersBody,
-                onTap: RemindersPage.open,
-              ),
-            _ActionTile(
-              icon: Icons.bar_chart,
-              tint: AppColors.accent,
-              label: l.accountReports,
-              body: l.accountReportsBody,
-              onTap: () {
-                if (Get.isRegistered<NavController>()) {
-                  Get.find<NavController>().current = ClientTab.progress;
-                }
-              },
-            ),
-          ],
+          ),
         ),
-      ),
+      ],
     );
   }
 }

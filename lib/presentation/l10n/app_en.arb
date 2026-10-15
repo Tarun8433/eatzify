@@ -3338,5 +3338,12 @@
       }
     }
   },
-  "offerBuy": "Get this offer"
+  "offerBuy": "Get this offer",
+  "dashboardMyTracking": "My tracking",
+  "dashboardMyClients": "My clients",
+  "dashboardSwitchToClients": "Switch to My clients",
+  "dashboardSwitchToClientsBody": "Your clients, check-ins and messages",
+  "dashboardSwitchToMine": "Switch to My tracking",
+  "dashboardSwitchToMineBody": "Your own food, steps and progress",
+  "dashboardOpenOn": "Open the app on"
 }

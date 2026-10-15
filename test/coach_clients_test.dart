@@ -4,6 +4,8 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
 import 'package:health_pro/core/errors/failures.dart';
+import 'package:health_pro/core/session/session_controller.dart';
+import 'package:health_pro/core/storage/secure_store.dart';
 import 'package:health_pro/core/theme/app_theme.dart';
 import 'package:health_pro/core/widgets/state_views.dart';
 import 'package:health_pro/domain/entities/coach_application.dart';
@@ -15,10 +17,12 @@ import 'package:health_pro/domain/entities/data_access.dart';
 import 'package:health_pro/domain/entities/food.dart';
 import 'package:health_pro/domain/entities/payout_kyc.dart';
 import 'package:health_pro/domain/entities/sent_invite.dart';
+import 'package:health_pro/domain/entities/session_role.dart';
 import 'package:health_pro/domain/repositories/coach_repository.dart';
 import 'package:health_pro/presentation/l10n/app_localizations.dart';
 import 'package:health_pro/presentation/shell/coach_shell.dart';
 
+import 'fakes.dart';
 import 'pumping.dart';
 
 /// The coach's Clients tab. It answers one question — what have I asked, and has anyone replied?
@@ -141,7 +145,17 @@ SentInvite sent({String? name, String? photoUrl, String phone = '+918433145573'}
 Widget shellWith(FakeCoachRepository repo) {
   Get
     ..reset()
-    ..put<CoachRepository>(repo, permanent: true);
+    ..put<CoachRepository>(repo, permanent: true)
+    // D-269: the shell's switch back to "My tracking" lives on the session.
+    ..put(
+      SessionController(
+        store: SecureStore(storage: FakeSecureStorage()),
+        auth: FakeAuthRepository(),
+        profile: FakeProfileRepository(),
+        splashFloor: Duration.zero,
+      ),
+      permanent: true,
+    );
 
   return GetMaterialApp(
     theme: AppTheme.light,
@@ -157,6 +171,34 @@ Widget shellWith(FakeCoachRepository repo) {
 }
 
 void main() {
+  /// D-269: "My clients" is a mode, not a page — the chip and Back both go to "My tracking".
+  group('switching back to My tracking', () {
+    Future<SessionController> openOnClients(WidgetTester tester) async {
+      await tester.pumpWidget(shellWith(FakeCoachRepository()));
+      final session = Get.find<SessionController>()..dashboard.value = DashboardMode.clients;
+      await settle(tester);
+      return session;
+    }
+
+    testWidgets('should switch from the chip in the top bar', (tester) async {
+      final session = await openOnClients(tester);
+
+      await tester.tap(find.text('My tracking'));
+      await tester.pump();
+
+      expect(session.dashboard.value, DashboardMode.mine);
+    });
+
+    testWidgets('should switch on Back rather than leave the app', (tester) async {
+      final session = await openOnClients(tester);
+
+      await tester.binding.handlePopRoute();
+      await tester.pump();
+
+      expect(session.dashboard.value, DashboardMode.mine);
+    });
+  });
+
   /// Clients above invites: an answered question outranks an open one, and a coach opening this
   /// tab wants who they HAVE before who they asked.
   testWidgets('should list accepted clients and what they allowed', (tester) async {

@@ -11,6 +11,7 @@ function serviceWith({
     unknown
   > | null,
   plan = null as Record<string, unknown> | null,
+  canSwitch = false,
 } = {}) {
   return new MeService(
     { findById: () => Promise.resolve(user) } as never,
@@ -24,6 +25,7 @@ function serviceWith({
         }),
     } as never,
     { latest: () => Promise.resolve(plan) } as never,
+    { allowedFor: () => Promise.resolve(canSwitch) } as never,
   );
 }
 
@@ -41,11 +43,12 @@ const PLAN = {
 };
 
 describe('GET /auth/me', () => {
-  it('should answer the four keys docs/09 §3 names when the user exists', async () => {
+  it('should answer the keys docs/09 §3 names, and D-269 adds, when the user exists', async () => {
     const view = await serviceWith({ plan: PLAN }).of(7);
 
     expect(Object.keys(view).sort()).toEqual([
       'active_plan_summary',
+      'can_switch_dashboard',
       'entitlements',
       'roles',
       'user',
@@ -91,5 +94,12 @@ describe('GET /auth/me', () => {
   /// expires. 404 is the honest answer, not an aggregate built around a missing user.
   it('should refuse when the token names a user who no longer exists', async () => {
     await expect(serviceWith({ user: null }).of(7)).rejects.toThrow();
+  });
+
+  it('should say whether the account may switch dashboards (D-269)', async () => {
+    expect(
+      (await serviceWith({ canSwitch: true }).of(7)).can_switch_dashboard,
+    ).toBe(true);
+    expect((await serviceWith().of(7)).can_switch_dashboard).toBe(false);
   });
 });

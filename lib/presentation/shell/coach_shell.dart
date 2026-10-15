@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:health_pro/core/session/session_controller.dart';
+import 'package:health_pro/core/theme/app_spacing.dart';
+import 'package:health_pro/domain/entities/session_role.dart';
 import 'package:health_pro/domain/repositories/coach_repository.dart';
 import 'package:health_pro/presentation/features/coach/chat_page.dart';
 import 'package:health_pro/presentation/features/coach/check_ins_tab.dart';
@@ -11,9 +14,10 @@ import 'package:health_pro/presentation/l10n/app_localizations.dart';
 /// The coach's shell. CLAUDE.md rule 1 fixes the tabs: `Clients · Check-ins · [+] · Messages · You`.
 /// Adding or renaming one needs an ADR.
 ///
-/// **Reached from the You tab, not instead of it (D-174).** A coach is a client of their own app:
-/// a nutritionist who becomes a partner still tracks their own food, so this surface ADDS to the
-/// client shell rather than replacing it. That is why it has a back arrow.
+/// **"My clients", one of two dashboards (D-174, D-269).** A coach is a client of their own app: a
+/// nutritionist who becomes a partner still tracks their own food. A partner the server allows
+/// switches in place between this and "My tracking" — from the chip in the top bar, from You, or
+/// with Back — and chooses which one the app opens on.
 ///
 /// **A skeleton, deliberately.** The tabs are real and every one says plainly that its screen is
 /// unbuilt. E6 is the epic that fills them.
@@ -47,24 +51,45 @@ class _CoachShellState extends State<CoachShell> {
 
     final current = tabs[_tab];
 
-    return Scaffold(
-      // The default leading back arrow is the point: this is a place you go and come back from,
-      // not a mode you are locked into.
-      appBar: AppBar(title: Text(current.label)),
-      // Every tab is real now (D-225, D-226): clients, the week's reviews, the conversations, and
-      // where this account stands as a partner.
-      body: switch (_tab) {
-        0 => const _ClientsTab(),
-        1 => const CheckInsTab(),
-        2 => const ThreadsView(),
-        _ => const CoachYouTab(),
+    final session = Get.find<SessionController>();
+
+    // A mode, not a page: Back goes to "My tracking" rather than out of the app, so nobody is ever
+    // stuck here.
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) session.switchDashboard(DashboardMode.mine);
       },
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _tab,
-        onDestinationSelected: (i) => setState(() => _tab = i),
-        destinations: [
-          for (final tab in tabs) NavigationDestination(icon: Icon(tab.icon), label: tab.label),
-        ],
+      child: Scaffold(
+        appBar: AppBar(
+          automaticallyImplyLeading: false,
+          title: Text(current.label),
+          actions: [
+            Padding(
+              padding: const EdgeInsets.only(right: AppSpacing.sm),
+              child: TextButton.icon(
+                onPressed: () => session.switchDashboard(DashboardMode.mine),
+                icon: const Icon(Icons.swap_horiz),
+                label: Text(l.dashboardMyTracking),
+              ),
+            ),
+          ],
+        ),
+        // Every tab is real now (D-225, D-226): clients, the week's reviews, the conversations, and
+        // where this account stands as a partner.
+        body: switch (_tab) {
+          0 => const _ClientsTab(),
+          1 => const CheckInsTab(),
+          2 => const ThreadsView(),
+          _ => const CoachYouTab(),
+        },
+        bottomNavigationBar: NavigationBar(
+          selectedIndex: _tab,
+          onDestinationSelected: (i) => setState(() => _tab = i),
+          destinations: [
+            for (final tab in tabs) NavigationDestination(icon: Icon(tab.icon), label: tab.label),
+          ],
+        ),
       ),
     );
   }

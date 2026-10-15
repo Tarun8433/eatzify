@@ -4,6 +4,7 @@ import 'package:health_pro/core/errors/failures.dart';
 import 'package:health_pro/core/network/error_mapper.dart';
 import 'package:health_pro/domain/entities/onboarding_submission.dart';
 import 'package:health_pro/domain/entities/profile_view.dart';
+import 'package:health_pro/domain/entities/session_role.dart';
 
 /// docs/09 §4 over dio.
 class ProfileRemoteDataSource {
@@ -76,12 +77,19 @@ class ProfileRemoteDataSource {
   /// Used for ONE thing: which shell to draw (CLAUDE.md rule 1). docs/10 §1 is explicit that a
   /// role is not permission to see a client — a consent grant is — so nothing else may key off it,
   /// and the server refuses the read regardless of what the app believes.
-  Future<Either<Failure, List<String>>> roles() async {
+  ///
+  /// `can_switch_dashboard` (D-269) is the server's answer to "may this account open My clients";
+  /// missing, as from an older API, it is false.
+  Future<Either<Failure, AccountAccess>> access() async {
     try {
       final res = await _dio.get<Map<String, dynamic>>('/auth/me');
       final roles = res.data?['roles'];
-      if (roles is! List) return const Right([]);
-      return Right(roles.map((r) => r.toString()).toList());
+      return Right(
+        AccountAccess(
+          roles: roles is List ? roles.map((r) => r.toString()).toList() : const [],
+          canSwitchDashboard: res.data?['can_switch_dashboard'] == true,
+        ),
+      );
     } on DioException catch (e) {
       return Left(mapDioError(e));
     }

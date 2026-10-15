@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:health_pro/core/errors/failures.dart';
 import 'package:health_pro/core/session/session_controller.dart';
 import 'package:health_pro/core/storage/secure_store.dart';
+import 'package:health_pro/domain/entities/session.dart';
 import 'package:health_pro/domain/entities/session_role.dart';
 
 import 'fakes.dart';
@@ -71,5 +72,89 @@ void main() {
     await session.loadRole();
 
     expect(session.role.value, SessionRole.client);
+  });
+
+  group('the dashboard switch (D-269)', () {
+    const signedIn = Session(
+      accessToken: 'a',
+      refreshToken: 'r',
+      userId: '42',
+      roles: ['coach_l2'],
+      onboardingRequired: false,
+    );
+
+    ({SessionController session, FakeProfileRepository repo, SecureStore store}) partner({
+      bool allowed = true,
+    }) {
+      final store = SecureStore(storage: FakeSecureStorage());
+      final repo = FakeProfileRepository(
+        profileResult: const Right(null),
+        roleNames: const ['coach_l2'],
+        canSwitchDashboard: allowed,
+      );
+      final session = SessionController(
+        store: store,
+        auth: FakeAuthRepository(),
+        profile: repo,
+        splashFloor: Duration.zero,
+      );
+      return (session: session, repo: repo, store: store);
+    }
+
+    test('should follow the server, not the role, on who may switch', () async {
+      final verified = partner(allowed: false);
+      await verified.session.adopt(signedIn);
+      await verified.session.loadRole();
+
+      expect(verified.session.role.value, SessionRole.coach);
+      expect(verified.session.canSwitchDashboard.value, isFalse);
+      verified.session.switchDashboard(DashboardMode.clients);
+      expect(verified.session.dashboard.value, DashboardMode.mine);
+    });
+
+    test('should open on the dashboard this account chose', () async {
+      final p = partner();
+      await p.store.writeDashboardDefault('42', DashboardMode.clients);
+
+      await p.session.adopt(signedIn);
+      await p.session.loadRole(openDefault: true);
+
+      expect(p.session.dashboard.value, DashboardMode.clients);
+    });
+
+    test('should not move anyone when the You tab re-reads the account', () async {
+      final p = partner();
+      await p.session.adopt(signedIn);
+      await p.session.loadRole(openDefault: true);
+      await p.session.setDefaultDashboard(DashboardMode.clients);
+
+      await p.session.loadRole();
+
+      expect(p.session.dashboard.value, DashboardMode.mine);
+    });
+
+    test('should fall back to My tracking when an admin takes the switch away', () async {
+      final p = partner();
+      await p.session.adopt(signedIn);
+      await p.session.loadRole();
+      p.session.switchDashboard(DashboardMode.clients);
+
+      p.repo.canSwitchDashboard = false;
+      await p.session.loadRole();
+
+      expect(p.session.dashboard.value, DashboardMode.mine);
+    });
+
+    test('should keep the chosen default on this phone across sign-out', () async {
+      final p = partner();
+      await p.session.adopt(signedIn);
+      await p.session.setDefaultDashboard(DashboardMode.clients);
+
+      await p.session.signOut(revokeOnServer: false);
+
+      expect(await p.store.readDashboardDefault('42'), DashboardMode.clients);
+      expect(p.session.dashboard.value, DashboardMode.mine);
+      expect(await p.store.readIntroSeen(), isFalse);
+    });
   });
 }

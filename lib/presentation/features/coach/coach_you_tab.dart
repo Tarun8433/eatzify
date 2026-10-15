@@ -5,11 +5,13 @@ import 'package:health_pro/core/widgets/app_card.dart';
 import 'package:health_pro/core/widgets/state_views.dart';
 import 'package:health_pro/core/widgets/view_state.dart';
 import 'package:health_pro/domain/entities/coach_application.dart';
+import 'package:health_pro/domain/entities/session_role.dart';
 import 'package:health_pro/domain/repositories/coach_repository.dart';
 import 'package:health_pro/presentation/features/coach/become_partner_controller.dart';
 import 'package:health_pro/presentation/features/coach/become_partner_page.dart';
 import 'package:health_pro/presentation/features/onboarding/enum_labels.dart';
 import 'package:health_pro/presentation/l10n/app_localizations.dart';
+import 'package:health_pro/presentation/shell/dashboard_switch_card.dart';
 
 /// The coach's own You tab: where they stand as a partner, and the way back to their own account.
 ///
@@ -56,6 +58,8 @@ class _Standing extends StatelessWidget {
         AppSpacing.xxl,
       ),
       children: [
+        // D-269: back to their own tracking, and which dashboard the app opens on.
+        const DashboardSwitchCard(current: DashboardMode.clients),
         AppCard(
           accent: true,
           child: Column(

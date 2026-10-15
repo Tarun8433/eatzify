@@ -61,6 +61,9 @@ export const AUDIT_ACTIONS = [
   // D-265: personal offers.
   'personal_offer_create',
   'personal_offer_revoke',
+  // D-269: who may switch between "My tracking" and "My clients".
+  'dashboard_switch_audience_update',
+  'dashboard_switch_override',
 ] as const;
 export type AuditAction = (typeof AUDIT_ACTIONS)[number];
 

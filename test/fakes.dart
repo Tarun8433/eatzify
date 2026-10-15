@@ -19,6 +19,7 @@ import 'package:health_pro/domain/entities/privacy.dart';
 import 'package:health_pro/domain/entities/profile_view.dart';
 import 'package:health_pro/domain/entities/reminder.dart';
 import 'package:health_pro/domain/entities/session.dart';
+import 'package:health_pro/domain/entities/session_role.dart';
 import 'package:health_pro/domain/entities/support_ticket.dart';
 import 'package:health_pro/domain/repositories/auth_repository.dart';
 import 'package:health_pro/domain/repositories/billing_repository.dart';
@@ -46,6 +47,7 @@ class FakeProfileRepository implements ProfileRepository {
     this.patchFailure,
     this.roleNames = const [],
     this.rolesFailure,
+    this.canSwitchDashboard = false,
   });
 
   /// What `GET /auth/me` reports for this account. Empty means a plain client, which is what
@@ -56,10 +58,15 @@ class FakeProfileRepository implements ProfileRepository {
   /// When set, `GET /auth/me` refuses — the shell has to fall back to the client tabs.
   final Failure? rolesFailure;
 
+  /// D-269: the server's `can_switch_dashboard`. Mutable, like [roleNames].
+  bool canSwitchDashboard;
+
   @override
-  Future<Either<Failure, List<String>>> roles() async {
+  Future<Either<Failure, AccountAccess>> access() async {
     final failure = rolesFailure;
-    return failure != null ? Left(failure) : Right(roleNames);
+    return failure != null
+        ? Left(failure)
+        : Right(AccountAccess(roles: roleNames, canSwitchDashboard: canSwitchDashboard));
   }
 
   final OnboardingResult? result;
@@ -1065,6 +1072,16 @@ class FakeSecureStorage extends FlutterSecureStorage {
     MacOsOptions? mOptions,
     WindowsOptions? wOptions,
   }) async => data[key];
+
+  @override
+  Future<Map<String, String>> readAll({
+    IOSOptions? iOptions,
+    AndroidOptions? aOptions,
+    LinuxOptions? lOptions,
+    WebOptions? webOptions,
+    MacOsOptions? mOptions,
+    WindowsOptions? wOptions,
+  }) async => Map.of(data);
 
   @override
   Future<void> deleteAll({

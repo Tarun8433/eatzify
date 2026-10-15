@@ -1769,5 +1769,12 @@
       }
     }
   },
-  "offerBuy": "यह ऑफ़र लें"
+  "offerBuy": "यह ऑफ़र लें",
+  "dashboardMyTracking": "मेरी ट्रैकिंग",
+  "dashboardMyClients": "मेरे क्लाइंट",
+  "dashboardSwitchToClients": "मेरे क्लाइंट पर जाएँ",
+  "dashboardSwitchToClientsBody": "आपके क्लाइंट, चेक-इन और मैसेज",
+  "dashboardSwitchToMine": "मेरी ट्रैकिंग पर जाएँ",
+  "dashboardSwitchToMineBody": "आपका अपना खाना, क़दम और प्रगति",
+  "dashboardOpenOn": "ऐप इस पर खुले"
 }
