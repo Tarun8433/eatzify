@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:health_pro/core/config/site_links.dart';
 import 'package:health_pro/core/format/rupees.dart';
 import 'package:health_pro/core/theme/app_spacing.dart';
+import 'package:health_pro/core/widgets/app_sheet.dart';
 import 'package:health_pro/core/widgets/state_views.dart';
 import 'package:health_pro/core/widgets/view_state.dart';
 import 'package:health_pro/domain/entities/billing.dart';
@@ -24,7 +25,7 @@ class OfferSheet extends StatelessWidget {
 
   static Future<void> show(BuildContext context, OfferController controller) {
     controller.load();
-    return showModalBottomSheet<void>(
+    return showAppSheet<void>(
       context: context,
       isScrollControlled: true,
       builder: (_) => OfferSheet(controller: controller),

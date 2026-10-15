@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:health_pro/core/format/rupees.dart';
 import 'package:health_pro/core/theme/app_spacing.dart';
 import 'package:health_pro/core/widgets/app_card.dart';
+import 'package:health_pro/core/widgets/app_sheet.dart';
 import 'package:health_pro/core/widgets/state_views.dart';
 import 'package:health_pro/core/widgets/view_state.dart';
 import 'package:health_pro/domain/entities/billing.dart';
@@ -254,7 +255,7 @@ class _Body extends StatelessWidget {
     );
     if (quote == null || !context.mounted) return;
 
-    final go = await showModalBottomSheet<bool>(
+    final go = await showAppSheet<bool>(
       context: context,
       showDragHandle: true,
       isScrollControlled: true,

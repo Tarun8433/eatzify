@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:health_pro/core/theme/app_assets.dart';
 import 'package:health_pro/core/theme/app_spacing.dart';
+import 'package:health_pro/core/widgets/app_sheet.dart';
 import 'package:health_pro/domain/entities/profession.dart';
 import 'package:health_pro/presentation/features/auth/widgets/auth_fields.dart';
 import 'package:health_pro/presentation/l10n/app_localizations.dart';
@@ -15,7 +16,7 @@ class JoinAsSheet extends StatelessWidget {
 
   /// The answer, or null when the sheet was dismissed.
   static Future<JoinAs?> show(BuildContext context) {
-    return showModalBottomSheet<JoinAs>(
+    return showAppSheet<JoinAs>(
       context: context,
       // Taller than half the screen and scrolls inside itself; without this it is capped at half
       // height and the second card is out of reach.

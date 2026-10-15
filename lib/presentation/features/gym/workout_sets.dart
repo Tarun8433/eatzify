@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:health_pro/core/theme/app_spacing.dart';
 import 'package:health_pro/core/widgets/app_card.dart';
+import 'package:health_pro/core/widgets/app_sheet.dart';
 import 'package:health_pro/domain/entities/gym/gym_enums.dart';
 import 'package:health_pro/domain/entities/gym/workout.dart';
 import 'package:health_pro/presentation/features/gym/exercise_detail_sheet.dart';
@@ -352,7 +353,7 @@ class _ValueSheet extends StatefulWidget {
     required bool decimal,
     required double min,
     required double max,
-  }) => showModalBottomSheet<double>(
+  }) => showAppSheet<double>(
     context: context,
     showDragHandle: true,
     builder: (_) =>

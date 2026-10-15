@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:health_pro/core/theme/app_spacing.dart';
 import 'package:health_pro/core/widgets/app_card.dart';
+import 'package:health_pro/core/widgets/app_sheet.dart';
 import 'package:health_pro/core/widgets/body_map/body_map.dart';
 import 'package:health_pro/core/widgets/state_views.dart';
 import 'package:health_pro/core/widgets/view_state.dart';
@@ -30,7 +31,7 @@ class ExerciseDetailSheet extends StatefulWidget {
   final bool readOnly;
 
   static Future<void> show(BuildContext context, String exerciseId, {bool readOnly = false}) =>
-      showModalBottomSheet<void>(
+      showAppSheet<void>(
         context: context,
         isScrollControlled: true,
         showDragHandle: true,
@@ -218,7 +219,7 @@ class _Detail extends StatelessWidget {
   Future<void> _addToRoutine(BuildContext context, GymController gym) async {
     final l = AppLocalizations.of(context);
     final routines = gym.ready?.routines ?? const <Routine>[];
-    final choice = await showModalBottomSheet<Routine?>(
+    final choice = await showAppSheet<Routine?>(
       context: context,
       showDragHandle: true,
       builder: (context) => SafeArea(

@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:health_pro/core/format/phone_e164.dart';
 import 'package:health_pro/core/theme/app_spacing.dart';
 import 'package:health_pro/core/widgets/app_card.dart';
+import 'package:health_pro/core/widgets/app_sheet.dart';
 import 'package:health_pro/domain/repositories/coach_repository.dart';
 import 'package:health_pro/presentation/l10n/app_localizations.dart';
 
@@ -12,7 +13,7 @@ import 'package:health_pro/presentation/l10n/app_localizations.dart';
 /// does a grant exist (docs/10 §3). The sheet says so, because a button labelled "Add client"
 /// would promise something the server will not do.
 abstract final class InviteClientSheet {
-  static Future<void> show(BuildContext context) => showModalBottomSheet<void>(
+  static Future<void> show(BuildContext context) => showAppSheet<void>(
     context: context,
     isScrollControlled: true,
     useSafeArea: true,

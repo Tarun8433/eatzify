@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:health_pro/core/theme/app_spacing.dart';
+import 'package:health_pro/core/widgets/app_sheet.dart';
 import 'package:health_pro/core/widgets/food_image.dart';
 import 'package:health_pro/domain/entities/food.dart';
 import 'package:health_pro/presentation/l10n/app_localizations.dart';
@@ -172,7 +173,7 @@ class PortionSheet extends StatefulWidget {
 
   /// Opens the sheet; resolves to the choice, or null if dismissed.
   static Future<PortionChoice?> show(BuildContext context, Food food) =>
-      showModalBottomSheet<PortionChoice>(
+      showAppSheet<PortionChoice>(
         context: context,
         isScrollControlled: true,
         useSafeArea: true,

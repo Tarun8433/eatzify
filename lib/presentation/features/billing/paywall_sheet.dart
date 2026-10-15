@@ -4,6 +4,7 @@ import 'package:health_pro/core/config/site_links.dart';
 import 'package:health_pro/core/format/rupees.dart';
 import 'package:health_pro/core/theme/app_spacing.dart';
 import 'package:health_pro/core/widgets/app_card.dart';
+import 'package:health_pro/core/widgets/app_sheet.dart';
 import 'package:health_pro/core/widgets/state_views.dart';
 import 'package:health_pro/core/widgets/view_state.dart';
 import 'package:health_pro/domain/entities/billing.dart';
@@ -30,7 +31,7 @@ class PaywallSheet extends StatelessWidget {
 
   static Future<void> show(BuildContext context, BillingController billing) {
     billing.loadPrices();
-    return showModalBottomSheet<void>(
+    return showAppSheet<void>(
       context: context,
       // The sheet is taller than half the screen and scrolls inside itself; without this it is
       // capped at half height and the compare table is unreachable.

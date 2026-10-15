@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:health_pro/core/theme/app_spacing.dart';
 import 'package:health_pro/core/widgets/app_card.dart';
+import 'package:health_pro/core/widgets/app_sheet.dart';
 import 'package:health_pro/core/widgets/state_views.dart';
 import 'package:health_pro/core/widgets/view_state.dart';
 import 'package:health_pro/domain/entities/gym/gym_overview.dart';
@@ -136,7 +137,7 @@ Future<({int? routineId})?> pickRoutine(
   required int? current,
 }) {
   final l = AppLocalizations.of(context);
-  return showModalBottomSheet<({int? routineId})>(
+  return showAppSheet<({int? routineId})>(
     context: context,
     showDragHandle: true,
     isScrollControlled: true,
@@ -173,7 +174,7 @@ abstract final class DayPlanSheet {
     final l = AppLocalizations.of(context);
     final c = Get.find<GymController>();
     final routines = c.ready?.routines ?? const <Routine>[];
-    final choice = await showModalBottomSheet<String>(
+    final choice = await showAppSheet<String>(
       context: context,
       showDragHandle: true,
       isScrollControlled: true,

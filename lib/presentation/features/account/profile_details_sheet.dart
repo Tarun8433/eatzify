@@ -5,6 +5,7 @@ import 'package:health_pro/core/format/time_of_day_text.dart';
 import 'package:health_pro/core/theme/app_colors.dart';
 import 'package:health_pro/core/theme/app_spacing.dart';
 import 'package:health_pro/core/widgets/app_card.dart';
+import 'package:health_pro/core/widgets/app_sheet.dart';
 import 'package:health_pro/core/widgets/section_header.dart';
 import 'package:health_pro/core/widgets/state_views.dart';
 import 'package:health_pro/core/widgets/view_state.dart';
@@ -22,7 +23,7 @@ import 'package:health_pro/presentation/shell/nav_controller.dart';
 /// profile" row, so the page itself stays a glance plus a list of places to go.
 abstract final class ProfileDetailsSheet {
   static Future<void> show(BuildContext context, AccountController controller) =>
-      showModalBottomSheet<void>(
+      showAppSheet<void>(
         context: context,
         isScrollControlled: true,
         useSafeArea: true,

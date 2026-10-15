@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:health_pro/core/theme/app_spacing.dart';
+import 'package:health_pro/core/widgets/app_sheet.dart';
 import 'package:health_pro/domain/entities/gym/routine.dart';
 import 'package:health_pro/domain/repositories/measurements_repository.dart';
 import 'package:health_pro/domain/usecases/workout_session.dart';
@@ -74,7 +75,7 @@ class WeighInSheet extends StatefulWidget {
   const WeighInSheet({super.key});
 
   static Future<({double? kg, bool chooseOther})?> show(BuildContext context) =>
-      showModalBottomSheet<({double? kg, bool chooseOther})>(
+      showAppSheet<({double? kg, bool chooseOther})>(
         context: context,
         isScrollControlled: true,
         isDismissible: false,
@@ -200,7 +201,7 @@ abstract final class StartChooserSheet {
   static Future<({Routine? routine})?> show(BuildContext context) {
     final l = AppLocalizations.of(context);
     final routines = Get.find<GymController>().ready?.routines ?? const <Routine>[];
-    return showModalBottomSheet<({Routine? routine})>(
+    return showAppSheet<({Routine? routine})>(
       context: context,
       showDragHandle: true,
       isScrollControlled: true,

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:health_pro/core/theme/app_spacing.dart';
+import 'package:health_pro/core/widgets/app_sheet.dart';
 import 'package:health_pro/domain/entities/gym/exercise.dart';
 import 'package:health_pro/domain/entities/gym/gym_enums.dart';
 import 'package:health_pro/presentation/features/gym/gym_controller.dart';
@@ -15,7 +16,7 @@ class CustomExerciseSheet extends StatefulWidget {
   final Exercise? editing;
 
   static Future<Exercise?> show(BuildContext context, {Exercise? editing}) =>
-      showModalBottomSheet<Exercise>(
+      showAppSheet<Exercise>(
         context: context,
         isScrollControlled: true,
         showDragHandle: true,

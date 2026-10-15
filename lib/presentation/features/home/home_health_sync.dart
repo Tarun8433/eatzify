@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:health_pro/core/theme/app_spacing.dart';
+import 'package:health_pro/core/widgets/app_sheet.dart';
 import 'package:health_pro/domain/usecases/sync_health.dart';
 import 'package:health_pro/presentation/features/account/health_connect_page.dart';
 import 'package:health_pro/presentation/features/home/home_controller.dart';
@@ -123,7 +124,7 @@ class _HomeHealthPromptState extends State<HomeHealthPrompt> {
     if (!mounted || !widget.controller.healthPrompt.value) return;
     widget.controller.healthPromptShown();
 
-    final connect = await showModalBottomSheet<bool>(
+    final connect = await showAppSheet<bool>(
       context: context,
       showDragHandle: true,
       // Sized to its content, scrolling past the screen height — at 200 % text the buttons would

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:health_pro/core/theme/app_spacing.dart';
+import 'package:health_pro/core/widgets/app_sheet.dart';
 import 'package:health_pro/domain/entities/gym/gym_enums.dart';
 import 'package:health_pro/domain/entities/gym/routine.dart';
 import 'package:health_pro/presentation/features/gym/gym_labels.dart';
@@ -18,7 +19,7 @@ class ExerciseConfigSheet extends StatefulWidget {
     BuildContext context,
     RoutineItem item,
     ProgressionRule routineRule,
-  ) => showModalBottomSheet<RoutineExercise>(
+  ) => showAppSheet<RoutineExercise>(
     context: context,
     isScrollControlled: true,
     showDragHandle: true,

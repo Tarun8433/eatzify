@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:health_pro/core/theme/app_colors.dart';
 import 'package:health_pro/core/theme/app_spacing.dart';
 import 'package:health_pro/core/widgets/app_card.dart';
+import 'package:health_pro/core/widgets/app_sheet.dart';
 import 'package:health_pro/core/widgets/state_views.dart';
 import 'package:health_pro/core/widgets/view_state.dart';
 import 'package:health_pro/domain/entities/check_in.dart';
@@ -243,7 +244,7 @@ class _CheckInCard extends StatelessWidget {
     final l = AppLocalizations.of(context);
     final messenger = ScaffoldMessenger.of(context);
 
-    final result = await showModalBottomSheet<({String notes, List<String> actions})>(
+    final result = await showAppSheet<({String notes, List<String> actions})>(
       context: context,
       showDragHandle: true,
       isScrollControlled: true,

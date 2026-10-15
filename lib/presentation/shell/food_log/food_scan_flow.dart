@@ -6,6 +6,7 @@ import 'package:get/get.dart';
 import 'package:health_pro/core/ads/rewarded_ad_gate.dart';
 import 'package:health_pro/core/errors/failures.dart';
 import 'package:health_pro/core/theme/app_spacing.dart';
+import 'package:health_pro/core/widgets/app_sheet.dart';
 import 'package:health_pro/domain/entities/food_scan.dart';
 import 'package:health_pro/domain/repositories/billing_repository.dart';
 import 'package:health_pro/domain/repositories/payment_gateway.dart';
@@ -81,7 +82,7 @@ class FoodScanFlow {
     );
     if (photo == null || !context.mounted) return null;
 
-    final result = await showModalBottomSheet<Either<Failure, ScanEstimate>>(
+    final result = await showAppSheet<Either<Failure, ScanEstimate>>(
       context: context,
       isDismissible: false,
       enableDrag: false,
@@ -101,14 +102,14 @@ class FoodScanFlow {
 
     // Not recognised is its own answer, never a guess — and the server kept no photo of it.
     if (!estimate.recognised) {
-      return showModalBottomSheet<ScanOutcome>(
+      return showAppSheet<ScanOutcome>(
         context: context,
         showDragHandle: true,
         builder: (_) => ScanNoMatchSheet(photoPath: photo.path),
       );
     }
 
-    final outcome = await showModalBottomSheet<ScanOutcome>(
+    final outcome = await showAppSheet<ScanOutcome>(
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
@@ -144,7 +145,7 @@ class FoodScanFlow {
   /// Said before the ad, not sprung: the person chooses to watch it.
   Future<bool?> _askForAd(BuildContext context, int remaining) {
     final l = AppLocalizations.of(context);
-    return showModalBottomSheet<bool>(
+    return showAppSheet<bool>(
       context: context,
       showDragHandle: true,
       builder: (sheet) => Padding(
@@ -173,7 +174,7 @@ class FoodScanFlow {
 
   Future<ImageSource?> _chooseSource(BuildContext context) {
     final l = AppLocalizations.of(context);
-    return showModalBottomSheet<ImageSource>(
+    return showAppSheet<ImageSource>(
       context: context,
       showDragHandle: true,
       builder: (sheet) => SafeArea(

@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 import 'package:health_pro/core/theme/app_colors.dart';
 import 'package:health_pro/core/theme/app_spacing.dart';
 import 'package:health_pro/core/widgets/app_card.dart';
+import 'package:health_pro/core/widgets/app_sheet.dart';
 import 'package:health_pro/core/widgets/state_views.dart';
 import 'package:health_pro/core/widgets/view_state.dart';
 import 'package:health_pro/domain/entities/support_ticket.dart';
@@ -75,7 +76,7 @@ class TicketsPage extends StatelessWidget {
   }
 
   Future<void> _compose(BuildContext context, TicketsController c) async {
-    final ticket = await showModalBottomSheet<SupportTicket>(
+    final ticket = await showAppSheet<SupportTicket>(
       context: context,
       isScrollControlled: true,
       builder: (_) => _ComposeSheet(controller: c),

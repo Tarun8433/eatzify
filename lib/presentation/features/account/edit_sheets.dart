@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart' hide Condition;
 import 'package:health_pro/core/format/rupees.dart';
 import 'package:health_pro/core/theme/app_spacing.dart';
+import 'package:health_pro/core/widgets/app_sheet.dart';
 import 'package:health_pro/core/widgets/form_fields.dart';
 import 'package:health_pro/domain/entities/onboarding_enums.dart';
 import 'package:health_pro/domain/entities/profile_view.dart';
@@ -27,7 +28,7 @@ abstract final class EditSheets {
       _show(context, profile, health: true);
 
   static Future<bool?> _show(BuildContext context, ProfileView profile, {required bool health}) =>
-      showModalBottomSheet<bool>(
+      showAppSheet<bool>(
         context: context,
         isScrollControlled: true,
         useSafeArea: true,

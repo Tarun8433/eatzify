@@ -237,6 +237,25 @@ void main() {
     expect(button.onPressed, isNull);
   });
 
+  /// The submit button once sat under the phone's back / home / recents bar, out of reach.
+  testWidgets('should keep the submit button above the navigation bar when scrolled to the end', (
+    tester,
+  ) async {
+    const navBar = 48.0;
+    tester.view.padding = const FakeViewPadding(bottom: navBar * 3);
+    tester.view.viewPadding = const FakeViewPadding(bottom: navBar * 3);
+    addTearDown(tester.view.reset);
+
+    await tester.pumpWidget(pageWith(FakeCoachRepository(current: _accepted)));
+    await tester.pumpAndSettle();
+    await tester.drag(find.byType(Scrollable).first, const Offset(0, -5000));
+    await tester.pumpAndSettle();
+
+    final screen = tester.view.physicalSize.height / tester.view.devicePixelRatio;
+    final button = tester.getRect(find.widgetWithText(FilledButton, 'Submit for review'));
+    expect(button.bottom, lessThanOrEqualTo(screen - navBar));
+  });
+
   testWidgets('submits once both documents are on file', (tester) async {
     final repo = FakeCoachRepository(
       current: const CoachApplication(

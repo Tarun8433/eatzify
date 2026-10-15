@@ -4,6 +4,7 @@ import 'package:health_pro/core/format/time_of_day_text.dart';
 import 'package:health_pro/core/format/weight_units.dart';
 import 'package:health_pro/core/theme/app_spacing.dart';
 import 'package:health_pro/core/widgets/app_card.dart';
+import 'package:health_pro/core/widgets/app_sheet.dart';
 import 'package:health_pro/core/widgets/carousel_picker.dart';
 import 'package:health_pro/core/widgets/ruler_slider.dart';
 import 'package:health_pro/core/widgets/wheel_picker.dart';
@@ -120,7 +121,7 @@ class NumberFieldState extends State<NumberField> {
     // default — leaving the wheel behind it.
     FocusScope.of(context).unfocus();
 
-    await showModalBottomSheet<void>(
+    await showAppSheet<void>(
       context: context,
       showDragHandle: true,
       // Without this the sheet is capped at 9/16 of the screen, and a wheel plus a button does not

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:health_pro/core/errors/failures.dart';
 import 'package:health_pro/core/theme/app_spacing.dart';
+import 'package:health_pro/core/widgets/app_sheet.dart';
 import 'package:health_pro/domain/entities/gym/gym_overview.dart';
 import 'package:health_pro/domain/repositories/gym_repository.dart';
 import 'package:health_pro/domain/usecases/workout_session.dart';
@@ -325,7 +326,7 @@ class _WorkingWeightSheet extends StatefulWidget {
     required double initial,
     required double best,
     required bool last,
-  }) => showModalBottomSheet<double>(
+  }) => showAppSheet<double>(
     context: context,
     showDragHandle: true,
     isScrollControlled: true,

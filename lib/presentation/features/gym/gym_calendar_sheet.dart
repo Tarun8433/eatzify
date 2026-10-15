@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:health_pro/core/theme/app_spacing.dart';
+import 'package:health_pro/core/widgets/app_sheet.dart';
 import 'package:health_pro/core/widgets/state_views.dart';
 import 'package:health_pro/core/widgets/view_state.dart';
 import 'package:health_pro/domain/entities/gym/gym_overview.dart';
@@ -24,7 +25,7 @@ class GymCalendarSheet extends StatefulWidget {
   /// Opens on the month of the server's today — the phone's clock only when there is no overview.
   static Future<void> show(BuildContext context, {String? month}) {
     final today = Get.find<GymController>().ready?.today.diaryDate;
-    return showModalBottomSheet<void>(
+    return showAppSheet<void>(
       context: context,
       showDragHandle: true,
       isScrollControlled: true,

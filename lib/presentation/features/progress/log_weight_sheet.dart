@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import 'package:health_pro/core/format/weight_units.dart';
 import 'package:health_pro/core/theme/app_spacing.dart';
 import 'package:health_pro/core/widgets/app_card.dart';
+import 'package:health_pro/core/widgets/app_sheet.dart';
 import 'package:health_pro/core/widgets/ruler_slider.dart';
 import 'package:health_pro/core/widgets/view_state.dart';
 import 'package:health_pro/domain/entities/measurement.dart';
@@ -21,7 +22,7 @@ abstract final class LogWeightSheet {
     String kind = ProgressController.weightKind,
     String unit = 'kg',
     String? title,
-  }) => showModalBottomSheet<void>(
+  }) => showAppSheet<void>(
     context: context,
     isScrollControlled: true,
     useSafeArea: true,

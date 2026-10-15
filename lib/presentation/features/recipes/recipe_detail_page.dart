@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:health_pro/core/theme/app_spacing.dart';
 import 'package:health_pro/core/widgets/app_card.dart';
+import 'package:health_pro/core/widgets/app_sheet.dart';
 import 'package:health_pro/domain/entities/onboarding_enums.dart';
 import 'package:health_pro/domain/entities/recipe.dart';
 import 'package:health_pro/presentation/features/home/home_controller.dart';
@@ -143,7 +144,7 @@ class _LogSheet extends StatefulWidget {
 
   final Recipe recipe;
 
-  static Future<void> show(BuildContext context, Recipe recipe) => showModalBottomSheet<void>(
+  static Future<void> show(BuildContext context, Recipe recipe) => showAppSheet<void>(
     context: context,
     isScrollControlled: true,
     showDragHandle: true,

@@ -4,6 +4,7 @@ import 'package:health_pro/core/theme/app_assets.dart';
 import 'package:health_pro/core/theme/app_colors.dart';
 import 'package:health_pro/core/theme/app_spacing.dart';
 import 'package:health_pro/core/widgets/app_card.dart';
+import 'package:health_pro/core/widgets/app_sheet.dart';
 import 'package:health_pro/core/widgets/state_views.dart';
 import 'package:health_pro/core/widgets/view_state.dart';
 import 'package:health_pro/domain/entities/coach_application.dart';
@@ -34,15 +35,23 @@ class BecomePartnerPage extends StatelessWidget {
       // same words twice in the same viewport is chrome competing with content. The back arrow is
       // what the bar is actually for here.
       appBar: AppBar(backgroundColor: Colors.transparent, elevation: 0),
-      body: Obx(
-        () => switch (c.state.value) {
-          Loading<CoachApplication>() => const LoadingView(),
-          // Never applied. The offer to start is the single action docs/14 §6 asks an empty state
-          // for, and starting is just accepting the agreement.
-          Empty<CoachApplication>() => _Intro(controller: c),
-          Failed<CoachApplication>(:final failure) => FailedView(failure: failure, onRetry: c.load),
-          Ready<CoachApplication>(:final data) => _Progress(application: data, controller: c),
-        },
+      // The lists set their own padding, which drops the system inset: without this the submit
+      // button scrolled to its end sat under the phone's back / home / recents bar.
+      body: SafeArea(
+        top: false,
+        child: Obx(
+          () => switch (c.state.value) {
+            Loading<CoachApplication>() => const LoadingView(),
+            // Never applied. The offer to start is the single action docs/14 §6 asks an empty
+            // state for, and starting is just accepting the agreement.
+            Empty<CoachApplication>() => _Intro(controller: c),
+            Failed<CoachApplication>(:final failure) => FailedView(
+              failure: failure,
+              onRetry: c.load,
+            ),
+            Ready<CoachApplication>(:final data) => _Progress(application: data, controller: c),
+          },
+        ),
       ),
     );
   }
@@ -314,7 +323,7 @@ Future<void> _pick(
 }) async {
   final l = AppLocalizations.of(context);
 
-  final source = await showModalBottomSheet<ImageSource>(
+  final source = await showAppSheet<ImageSource>(
     context: context,
     builder: (sheet) => SafeArea(
       child: Column(
@@ -362,7 +371,7 @@ Future<void> _pickDiscipline(
   BecomePartnerController controller,
   CoachApplication application,
 ) async {
-  final picked = await showModalBottomSheet<CoachDiscipline>(
+  final picked = await showAppSheet<CoachDiscipline>(
     context: context,
     useSafeArea: true,
     builder: (sheetContext) {

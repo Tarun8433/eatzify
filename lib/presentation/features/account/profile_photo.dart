@@ -2,6 +2,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:health_pro/core/theme/app_spacing.dart';
+import 'package:health_pro/core/widgets/app_sheet.dart';
 import 'package:health_pro/domain/repositories/profile_repository.dart';
 import 'package:health_pro/presentation/l10n/app_localizations.dart';
 import 'package:image_picker/image_picker.dart';
@@ -90,7 +91,7 @@ class _ProfilePhotoState extends State<ProfilePhoto> {
 
   void _showOptions() {
     final l = AppLocalizations.of(context);
-    showModalBottomSheet<void>(
+    showAppSheet<void>(
       context: context,
       builder: (sheetContext) => SafeArea(
         child: Column(

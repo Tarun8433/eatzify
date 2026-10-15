@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:health_pro/core/theme/app_spacing.dart';
+import 'package:health_pro/core/widgets/app_sheet.dart';
 import 'package:health_pro/presentation/l10n/app_localizations.dart';
 import 'package:health_pro/presentation/shell/activity_log_tab.dart';
 import 'package:health_pro/presentation/shell/food_log_tab.dart';
@@ -18,7 +19,7 @@ class LogSheet extends StatelessWidget {
   static const waterTab = 1;
 
   static Future<void> show(BuildContext context, {int initialTab = 0}) {
-    return showModalBottomSheet<void>(
+    return showAppSheet<void>(
       context: context,
       isScrollControlled: true,
       showDragHandle: true,

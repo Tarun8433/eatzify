@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:health_pro/core/theme/app_spacing.dart';
 import 'package:health_pro/core/widgets/app_card.dart';
+import 'package:health_pro/core/widgets/app_sheet.dart';
 import 'package:health_pro/presentation/l10n/app_localizations.dart';
 
 /// The partner offer, shown the moment someone says they work in fitness or nutrition.
@@ -13,7 +14,7 @@ import 'package:health_pro/presentation/l10n/app_localizations.dart';
 /// reading documents, and neither belongs half-way through somebody's health onboarding. The sheet
 /// explains the route and says where it starts.
 abstract final class PartnerInviteSheet {
-  static Future<void> show(BuildContext context) => showModalBottomSheet<void>(
+  static Future<void> show(BuildContext context) => showAppSheet<void>(
     context: context,
     isScrollControlled: true,
     useSafeArea: true,
