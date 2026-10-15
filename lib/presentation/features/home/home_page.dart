@@ -419,73 +419,69 @@ class _CalorieSummaryCard extends StatelessWidget {
                 color: AppColors.darkMuted.withValues(alpha: 0.35),
               ),
               const SizedBox(width: AppSpacing.md),
-              Column(
-                children: [
-                  ProgressRing(
-                    size: _ring,
-                    strokeWidth: 6,
-                    // Division on two server figures, never a target the app invented (rule 2):
-                    // with no plan or nothing reported there is no fill, only the track.
-                    progress: burned == null || target == null || target == 0
-                        ? null
-                        : burned / target,
-                    color: AppColors.accentBright,
-                    trackColor: AppColors.accentBright.withValues(alpha: 0.25),
-                    // Inscribed in the ring's INNER circle (D-157): fitted to the full diameter,
-                    // "4,000" ran stroke to stroke. The number alone lives inside — the unit is
-                    // already on the figure to the left, and "burned" captions it below.
-                    child: SizedBox(
-                      width: _ringInner,
-                      height: _ringInner,
-                      child: FittedBox(
-                        fit: BoxFit.scaleDown,
-                        child: burned == null
-                            ? Text(
-                                '—',
-                                style: theme.textTheme.titleMedium?.copyWith(
-                                  fontWeight: FontWeight.w700,
-                                  color: AppColors.darkOnSurface,
+              // D-267: where a step day's figure comes from, on a long press — not on the card.
+              Tooltip(
+                message: (day.steps ?? 0) > 0 ? l.homeBurnedEstimated : '',
+                child: Column(
+                  children: [
+                    ProgressRing(
+                      size: _ring,
+                      strokeWidth: 6,
+                      // Division on two server figures, never a target the app invented (rule 2):
+                      // with no plan or nothing reported there is no fill, only the track.
+                      progress: burned == null || target == null || target == 0
+                          ? null
+                          : burned / target,
+                      color: AppColors.accentBright,
+                      trackColor: AppColors.accentBright.withValues(alpha: 0.25),
+                      // Inscribed in the ring's INNER circle (D-157): fitted to the full diameter,
+                      // "4,000" ran stroke to stroke. The number alone lives inside — the unit is
+                      // already on the figure to the left, and "burned" captions it below.
+                      child: SizedBox(
+                        width: _ringInner,
+                        height: _ringInner,
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: burned == null
+                              ? Text(
+                                  '—',
+                                  style: theme.textTheme.titleMedium?.copyWith(
+                                    fontWeight: FontWeight.w700,
+                                    color: AppColors.darkOnSurface,
+                                  ),
+                                )
+                              // The figure over its unit, as the reference sets it in the ring.
+                              : Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      NumberFormat.decimalPattern().format(burned),
+                                      style: theme.textTheme.titleMedium?.copyWith(
+                                        fontWeight: FontWeight.w700,
+                                        color: AppColors.darkOnSurface,
+                                      ),
+                                    ),
+                                    Text(
+                                      'kcal',
+                                      style: theme.textTheme.bodySmall?.copyWith(
+                                        color: AppColors.darkMuted,
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                              )
-                            // The figure over its unit, as the reference sets it in the ring.
-                            : Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Text(
-                                    NumberFormat.decimalPattern().format(burned),
-                                    style: theme.textTheme.titleMedium?.copyWith(
-                                      fontWeight: FontWeight.w700,
-                                      color: AppColors.darkOnSurface,
-                                    ),
-                                  ),
-                                  Text(
-                                    'kcal',
-                                    style: theme.textTheme.bodySmall?.copyWith(
-                                      color: AppColors.darkMuted,
-                                    ),
-                                  ),
-                                ],
-                              ),
+                        ),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: AppSpacing.xs),
-                  Text(
-                    l.homeBurned,
-                    style: theme.textTheme.bodySmall?.copyWith(color: AppColors.darkMuted),
-                  ),
-                ],
+                    const SizedBox(height: AppSpacing.xs),
+                    Text(
+                      l.homeBurned,
+                      style: theme.textTheme.bodySmall?.copyWith(color: AppColors.darkMuted),
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
-          // D-267: with steps, the server prices them at the person's own weight — say so.
-          if ((day.steps ?? 0) > 0) ...[
-            const SizedBox(height: AppSpacing.xs),
-            Text(
-              l.homeBurnedEstimated,
-              style: theme.textTheme.bodySmall?.copyWith(color: AppColors.darkMuted),
-            ),
-          ],
           // What the figure above is made of, when part of it was estimated rather than measured.
           if (workout != null) ...[
             const SizedBox(height: AppSpacing.xs),

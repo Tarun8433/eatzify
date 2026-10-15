@@ -615,8 +615,10 @@ void main() {
       expect(find.text('8,432'), findsOneWidget);
     });
 
-    /// D-267: the card says once where a step day's figure comes from. It once said it twice.
-    testWidgets('should say once that burned is estimated from steps and weight', (tester) async {
+    /// D-267: where a step day's figure comes from is a long press away, never a line on the card.
+    testWidgets('should keep the estimate note off the card, in the ring\'s tooltip', (
+      tester,
+    ) async {
       await tester.pumpWidget(
         homeUnderTest(
           FakeDiaryRepository(dayResult: Right(dayWith(energyBurnedKcal: 12, steps: 469))),
@@ -624,7 +626,8 @@ void main() {
       );
       await settle(tester);
 
-      expect(find.text('Estimated from your steps and weight'), findsOneWidget);
+      expect(find.text('Estimated from your steps and weight'), findsNothing);
+      expect(find.byTooltip('Estimated from your steps and weight'), findsOneWidget);
     });
 
     testWidgets('steps without a burned figure never claims tracking is unavailable', (
