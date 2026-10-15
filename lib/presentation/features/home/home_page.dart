@@ -478,13 +478,6 @@ class _CalorieSummaryCard extends StatelessWidget {
               ),
             ],
           ),
-          if (device != null && (day.steps ?? 0) > 0) ...[
-            const SizedBox(height: AppSpacing.xs),
-            Text(
-              l.homeBurnedFromWeight,
-              style: theme.textTheme.bodySmall?.copyWith(color: AppColors.darkMuted),
-            ),
-          ],
           // D-267: with steps, the server prices them at the person's own weight — say so.
           if ((day.steps ?? 0) > 0) ...[
             const SizedBox(height: AppSpacing.xs),
